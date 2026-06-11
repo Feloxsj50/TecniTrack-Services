@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crear Cuenta - TecniTrack</title>
+<link rel="stylesheet" href="css/style.css">
+
+<!-- iconos -->
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+<div class="background"></div>
+
+<div class="login-box">
+
+    <div class="logo-area">
+        <i class="fa-solid fa-laptop-code icon-logo"></i>
+        <h2>TecniTrack <span>Services</span></h2>
+    </div>
+
+    <h1>Crear Cuenta</h1>
+
+    <a href="index.html" class="forgot">
+        ¿Ya tienes cuenta? Iniciar sesión
+    </a>
+
+    <!-- los names -->
+    <div class="input-group">
+        <i class="fa fa-user"></i>
+        <input type="text" placeholder="Nombres">
+    </div>
+
+    <!-- apellidos -->
+    <div class="input-group">
+        <i class="fa fa-user"></i>
+        <input type="text" placeholder="Apellidos">
+    </div>
+
+    <!-- email -->
+    <div class="input-group">
+        <i class="fa fa-envelope"></i>
+        <input type="email" id="email" placeholder="Correo Electrónico">
+    </div>
+    <small id="emailHelp"></small>
+
+    <!-- contra -->
+    <div class="input-group">
+        <i class="fa fa-lock"></i>
+        <input type="password" id="password" placeholder="Contraseña (mínimo 8)">
+        <i class="fa fa-eye-slash toggle"></i>
+    </div>
+    <small id="passwordHelp"></small>
+
+    <!-- boton -->
+    <button class="btn-login">Registrarme</button>
+
+    <div class="options">
+        <label>
+            <input type="checkbox"> Recordarme
+        </label>
+    </div>
+
+    <p style="margin-top:20px">O registrarte con</p>
+
+    <div style="font-size:30px; margin-top:10px;">
+        <i class="fab fa-google"></i>
+    </div>
+        <!-- seleccionar rol -->
+    <div class="input-group role-group">
+    <label>Tipo de cuenta (opcional):</label>
+
+    <label class="radio-option">
+        <input type="radio" name="role" value="admin">
+        Admin
+    </label>
+
+    <label class="radio-option">
+        <input type="radio" name="role" value="tecnico">
+        Técnico
+    </label>
+    </div>
+    <small id="roleHelp"></small>
+
+    </div>
+
+
+<script src="js/registro.js"></script>
+
+</body>
+</html>

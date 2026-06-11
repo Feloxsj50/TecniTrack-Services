@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Cliente - TecniTrack</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <h2>Tecni<span>Track</span></h2>
+            <small>Services</small>
+        </div>
+
+        <p class="section">General</p>
+
+        <a href="panel_cliente.html" class="menu-item active">
+            <i class="fa-solid fa-house-laptop"></i> Mi Panel
+        </a>
+
+        <a href="facturacion.html" class="menu-item">
+            <i class="fa-solid fa-file-invoice"></i> Facturación
+        </a>
+
+        <p class="section">Soporte</p>
+
+        <a href="ayuda.html" class="menu-item">
+            <i class="fa-solid fa-headset"></i> Ayuda y Soporte
+        </a>
+
+        <a href="configuracion.html" class="menu-item">
+            <i class="fa-solid fa-cog"></i> Configuración
+        </a>
+
+        <div class="logout">
+            <a href="index.html" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+            </a>
+        </div>
+    </div>
+
+    <div class="content">
+        <section class="panel-section active-section">
+            <h1>Panel Cliente</h1>
+
+            <div class="cards">
+                <div class="card">
+                    <h3>3</h3>
+                    <p>Servicios Solicitados</p>
+                </div>
+
+                <div class="card">
+                    <h3>1</h3>
+                    <p>En Revisión</p>
+                </div>
+
+                <div class="card">
+                    <h3>1</h3>
+                    <p>Completados</p>
+                </div>
+
+                <div class="card">
+                    <h3>$45</h3>
+                    <p>Saldo Pendiente</p>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <h2>Solicitar Servicio</h2>
+
+                <input type="text" placeholder="Nombre del cliente">
+                <input type="text" placeholder="Dispositivo">
+                <input type="text" placeholder="Tipo de problema">
+                <input type="date">
+
+                <button>Enviar Solicitud</button>
+            </div>
+
+            <div class="historial">
+                <h2>Mis Servicios</h2>
+
+                <table id="tablaServicios">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Dispositivo</th>
+                            <th>Servicio</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2026-02-22</td>
+                            <td>CL-201</td>
+                            <td>Cliente</td>
+                            <td>HP Pavilion</td>
+                            <td>Diagnóstico</td>
+                            <td><span class="estado en-proceso">En Proceso</span></td>
+                        </tr>
+                        <tr>
+                            <td>2026-02-20</td>
+                            <td>CL-202</td>
+                            <td>Cliente</td>
+                            <td>Dell Inspiron</td>
+                            <td>Limpieza interna</td>
+                            <td><span class="estado completado">Completado</span></td>
+                        </tr>
+                        <tr>
+                            <td>2026-02-19</td>
+                            <td>CL-203</td>
+                            <td>Cliente</td>
+                            <td>Lenovo IdeaPad</td>
+                            <td>Cambio de batería</td>
+                            <td><span class="estado pendiente">Pendiente</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+</body>
+
+</html>

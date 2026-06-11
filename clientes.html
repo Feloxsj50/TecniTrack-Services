@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - TecniTrack</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/clientes.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- Barra lateral -->
+    <div class="sidebar">
+        <div class="logo">
+            <h2>Tecni<span>Track</span></h2>
+            <small>Services</small>
+        </div>
+
+        <p class="section">General</p>
+
+        <a href="panel_admin.html" class="menu-item">
+            <i class="fa-solid fa-chart-bar"></i> Dashboard
+        </a>
+
+        <a href="clientes.html" class="menu-item active">
+            <i class="fa-solid fa-users"></i> Clientes
+        </a>
+
+        <a href="tecnicos.html" class="menu-item">
+            <i class="fa-solid fa-user-cog"></i> Técnicos
+        </a>
+
+        <p class="section">Reportes</p>
+
+        <a href="files.html" class="menu-item">
+            <i class="fa-solid fa-folder"></i> Files
+        </a>
+
+        <a href="inventario.html" class="menu-item">
+            <i class="fa-solid fa-box"></i> Inventario
+        </a>
+
+        <a href="facturacion.html" class="menu-item">
+            <i class="fa-solid fa-file-invoice"></i> Facturación
+        </a>
+
+        <p class="section">Configuraciones</p>
+
+        <a href="ayuda.html" class="menu-item">
+            <i class="fa-solid fa-headset"></i> Ayuda y Soporte
+        </a>
+
+        <a href="configuracion.html" class="menu-item">
+            <i class="fa-solid fa-cog"></i> Configuración
+        </a>
+
+        <div class="logout">
+            <a href="index.html" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+            </a>
+        </div>
+    </div>
+
+    <!-- Principal -->
+    <div class="content">
+        <section class="panel-section active-section">
+            <h1>Clientes</h1>
+
+            <div class="cards clientes-cards">
+                <div class="card">
+                    <h3 id="totalClientes">0</h3>
+                    <p>Total Clientes</p>
+                </div>
+
+                <div class="card">
+                    <h3 id="clientesActivos">0</h3>
+                    <p>Activos</p>
+                </div>
+
+                <div class="card">
+                    <h3 id="clientesInactivos">0</h3>
+                    <p>Inactivos</p>
+                </div>
+
+                <div class="card">
+                    <h3 id="clientesNuevos">0</h3>
+                    <p>Nuevos</p>
+                </div>
+            </div>
+
+            <div class="clientes-grid">
+                <div class="cliente-formulario">
+                    <h2>Registrar Cliente</h2>
+
+                    <div class="form-grid-clientes">
+                        <input type="text" id="nombreCliente" placeholder="Nombre del cliente">
+                        <input type="email" id="correoCliente" placeholder="Correo electrónico">
+                        <input type="text" id="telefonoCliente" placeholder="Teléfono">
+                        <select id="estadoCliente">
+                            <option value="Activo">Activo</option>
+                            <option value="Inactivo">Inactivo</option>
+                        </select>
+                    </div>
+
+                    <div class="acciones-clientes">
+                        <button id="btnGuardarCliente">Guardar Cliente</button>
+                    </div>
+                </div>
+
+                <div class="cliente-resumen">
+                    <div class="resumen-box">
+                        <h3>Resumen</h3>
+                        <p><span>Total:</span> <strong id="resumenTotal">0</strong></p>
+                        <p><span>Activos:</span> <strong id="resumenActivos">0</strong></p>
+                        <p><span>Inactivos:</span> <strong id="resumenInactivos">0</strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="topbar clientes-topbar">
+                <input type="text" id="buscarCliente" placeholder="Buscar cliente...">
+            </div>
+
+            <div class="historial">
+                <h2>Lista de Clientes</h2>
+
+                <table id="tablaClientes">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Correo</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Juan Pérez</td>
+                            <td>juan@email.com</td>
+                            <td>8888-8888</td>
+                            <td><span class="estado-cliente activo">Activo</span></td>
+                            <td>
+                                <button class="btn-editar">Editar</button>
+                                <button class="btn-eliminar">Eliminar</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>María López</td>
+                            <td>maria@email.com</td>
+                            <td>7777-7777</td>
+                            <td><span class="estado-cliente inactivo">Inactivo</span></td>
+                            <td>
+                                <button class="btn-editar">Editar</button>
+                                <button class="btn-eliminar">Eliminar</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script src="js/clientes.js"></script>
+</body>
+
+</html>

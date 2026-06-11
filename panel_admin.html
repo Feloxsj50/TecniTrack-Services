@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TecniTrack</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- Barra lateral -->
+
+      <div class="sidebar">
+        <div class="logo">
+            <h2>Tecni<span>Track</span></h2>
+            <small>Services</small>
+        </div>
+
+        <p class="section">General</p>
+
+        <a href="panel_admin.html" class="menu-item active">
+            <i class="fa-solid fa-chart-bar"></i> Dashboard
+        </a>
+
+        <a href="clientes.html" class="menu-item">
+            <i class="fa-solid fa-users"></i> Clientes
+        </a>
+
+        <a href="tecnicos.html" class="menu-item">
+            <i class="fa-solid fa-user-cog"></i> Técnicos
+        </a>
+
+        <p class="section">Reportes</p>
+
+        <a href="files.html" class="menu-item">
+            <i class="fa-solid fa-folder"></i> Files
+        </a>
+
+        <a href="inventario.html" class="menu-item">
+            <i class="fa-solid fa-box"></i> Inventario
+        </a>
+
+        <a href="facturacion.html" class="menu-item">
+            <i class="fa-solid fa-file-invoice"></i> Facturación
+        </a>
+
+        <p class="section">Configuraciones</p>
+
+        <a href="ayuda.html" class="menu-item">
+            <i class="fa-solid fa-headset"></i> Ayuda y Soporte
+        </a>
+
+        <a href="configuracion.html" class="menu-item">
+            <i class="fa-solid fa-cog"></i> Configuración
+        </a>
+
+        <div class="logout">
+            <a href="index.html" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+            </a>
+        </div>
+    </div>
+
+
+    <!--Principal-->
+
+
+    <div class="content">
+
+        <!-- Dashboard -->
+        <section id="dashboard" class="panel-section active-section">
+
+            <h1>Dashboard</h1>
+
+            <!-- Cards -->
+            <div class="cards">
+                <div class="card">
+                    <h3 id="totalServicios">0</h3>
+                    <p>Servicios Totales</p>
+                </div>
+
+                <div class="card">
+                    <h3 id="serviciosProceso">0</h3>
+                    <p>En Proceso</p>
+                </div>
+
+                <div class="card">
+                    <h3 id="serviciosCompletados">0</h3>
+                    <p>Completados</p>
+                </div>
+
+                <div class="card">
+                    <h3 id="serviciosPendientes">0</h3>
+                    <p>Pendientes</p>
+                </div>
+            </div>
+
+            <!-- Formulario -->
+            <div class="form-container">
+                <h2 id="tituloFormulario">Solicitud de Servicio</h2>
+
+<input type="hidden" id="idEditar">
+
+<input type="text" id="cliente" placeholder="Cliente">
+<input type="text" id="dispositivo" placeholder="Dispositivo">
+<input type="text" id="servicio" placeholder="Tipo de Servicio">
+<input type="date" id="fecha">
+
+<select id="estadoServicio">
+    <option value="Pendiente">Pendiente</option>
+    <option value="Completado">Completado</option>
+</select>
+
+<button id="btnGuardar">Guardar Servicio</button>
+</div>  <!-- ← cerrá el form-container aquí -->
+
+            <!-- Historial -->
+            <div class="historial">
+                <h2>Actividades Recientes</h2>
+
+                <table id="tablaServicios">
+                    <thead>
+        <th>Fecha</th>
+<th>ID</th>
+<th>Cliente</th>
+<th>Dispositivo</th>
+<th>Servicio</th>
+<th>Estado</th>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+        </section>
+
+        <!-- otras opciones -->
+        <section id="clientes" class="panel-section">
+            <h1>Clientes</h1>
+        </section>
+
+        <section id="tecnicos" class="panel-section">
+            <h1>Técnicos</h1>
+        </section>
+
+        <section id="files" class="panel-section">
+            <h1>Files</h1>
+        </section>
+
+        <section id="inventario" class="panel-section">
+            <h1>Inventario</h1>
+        </section>
+
+        <section id="facturacion" class="panel-section">
+            <h1>Facturación</h1>
+        </section>
+
+        <section id="ayuda" class="panel-section">
+            <h1>Ayuda y Soporte</h1>
+        </section>
+
+        <section id="configuracion" class="panel-section">
+            <h1>Configuración</h1>
+        </section>
+
+    </div>
+
+    <script src="js/admin.js"></script>
+
+</body>
+
+</html>

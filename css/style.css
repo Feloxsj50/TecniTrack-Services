@@ -1,0 +1,154 @@
+body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:black;
+    overflow:hidden;
+}
+
+/* fondo tecnológico */
+.background{
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:url("../img/PlacaYourMother.png") no-repeat center;
+    background-size:cover;
+    filter:brightness(0.4);
+}
+
+/* tarjeta */
+.login-box{
+    position:relative;
+    width:350px;
+    padding:40px 30px;
+    background:rgba(0,0,0,0.65);
+    backdrop-filter:blur(10px);
+    border-radius:20px;
+    border:2px solid #c300ff;
+    box-shadow:0 0 30px rgba(195,0,255,0.6);
+    text-align:center;
+    color:white;
+}
+
+/* logo */
+.logo-area{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:10px;
+}
+
+.icon-logo{
+    color:#ff00ff;
+    font-size:24px;
+}
+
+.logo-area span{
+    color:#00c8ff;
+}
+
+h1{
+    font-size:34px;
+    margin-bottom:25px;
+    font-weight:900;
+}
+
+/* inputs */
+.input-group{
+    display:flex;
+    align-items:center;
+    background:#444;
+    border-radius:8px;
+    margin:12px 0;
+    padding:10px;
+}
+
+.input-group i{
+    margin-right:10px;
+    color:#bbb;
+}
+
+.input-group input{
+    border:none;
+    outline:none;
+    background:transparent;
+    color:white;
+    width:100%;
+}
+
+.toggle{
+    cursor:pointer;
+}
+
+/* botón */
+.btn-login{
+    width:100%;
+    margin-top:20px;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(45deg,#6a00ff,#b000ff);
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.btn-login:hover{
+    transform:scale(1.05);
+}
+
+/* opciones */
+.options{
+    margin-top:10px;
+    font-size:14px;
+    text-align:left;
+}
+
+.forgot{
+    display:block;
+    margin-top:10px;
+    color:#bbb;
+    text-decoration:none;
+}
+
+.register{
+    margin-top:5px;
+    color:#aaa;
+    font-size:14px;
+}
+
+/*ayuda con el color del boton*/
+#passwordHelp{
+    display:block;
+    margin-top:6px;
+    font-size:13px;
+    font-weight:600;
+}
+
+.error{
+    color:#ff4d4d;
+}
+
+.success{
+    color:#00c853;
+}
+
+.role-group {
+    color: #fff;
+    text-align: right;
+    margin-top: 10px;
+    font-size:13px;
+    font-weight:600;
+}
+
+.radio-option {
+    display: block;
+    margin-top: 5px;
+    cursor: pointer;
+}

@@ -1,0 +1,248 @@
+
+.clientes-cards {
+    margin-bottom: 30px;
+}
+
+.clientes-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 25px;
+}
+
+/* ===== FORMULARIO Y CAJAS ===== */
+.cliente-formulario,
+.cliente-resumen .resumen-box,
+.historial {
+    background: rgba(16, 22, 45, 0.80);
+    border: 0.5px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.40);
+}
+
+.cliente-formulario h2,
+.historial h2 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #f1f5f9;
+}
+
+/* ===== GRID DEL FORM ===== */
+.form-grid-clientes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.form-grid-clientes input,
+.form-grid-clientes select,
+.topbar input,
+.clientes-topbar input {
+    padding: 10px 13px;
+    border-radius: 8px;
+    border: 0.5px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.06);
+    color: #f1f5f9;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    width: 100%;
+}
+
+.form-grid-clientes input::placeholder,
+.clientes-topbar input::placeholder {
+    color: #475569;
+}
+
+.form-grid-clientes input:focus,
+.form-grid-clientes select:focus,
+.clientes-topbar input:focus {
+    border-color: rgba(139, 92, 246, 0.60);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.form-grid-clientes select option {
+    background: #111827;
+    color: #f1f5f9;
+}
+
+/* ===== BOTONES ===== */
+.acciones-clientes {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Botón principal — igual al de admin */
+.acciones-clientes button,
+.btn-editar {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 0.5px solid rgba(139, 92, 246, 0.35);
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.acciones-clientes button:hover,
+.btn-editar:hover {
+    background: #8b5cf6;
+    color: white;
+    border-color: #8b5cf6;
+}
+
+/* Botón eliminar */
+.btn-eliminar {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 0.5px solid rgba(239, 68, 68, 0.30);
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.btn-eliminar:hover {
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+/* ===== RESUMEN ===== */
+.cliente-resumen {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.resumen-box h3 {
+    margin-top: 0;
+    margin-bottom: 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.resumen-box p {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+    padding: 9px 0;
+    margin: 0;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.resumen-box p span:last-child {
+    color: #f1f5f9;
+    font-weight: 500;
+}
+
+/* ===== TOPBAR ===== */
+.clientes-topbar {
+    margin-bottom: 20px;
+}
+
+/* ===== TABLA ===== */
+#tablaClientes {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    color: #f1f5f9;
+    font-size: 13px;
+}
+
+#tablaClientes th {
+    color: #475569;
+    font-size: 10.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 10px 12px;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.07);
+    text-align: left;
+}
+
+#tablaClientes td {
+    padding: 12px 12px;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.04);
+    color: #94a3b8;
+    vertical-align: middle;
+}
+
+#tablaClientes tbody tr {
+    transition: background 0.2s;
+}
+
+#tablaClientes tbody tr:hover {
+    background: rgba(139, 92, 246, 0.04);
+}
+
+#tablaClientes tbody tr:hover td {
+    color: #f1f5f9;
+}
+
+#tablaClientes tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ===== BADGES DE ESTADO ===== */
+.estado-cliente {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.estado-cliente::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.activo {
+    background: rgba(34, 197, 94, 0.12) !important;
+    color: #4ade80 !important;
+    border: 0.5px solid rgba(34, 197, 94, 0.20);
+}
+
+.activo::before { background: #22c55e; }
+
+.inactivo {
+    background: rgba(239, 68, 68, 0.12) !important;
+    color: #f87171 !important;
+    border: 0.5px solid rgba(239, 68, 68, 0.20);
+}
+
+.inactivo::before { background: #ef4444; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 992px) {
+    .clientes-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .form-grid-clientes { grid-template-columns: 1fr; }
+}

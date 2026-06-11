@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayuda y Soporte - TecniTrack</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <h2>Tecni<span>Track</span></h2>
+            <small>Services</small>
+        </div>
+
+        <p class="section">General</p>
+
+        <a href="panel_admin.html" class="menu-item">
+            <i class="fa-solid fa-chart-bar"></i> Dashboard
+        </a>
+
+        <a href="clientes.html" class="menu-item">
+            <i class="fa-solid fa-users"></i> Clientes
+        </a>
+
+        <a href="tecnicos.html" class="menu-item">
+            <i class="fa-solid fa-user-cog"></i> Técnicos
+        </a>
+
+        <p class="section">Reportes</p>
+
+        <a href="files.html" class="menu-item">
+            <i class="fa-solid fa-folder"></i> Files
+        </a>
+
+        <a href="inventario.html" class="menu-item">
+            <i class="fa-solid fa-box"></i> Inventario
+        </a>
+
+        <a href="facturacion.html" class="menu-item">
+            <i class="fa-solid fa-file-invoice"></i> Facturación
+        </a>
+
+        <p class="section">Configuraciones</p>
+
+        <a href="ayuda.html" class="menu-item active">
+            <i class="fa-solid fa-headset"></i> Ayuda y Soporte
+        </a>
+
+        <a href="configuracion.html" class="menu-item">
+            <i class="fa-solid fa-cog"></i> Configuración
+        </a>
+
+        <div class="logout">
+            <a href="index.html" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+            </a>
+        </div>
+    </div>
+
+    <div class="content">
+        <section class="panel-section active-section">
+            <h1>Ayuda y Soporte</h1>
+
+            <div class="cards">
+                <div class="card">
+                    <h3>24/7</h3>
+                    <p>Atención Disponible</p>
+                </div>
+
+                <div class="card">
+                    <h3>4</h3>
+                    <p>Guías Rápidas</p>
+                </div>
+
+                <div class="card">
+                    <h3>2</h3>
+                    <p>Tickets Abiertos</p>
+                </div>
+
+                <div class="card">
+                    <h3>15m</h3>
+                    <p>Tiempo Promedio</p>
+                </div>
+            </div>
+
+            <div class="form-container">
+                <h2>Enviar Solicitud</h2>
+
+                <input type="text" placeholder="Nombre">
+                <input type="email" placeholder="Correo">
+                <input type="text" placeholder="Asunto">
+                <select>
+                    <option>Soporte técnico</option>
+                    <option>Facturación</option>
+                    <option>Inventario</option>
+                    <option>Cuenta de usuario</option>
+                </select>
+
+                <button>Enviar Mensaje</button>
+            </div>
+
+            <div class="historial">
+                <h2>Preguntas Frecuentes</h2>
+
+                <table id="tablaServicios">
+                    <thead>
+                        <tr>
+                            <th>Área</th>
+                            <th>ID</th>
+                            <th>Tema</th>
+                            <th>Descripción</th>
+                            <th>Prioridad</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Login</td>
+                            <td>AY-001</td>
+                            <td>Acceso al sistema</td>
+                            <td>Verificar usuario, contraseña y rol asignado.</td>
+                            <td>Alta</td>
+                            <td><span class="estado completado">Disponible</span></td>
+                        </tr>
+                        <tr>
+                            <td>Inventario</td>
+                            <td>AY-002</td>
+                            <td>Stock bajo</td>
+                            <td>Revisar productos con alerta antes de facturar.</td>
+                            <td>Media</td>
+                            <td><span class="estado completado">Disponible</span></td>
+                        </tr>
+                        <tr>
+                            <td>Facturación</td>
+                            <td>AY-003</td>
+                            <td>Impresión</td>
+                            <td>Usar el botón imprimir desde el módulo de facturas.</td>
+                            <td>Media</td>
+                            <td><span class="estado en-proceso">En Revisión</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+</body>
+
+</html>

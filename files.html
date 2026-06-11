@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Files - Reportes</title>
+
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/files.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <div class="logo">
+            <h2>Tecni<span>Track</span></h2>
+            <small>Services</small>
+        </div>
+
+        <p class="section">General</p>
+
+        <a href="panel_admin.html" class="menu-item">
+            <i class="fa-solid fa-chart-bar"></i> Dashboard
+        </a>
+
+        <a href="clientes.html" class="menu-item">
+            <i class="fa-solid fa-users"></i> Clientes
+        </a>
+
+        <a href="tecnicos.html" class="menu-item">
+            <i class="fa-solid fa-user-cog"></i> Técnicos
+        </a>
+
+        <p class="section">Reportes</p>
+
+        <a href="files.html" class="menu-item active">
+            <i class="fa-solid fa-folder"></i> Files
+        </a>
+
+        <a href="inventario.html" class="menu-item">
+            <i class="fa-solid fa-box"></i> Inventario
+        </a>
+
+        <a href="facturacion.html" class="menu-item">
+            <i class="fa-solid fa-file-invoice"></i> Facturación
+        </a>
+
+        <p class="section">Configuraciones</p>
+
+        <a href="ayuda.html" class="menu-item">
+            <i class="fa-solid fa-headset"></i> Ayuda y Soporte
+        </a>
+
+        <a href="configuracion.html" class="menu-item">
+            <i class="fa-solid fa-cog"></i> Configuración
+        </a>
+
+        <div class="logout">
+            <a href="index.html" id="logoutBtn">
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+            </a>
+        </div>
+    </div>
+
+<div class="content">
+
+    <h1>Reportes Generales</h1>
+
+    <!-- CARDS -->
+    <div class="cards-reportes">
+        <div class="card">
+            <h3>$4,850</h3>
+            <p>Ingresos Totales</p>
+        </div>
+
+        <div class="card">
+            <h3>125</h3>
+            <p>Facturas Emitidas</p>
+        </div>
+
+        <div class="card">
+            <h3>$320</h3>
+            <p>Pagos Pendientes</p>
+        </div>
+
+        <div class="card">
+            <h3>48</h3>
+            <p>Clientes Atendidos</p>
+        </div>
+    </div>
+
+    <!-- GRÁFICAS -->
+    <div class="graficas-grid">
+
+        <div class="grafica-box">
+            <h3>Ventas Mensuales</h3>
+            <canvas id="graficaVentas"></canvas>
+        </div>
+
+        <div class="grafica-box">
+            <h3>Métodos de Pago</h3>
+            <canvas id="graficaPagos"></canvas>
+        </div>
+
+    </div>
+
+    <div class="graficas-secundarias">
+
+        <div class="grafica-box">
+            <h3>Ingresos por Día</h3>
+            <canvas id="graficaIngresosDia"></canvas>
+        </div>
+
+        <div class="grafica-box">
+            <h3>Servicios Más Solicitados</h3>
+            <canvas id="graficaServicios"></canvas>
+        </div>
+
+    </div>
+
+    <!-- BOTONES -->
+    <div class="acciones-reportes">
+        <button class="btn-pdf">Exportar en PDF</button>
+        <button class="btn-excel">Exportar en Excel</button>
+        <button class="btn-print">Imprimir</button>
+    </div>
+
+</div>
+
+<script src="js/files.js"></script>
+
+</body>
+</html>
