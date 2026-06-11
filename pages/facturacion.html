@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facturación - TecniTrack</title>
-    <link rel="stylesheet" href="css/admin.css">
-    <link rel="stylesheet" href="css/facturacion.css">
+    <title>FacturaciÃ³n - TecniTrack</title>
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/facturacion.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
@@ -27,7 +27,7 @@
         </a>
 
         <a href="tecnicos.html" class="menu-item">
-            <i class="fa-solid fa-user-cog"></i> Técnicos
+            <i class="fa-solid fa-user-cog"></i> TÃ©cnicos
         </a>
 
         <p class="section">Reportes</p>
@@ -41,7 +41,7 @@
         </a>
 
         <a href="facturacion.html" class="menu-item active">
-            <i class="fa-solid fa-file-invoice"></i> Facturación
+            <i class="fa-solid fa-file-invoice"></i> FacturaciÃ³n
         </a>
 
         <p class="section">Configuraciones</p>
@@ -51,19 +51,19 @@
         </a>
 
         <a href="configuracion.html" class="menu-item">
-            <i class="fa-solid fa-cog"></i> Configuración
+            <i class="fa-solid fa-cog"></i> ConfiguraciÃ³n
         </a>
 
         <div class="logout">
             <a href="index.html" id="logoutBtn">
-                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar SesiÃ³n
             </a>
         </div>
     </div>
 
     <div class="content">
         <div class="topbar">
-            <h1>Facturación</h1>
+            <h1>FacturaciÃ³n</h1>
             <input type="text" id="buscarFactura" placeholder="Buscar factura...">
         </div>
 
@@ -72,23 +72,23 @@
                 <h2>Generar Nueva Factura</h2>
 
                 <div class="form-grid">
-                    <input type="text" id="numeroFactura" placeholder="N° Factura" readonly>
+                    <input type="text" id="numeroFactura" placeholder="NÂ° Factura" readonly>
                     <input type="date" id="fechaFactura">
 
                     <input type="text" id="clienteFactura" placeholder="Cliente">
                     <select id="tecnicoFactura">
-                        <option value="">Seleccionar técnico</option>
+                        <option value="">Seleccionar tÃ©cnico</option>
                         <option value="Luis Canda">Luis Canda</option>
                         <option value="Natalia Ruiz">Natalia Ruiz</option>
-                        <option value="Pedro López">Pedro López</option>
+                        <option value="Pedro LÃ³pez">Pedro LÃ³pez</option>
                     </select>
 
                     <select id="servicioFactura">
                         <option value="">Seleccionar servicio</option>
                         <option value="Cambio de Pantalla">Cambio de Pantalla</option>
-                        <option value="Cambio de Batería">Cambio de Batería</option>
+                        <option value="Cambio de BaterÃ­a">Cambio de BaterÃ­a</option>
                         <option value="Limpieza Interna">Limpieza Interna</option>
-                        <option value="Diagnóstico">Diagnóstico</option>
+                        <option value="DiagnÃ³stico">DiagnÃ³stico</option>
                     </select>
 
                     <input type="number" id="precioServicio" placeholder="Precio del servicio" min="0" step="0.01">
@@ -100,7 +100,7 @@
                     <input type="text" id="productoFactura" placeholder="Producto o repuesto">
                     <input type="number" id="cantidadProducto" placeholder="Cantidad" min="1">
                     <input type="number" id="precioProducto" placeholder="Precio" min="0" step="0.01">
-                    <button id="btnAgregarProductoFactura">Añadir Producto</button>
+                    <button id="btnAgregarProductoFactura">AÃ±adir Producto</button>
                 </div>
 
                 <table id="tablaDetalleFactura">
@@ -132,7 +132,7 @@
                 </div>
 
                 <div class="resumen-box">
-                    <h3>Método de Pago</h3>
+                    <h3>MÃ©todo de Pago</h3>
                     <select id="metodoPagoFactura">
                         <option value="Efectivo">Efectivo</option>
                         <option value="Transferencia">Transferencia</option>
@@ -145,9 +145,9 @@
                     </select>
 
                     <select id="garantiaFactura">
-                        <option value="30 Días">30 Días</option>
-                        <option value="15 Días">15 Días</option>
-                        <option value="Sin Garantía">Sin Garantía</option>
+                        <option value="30 DÃ­as">30 DÃ­as</option>
+                        <option value="15 DÃ­as">15 DÃ­as</option>
+                        <option value="Sin GarantÃ­a">Sin GarantÃ­a</option>
                     </select>
                 </div>
             </div>
@@ -159,12 +159,12 @@
             <table id="tablaFacturas">
                 <thead>
                     <tr>
-                        <th>N° Factura</th>
+                        <th>NÂ° Factura</th>
                         <th>Fecha</th>
                         <th>Cliente</th>
-                        <th>Técnico</th>
+                        <th>TÃ©cnico</th>
                         <th>Total</th>
-                        <th>Método de Pago</th>
+                        <th>MÃ©todo de Pago</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
@@ -179,8 +179,9 @@
         </div>
     </div>
 
-    <script src="js/sidebar.js"></script>
-    <script src="js/admin.js"></script>
-    <script src="js/facturacion.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/admin.js"></script>
+    <script src="../js/facturacion.js"></script>
 </body>
 </html>
+

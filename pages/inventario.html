@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventario - TecniTrack</title>
-    <link rel="stylesheet" href="css/admin.css">
-    <link rel="stylesheet" href="css/inventario.css">
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/inventario.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
@@ -27,7 +27,7 @@
         </a>
 
         <a href="tecnicos.html" class="menu-item">
-            <i class="fa fa-user-cog"></i> Técnicos
+            <i class="fa fa-user-cog"></i> TÃ©cnicos
         </a>
 
         <p class="section">Reportes</p>
@@ -41,7 +41,7 @@
         </a>
 
         <a href="facturacion.html" class="menu-item">
-            <i class="fa fa-file-invoice"></i> Facturación
+            <i class="fa fa-file-invoice"></i> FacturaciÃ³n
         </a>
 
         <p class="section">Configuraciones</p>
@@ -51,12 +51,12 @@
         </a>
 
         <a href="configuracion.html" class="menu-item">
-            <i class="fa fa-cog"></i> Configuración
+            <i class="fa fa-cog"></i> ConfiguraciÃ³n
         </a>
 
         <div class="logout">
             <a href="index.html">
-                <i class="fa fa-sign-out-alt"></i> Cerrar Sesión
+                <i class="fa fa-sign-out-alt"></i> Cerrar SesiÃ³n
             </a>
         </div>
     </div>
@@ -96,29 +96,29 @@
                 <input type="text" id="nombreProducto" placeholder="Nombre del producto">
 
                 <select id="categoriaProducto">
-                    <option value="">Selecciona categoría</option>
+                    <option value="">Selecciona categorÃ­a</option>
                     <option value="Almacenamiento">Almacenamiento</option>
                     <option value="Pantallas">Pantallas</option>
-                    <option value="Baterías">Baterías</option>
+                    <option value="BaterÃ­as">BaterÃ­as</option>
                     <option value="Accesorios">Accesorios</option>
                     <option value="Cables">Cables</option>
                 </select>
 
                 <input type="text" id="proveedorProducto" placeholder="Proveedor">
-                <input type="text" id="serieProducto" placeholder="Número de serie">
+                <input type="text" id="serieProducto" placeholder="NÃºmero de serie">
 
                 <input type="number" id="stockProducto" placeholder="Stock inicial" min="0" step="1" onkeydown="return event.key !== '.'">
-                <input type="number" id="stockMinimoProducto" placeholder="Stock mínimo alerta" min="0" step="1" onkeydown="return event.key !== '.'">
+                <input type="number" id="stockMinimoProducto" placeholder="Stock mÃ­nimo alerta" min="0" step="1" onkeydown="return event.key !== '.'">
 
                 <input type="number" id="precioCompraProducto" placeholder="Precio de compra" min="0" step="0.01">
                 <input type="number" id="precioVentaProducto" placeholder="Precio de venta" min="0" step="0.01">
 
-                <input type="text" id="ubicacionProducto" placeholder="Ubicación">
+                <input type="text" id="ubicacionProducto" placeholder="UbicaciÃ³n">
                 <input type="text" id="notaProducto" placeholder="Nota">
             </div>
 
             <div class="btn-group">
-                <button id="btnAgregarProducto">Añadir</button>
+                <button id="btnAgregarProducto">AÃ±adir</button>
                 <button type="button" id="btnCancelarProducto" class="btn-cancelar">Cancelar</button>
             </div>
         </div>
@@ -131,11 +131,11 @@
                     <tr>
                         <th>ID</th>
                         <th>Producto</th>
-                        <th>Categoría</th>
+                        <th>CategorÃ­a</th>
                         <th>Stock</th>
                         <th>Precio Compra</th>
                         <th>Precio Venta</th>
-                        <th>Ubicación</th>
+                        <th>UbicaciÃ³n</th>
                         <th>Estado</th>
                     </tr>
                 </thead>
@@ -149,8 +149,9 @@
         </div>
     </div>
 
-    <script src="js/sidebar.js"></script>
-    <script src="js/admin.js"></script>
-    <script src="js/inventario.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/admin.js"></script>
+    <script src="../js/inventario.js"></script>
 </body>
 </html>
+
