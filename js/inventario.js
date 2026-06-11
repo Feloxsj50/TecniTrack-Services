@@ -1,4 +1,4 @@
-const productos = [
+﻿const productos = [
     {
         id: "PR-001",
         nombre: "SSD 1TB Samsung",
@@ -165,14 +165,14 @@ document.getElementById("btnAgregarProducto").addEventListener("click", () => {
     }
 
     if (indiceEditando >= 0) {
-        // Modo edición — actualizar producto existente
+        // Modo edición - actualizar producto existente
         productos[indiceEditando] = {
             ...productos[indiceEditando],
             nombre, categoria, proveedor, serie,
             stock, stockMinimo, compra, venta, ubicacion, nota
         };
     } else {
-        // Modo agregar — nuevo producto
+        // Modo agregar - nuevo producto
         productos.push({
             id: `PR-${String(productos.length + 1).padStart(3, "0")}`,
             nombre, categoria, proveedor, serie,
@@ -207,3 +207,4 @@ document.getElementById("btnExportar").addEventListener("click", () => {
 
 renderizarTabla(productos);
 actualizarCards();
+

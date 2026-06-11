@@ -1,4 +1,4 @@
-const btnGuardarCliente = document.getElementById("btnGuardarCliente");
+﻿const btnGuardarCliente = document.getElementById("btnGuardarCliente");
 const tablaClientes     = document.querySelector("#tablaClientes tbody");
 const buscarCliente     = document.getElementById("buscarCliente");
 
@@ -11,7 +11,7 @@ const resumenTotal      = document.getElementById("resumenTotal");
 const resumenActivos    = document.getElementById("resumenActivos");
 const resumenInactivos  = document.getElementById("resumenInactivos");
 
-// Datos iniciales — coinciden con las filas del HTML
+// Datos iniciales - coinciden con las filas del HTML
 const clientes = [
     { nombre: "Juan Pérez",   correo: "juan@email.com",  telefono: "8888-8888", estado: "Activo" },
     { nombre: "María López",  correo: "maria@email.com", telefono: "7777-7777", estado: "Inactivo" }
@@ -135,3 +135,4 @@ buscarCliente.addEventListener("keyup", () => {
 // Arrancar
 renderizarTabla(clientes);
 actualizarResumenClientes();
+

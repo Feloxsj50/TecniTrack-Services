@@ -1,10 +1,10 @@
-const tablaTecnicos   = document.querySelector("#tablaTecnicos tbody");
+﻿const tablaTecnicos   = document.querySelector("#tablaTecnicos tbody");
 const totalTecnicos   = document.getElementById("totalTecnicos");
 const tecnicosActivos = document.getElementById("tecnicosActivos");
 const tecnicosInactivos = document.getElementById("tecnicosInactivos");
 const btnGuardarTecnico = document.getElementById("btnGuardarTecnico");
 
-// Datos iniciales — coinciden con las filas del HTML
+// Datos iniciales - coinciden con las filas del HTML
 const tecnicos = [
     { nombre: "Carlos Ruiz", especialidad: "Hardware", telefono: "8888-1234", estado: "Activo" }
 ];
@@ -123,3 +123,4 @@ document.getElementById("buscarTecnico").addEventListener("keyup", (e) => {
 // Arrancar
 renderizarTabla(tecnicos);
 actualizarResumen();
+

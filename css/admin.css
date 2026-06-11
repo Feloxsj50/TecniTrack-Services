@@ -1,5 +1,5 @@
-/* =============================================
-   TecniTrack — Estilos Completos
+﻿/* =============================================
+   TecniTrack - Estilos Completos
    ============================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -328,7 +328,7 @@ body {
     border-color: var(--accent-purple);
 }
 
-/* ===== HISTORIAL — CLAVE: romper fuera del form-container ===== */
+/* ===== HISTORIAL - CLAVE: romper fuera del form-container ===== */
 .historial {
     /* Salir del ancho del form-container padre */
     width: calc(100vw - 230px - 80px); /* viewport - sidebar - padding x2 */
@@ -518,3 +518,4 @@ body {
     z-index: 10;
     background: transparent !important;
 }
+

@@ -27,7 +27,7 @@
         </a>
 
         <a href="tecnicos.html" class="menu-item">
-            <i class="fa fa-user-cog"></i> TÃ©cnicos
+            <i class="fa fa-user-cog"></i> Técnicos
         </a>
 
         <p class="section">Reportes</p>
@@ -41,7 +41,7 @@
         </a>
 
         <a href="facturacion.html" class="menu-item">
-            <i class="fa fa-file-invoice"></i> FacturaciÃ³n
+            <i class="fa fa-file-invoice"></i> Facturación
         </a>
 
         <p class="section">Configuraciones</p>
@@ -51,12 +51,12 @@
         </a>
 
         <a href="configuracion.html" class="menu-item">
-            <i class="fa fa-cog"></i> ConfiguraciÃ³n
+            <i class="fa fa-cog"></i> Configuración
         </a>
 
         <div class="logout">
             <a href="index.html">
-                <i class="fa fa-sign-out-alt"></i> Cerrar SesiÃ³n
+                <i class="fa fa-sign-out-alt"></i> Cerrar Sesión
             </a>
         </div>
     </div>
@@ -96,29 +96,29 @@
                 <input type="text" id="nombreProducto" placeholder="Nombre del producto">
 
                 <select id="categoriaProducto">
-                    <option value="">Selecciona categorÃ­a</option>
+                    <option value="">Selecciona categoría</option>
                     <option value="Almacenamiento">Almacenamiento</option>
                     <option value="Pantallas">Pantallas</option>
-                    <option value="BaterÃ­as">BaterÃ­as</option>
+                    <option value="Baterías">Baterías</option>
                     <option value="Accesorios">Accesorios</option>
                     <option value="Cables">Cables</option>
                 </select>
 
                 <input type="text" id="proveedorProducto" placeholder="Proveedor">
-                <input type="text" id="serieProducto" placeholder="NÃºmero de serie">
+                <input type="text" id="serieProducto" placeholder="Número de serie">
 
                 <input type="number" id="stockProducto" placeholder="Stock inicial" min="0" step="1" onkeydown="return event.key !== '.'">
-                <input type="number" id="stockMinimoProducto" placeholder="Stock mÃ­nimo alerta" min="0" step="1" onkeydown="return event.key !== '.'">
+                <input type="number" id="stockMinimoProducto" placeholder="Stock mínimo alerta" min="0" step="1" onkeydown="return event.key !== '.'">
 
                 <input type="number" id="precioCompraProducto" placeholder="Precio de compra" min="0" step="0.01">
                 <input type="number" id="precioVentaProducto" placeholder="Precio de venta" min="0" step="0.01">
 
-                <input type="text" id="ubicacionProducto" placeholder="UbicaciÃ³n">
+                <input type="text" id="ubicacionProducto" placeholder="Ubicación">
                 <input type="text" id="notaProducto" placeholder="Nota">
             </div>
 
             <div class="btn-group">
-                <button id="btnAgregarProducto">AÃ±adir</button>
+                <button id="btnAgregarProducto">Añadir</button>
                 <button type="button" id="btnCancelarProducto" class="btn-cancelar">Cancelar</button>
             </div>
         </div>
@@ -131,11 +131,11 @@
                     <tr>
                         <th>ID</th>
                         <th>Producto</th>
-                        <th>CategorÃ­a</th>
+                        <th>Categoría</th>
                         <th>Stock</th>
                         <th>Precio Compra</th>
                         <th>Precio Venta</th>
-                        <th>UbicaciÃ³n</th>
+                        <th>Ubicación</th>
                         <th>Estado</th>
                     </tr>
                 </thead>
@@ -154,4 +154,6 @@
     <script src="../js/inventario.js"></script>
 </body>
 </html>
+
+
 

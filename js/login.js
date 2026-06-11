@@ -1,4 +1,4 @@
-const usuario = document.getElementById("usuario");
+﻿const usuario = document.getElementById("usuario");
 const password = document.getElementById("password");
 const toggle = document.querySelector(".toggle");
 const loginButton = document.querySelector(".btn-login");
@@ -37,3 +37,5 @@ if (loginButton) {
         }
     });
 }
+
+

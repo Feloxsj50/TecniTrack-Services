@@ -1,4 +1,4 @@
-const password = document.getElementById("password");
+﻿const password = document.getElementById("password");
 const passwordHelp = document.getElementById("passwordHelp");
 const toggle = document.querySelector(".toggle");
 const email = document.getElementById("email");
@@ -91,3 +91,5 @@ if (registerButton) {
         window.location.href = "index.html";
     });
 }
+
+

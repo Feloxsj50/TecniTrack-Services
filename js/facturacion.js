@@ -1,4 +1,4 @@
-const detallesFactura = [];
+﻿const detallesFactura = [];
 const facturas = [
     {
         numero: "F-001",
@@ -191,7 +191,7 @@ document.getElementById("btnGuardarFactura").addEventListener("click", () => {
     }
 
     if (indiceEditando >= 0) {
-        // Modo edición — actualizar factura existente
+        // Modo edición - actualizar factura existente
         facturas[indiceEditando] = {
             ...facturas[indiceEditando],
             fecha, cliente, tecnico, total, metodoPago, estado
@@ -232,3 +232,4 @@ document.getElementById("buscarFactura").addEventListener("input", (e) => {
 generarNumeroFactura();
 renderDetalleFactura();
 renderHistorialFacturas(facturas);
+

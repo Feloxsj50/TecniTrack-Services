@@ -1,4 +1,4 @@
-const sidebars = document.querySelectorAll(".sidebar");
+﻿const sidebars = document.querySelectorAll(".sidebar");
 
 if (sidebars.length > 0) {
     const page = window.location.pathname.split("/").pop() || "panel_admin.html";
@@ -78,3 +78,5 @@ if (sidebars.length > 0) {
         sidebar.innerHTML = crearMenu(menu);
     });
 }
+
+

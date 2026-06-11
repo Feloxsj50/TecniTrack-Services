@@ -1,4 +1,4 @@
-
+﻿
 
 /* ===== TOPBAR ===== */
 .topbar {
@@ -103,7 +103,7 @@
     border-color: rgba(255, 255, 255, 0.20);
 }
 
-/* ===== HISTORIAL / TABLA — igual al dashboard ===== */
+/* ===== HISTORIAL / TABLA - igual al dashboard ===== */
 .historial {
     margin-top: 28px;
     background: rgba(16, 22, 45, 0.80);
@@ -274,3 +274,4 @@ input[type="number"] {
     appearance: textfield;
     -moz-appearance: textfield; /* Firefox */
 }
+
