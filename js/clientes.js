@@ -19,6 +19,15 @@ const clientes = [
 
 let indiceEditando = -1;
 
+function correoValido(correo) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+}
+
+function telefonoValido(telefono) {
+    const soloDigitos = telefono.replace(/\D/g, "");
+    return soloDigitos.length >= 8;
+}
+
 function actualizarResumenClientes() {
     let activos = 0, inactivos = 0;
     clientes.forEach(c => {
@@ -108,6 +117,21 @@ btnGuardarCliente.addEventListener("click", () => {
 
     if (!nombre || !correo || !telefono) {
         alert("Completa todos los campos.");
+        return;
+    }
+
+    if (nombre.length < 3) {
+        alert("El nombre del cliente debe tener al menos 3 caracteres.");
+        return;
+    }
+
+    if (!correoValido(correo)) {
+        alert("Ingresa un correo válido.");
+        return;
+    }
+
+    if (!telefonoValido(telefono)) {
+        alert("Ingresa un teléfono válido de al menos 8 dígitos.");
         return;
     }
 

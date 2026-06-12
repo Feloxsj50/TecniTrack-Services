@@ -35,6 +35,14 @@ const tbodyFacturas = document.querySelector("#tablaFacturas tbody");
 // Índice de la factura que se está editando (-1 = modo nueva)
 let indiceEditando = -1;
 
+function esMontoValido(valor) {
+    return Number.isFinite(valor) && valor >= 0;
+}
+
+function esCantidadValida(valor) {
+    return Number.isInteger(valor) && valor > 0;
+}
+
 function generarNumeroFactura() {
     document.getElementById("numeroFactura").value = `F-${String(facturas.length + 1).padStart(3, "0")}`;
 }
@@ -114,8 +122,10 @@ function cargarFacturaEnFormulario(index) {
     document.getElementById("fechaFactura").value     = f.fecha;
     document.getElementById("clienteFactura").value   = f.cliente;
     document.getElementById("tecnicoFactura").value   = f.tecnico;
+    document.getElementById("precioServicio").value   = f.total;
     document.getElementById("metodoPagoFactura").value = f.metodoPago;
     document.getElementById("estadoFactura").value    = f.estado;
+    actualizarResumen();
 
     // Cambiar botón a modo edición
     const btnGuardar = document.getElementById("btnGuardarFactura");
@@ -165,6 +175,21 @@ document.getElementById("btnAgregarProductoFactura").addEventListener("click", (
         return;
     }
 
+    if (producto.length < 3) {
+        alert("El producto debe tener al menos 3 caracteres.");
+        return;
+    }
+
+    if (!esCantidadValida(cantidad)) {
+        alert("La cantidad debe ser un número entero mayor que 0.");
+        return;
+    }
+
+    if (!esMontoValido(precio)) {
+        alert("El precio del producto debe ser de 0 en adelante.");
+        return;
+    }
+
     detallesFactura.push({ producto, cantidad, precio });
 
     document.getElementById("productoFactura").value  = "";
@@ -181,12 +206,34 @@ document.getElementById("btnGuardarFactura").addEventListener("click", () => {
     const fecha      = document.getElementById("fechaFactura").value;
     const cliente    = document.getElementById("clienteFactura").value.trim();
     const tecnico    = document.getElementById("tecnicoFactura").value;
+    const servicio   = document.getElementById("servicioFactura").value;
+    const precioServicio = parseFloat(document.getElementById("precioServicio").value) || 0;
     const metodoPago = document.getElementById("metodoPagoFactura").value;
     const estado     = document.getElementById("estadoFactura").value;
     const total      = parseFloat(document.getElementById("resumenTotal").textContent.replace("$", "")) || 0;
 
     if (!fecha || !cliente || !tecnico) {
         alert("Completa los campos principales de la factura.");
+        return;
+    }
+
+    if (cliente.length < 3) {
+        alert("El nombre del cliente debe tener al menos 3 caracteres.");
+        return;
+    }
+
+    if (indiceEditando < 0 && !servicio && detallesFactura.length === 0) {
+        alert("Selecciona un servicio o agrega al menos un producto.");
+        return;
+    }
+
+    if (!esMontoValido(precioServicio)) {
+        alert("El precio del servicio debe ser de 0 en adelante.");
+        return;
+    }
+
+    if (total <= 0) {
+        alert("La factura debe tener un total mayor que 0.");
         return;
     }
 

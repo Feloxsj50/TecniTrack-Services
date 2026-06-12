@@ -37,6 +37,14 @@ const busqueda = document.getElementById("busquedaProducto");
 // Índice del producto que se está editando (-1 = modo agregar)
 let indiceEditando = -1;
 
+function esEnteroNoNegativo(valor) {
+    return Number.isInteger(valor) && valor >= 0;
+}
+
+function esPrecioValido(valor) {
+    return Number.isFinite(valor) && valor >= 0;
+}
+
 function obtenerEstado(stock, stockMinimo) {
     if (stock === 0) return "Agotado";
     if (stock <= stockMinimo) return "Bajo";
@@ -161,6 +169,26 @@ document.getElementById("btnAgregarProducto").addEventListener("click", () => {
 
     if (!nombre || !categoria || isNaN(stock) || isNaN(stockMinimo) || isNaN(compra) || isNaN(venta) || !ubicacion) {
         alert("Completa los campos obligatorios.");
+        return;
+    }
+
+    if (nombre.length < 3) {
+        alert("El nombre del producto debe tener al menos 3 caracteres.");
+        return;
+    }
+
+    if (!esEnteroNoNegativo(stock) || !esEnteroNoNegativo(stockMinimo)) {
+        alert("El stock y el stock mínimo deben ser números enteros de 0 en adelante.");
+        return;
+    }
+
+    if (!esPrecioValido(compra) || !esPrecioValido(venta)) {
+        alert("Los precios deben ser números de 0 en adelante.");
+        return;
+    }
+
+    if (venta < compra) {
+        alert("El precio de venta no puede ser menor que el precio de compra.");
         return;
     }
 

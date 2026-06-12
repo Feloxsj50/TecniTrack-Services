@@ -11,6 +11,11 @@ const tecnicos = [
 
 let indiceEditando = -1;
 
+function telefonoValido(telefono) {
+    const soloDigitos = telefono.replace(/\D/g, "");
+    return soloDigitos.length >= 8;
+}
+
 function actualizarResumen() {
     let activos = 0, inactivos = 0;
     tecnicos.forEach(t => {
@@ -96,6 +101,21 @@ btnGuardarTecnico.addEventListener("click", () => {
 
     if (!nombre || !especialidad || !telefono) {
         alert("Completa todos los campos.");
+        return;
+    }
+
+    if (nombre.length < 3) {
+        alert("El nombre del técnico debe tener al menos 3 caracteres.");
+        return;
+    }
+
+    if (especialidad.length < 3) {
+        alert("La especialidad debe tener al menos 3 caracteres.");
+        return;
+    }
+
+    if (!telefonoValido(telefono)) {
+        alert("Ingresa un teléfono válido de al menos 8 dígitos.");
         return;
     }
 
