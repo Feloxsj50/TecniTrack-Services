@@ -45,6 +45,24 @@ function esPrecioValido(valor) {
     return Number.isFinite(valor) && valor >= 0;
 }
 
+function limpiarValorCsv(valor) {
+    return `"${String(valor).replaceAll('"', '""')}"`;
+}
+
+function descargarCsv(nombreArchivo, encabezados, filas) {
+    const contenido = [
+        encabezados.map(limpiarValorCsv).join(","),
+        ...filas.map(fila => fila.map(limpiarValorCsv).join(","))
+    ].join("\n");
+
+    const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
+    const enlace = document.createElement("a");
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = nombreArchivo;
+    enlace.click();
+    URL.revokeObjectURL(enlace.href);
+}
+
 function obtenerEstado(stock, stockMinimo) {
     if (stock === 0) return "Agotado";
     if (stock <= stockMinimo) return "Bajo";
@@ -226,11 +244,37 @@ busqueda.addEventListener("input", () => {
 });
 
 document.getElementById("btnHistorial").addEventListener("click", () => {
-    alert("Aquí se mostrará el historial de movimientos del inventario.");
+    const resumen = productos
+        .map(producto => {
+            const estado = obtenerEstado(producto.stock, producto.stockMinimo);
+            return `${producto.id} - ${producto.nombre}: ${producto.stock} unidades (${estado})`;
+        })
+        .join("\n");
+
+    alert(`Historial actual de inventario:\n\n${resumen}`);
 });
 
 document.getElementById("btnExportar").addEventListener("click", () => {
-    alert("Aquí se exportará el reporte del inventario.");
+    const filas = productos.map(producto => {
+        const estado = obtenerEstado(producto.stock, producto.stockMinimo);
+        return [
+            producto.id,
+            producto.nombre,
+            producto.categoria,
+            producto.stock,
+            producto.stockMinimo,
+            producto.compra.toFixed(2),
+            producto.venta.toFixed(2),
+            producto.ubicacion,
+            estado
+        ];
+    });
+
+    descargarCsv(
+        "reporte_inventario.csv",
+        ["ID", "Producto", "Categoría", "Stock", "Stock mínimo", "Precio compra", "Precio venta", "Ubicación", "Estado"],
+        filas
+    );
 });
 
 renderizarTabla(productos);
