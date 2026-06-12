@@ -27,10 +27,13 @@ if (loginButton) {
         }
 
         if (user === "admin" && pass === "admin123") {
+            sessionStorage.setItem("rolActual", "admin");
             window.location.href = "panel_admin.html";
         } else if (user === "tecnico" && pass === "tec123") {
+            sessionStorage.setItem("rolActual", "tecnico");
             window.location.href = "panel_tecnico.html";
         } else if (user === "cliente" && pass === "cli123") {
+            sessionStorage.setItem("rolActual", "cliente");
             window.location.href = "panel_cliente.html";
         } else {
             mostrarNotificacion("Usuario o contraseña incorrectos");

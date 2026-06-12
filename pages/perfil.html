@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil - TecniTrack</title>
+    <link rel="stylesheet" href="../css/admin.css">
+    <link rel="stylesheet" href="../css/perfil.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="sidebar"></div>
+
+    <div class="content">
+        <section class="panel-section active-section">
+            <h1>Perfil</h1>
+
+            <div class="perfil-layout">
+                <div class="perfil-card">
+                    <div class="perfil-avatar" id="perfilIniciales">TT</div>
+                    <h2 id="perfilNombre">TecniTrack</h2>
+                    <p id="perfilRol">Usuario</p>
+                    <span class="estado completado" id="perfilEstado">Activo</span>
+                </div>
+
+                <div class="perfil-detalles">
+                    <div class="resumen-box">
+                        <h3>Información de Cuenta</h3>
+                        <p><span>Usuario:</span> <strong id="perfilUsuario">admin</strong></p>
+                        <p><span>Correo:</span> <strong id="perfilCorreo">admin@tecnitrack.com</strong></p>
+                        <p><span>Teléfono:</span> <strong id="perfilTelefono">8888-0000</strong></p>
+                        <p><span>Área:</span> <strong id="perfilArea">Administración</strong></p>
+                    </div>
+
+                    <div class="resumen-box">
+                        <h3>Accesos</h3>
+                        <p><span>Panel:</span> <strong id="perfilPanel">Dashboard</strong></p>
+                        <p><span>Permisos:</span> <strong id="perfilPermisos">Completos</strong></p>
+                        <p><span>Último acceso:</span> <strong id="perfilAcceso">Hoy</strong></p>
+                        <p><span>Estado:</span> <strong>Cuenta activa</strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-container perfil-form">
+                <h2>Actualizar Datos</h2>
+
+                <input type="text" id="nombrePerfil" placeholder="Nombre completo">
+                <input type="email" id="correoPerfil" placeholder="Correo electrónico">
+                <input type="text" id="telefonoPerfil" placeholder="Teléfono">
+                <input type="text" id="areaPerfil" placeholder="Área o especialidad">
+
+                <button id="btnGuardarPerfil">Guardar Perfil</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="../js/notifications.js"></script>
+    <script src="../js/sidebar.js"></script>
+    <script src="../js/perfil.js"></script>
+</body>
+
+</html>

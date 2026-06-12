@@ -15,6 +15,7 @@ if (sidebars.length > 0) {
             { href: "facturacion.html", icon: "fa-file-invoice", text: "Facturación" }
         ]},
         { section: "Configuraciones", items: [
+            { href: "perfil.html", icon: "fa-user-circle", text: "Perfil" },
             { href: "ayuda.html", icon: "fa-headset", text: "Ayuda y Soporte" },
             { href: "configuracion.html", icon: "fa-cog", text: "Configuración" }
         ]}
@@ -27,6 +28,7 @@ if (sidebars.length > 0) {
             { href: "inventario.html", icon: "fa-box", text: "Inventario" }
         ]},
         { section: "Soporte", items: [
+            { href: "perfil.html", icon: "fa-user-circle", text: "Perfil" },
             { href: "ayuda.html", icon: "fa-headset", text: "Ayuda y Soporte" },
             { href: "configuracion.html", icon: "fa-cog", text: "Configuración" }
         ]}
@@ -38,6 +40,7 @@ if (sidebars.length > 0) {
             { href: "facturacion.html", icon: "fa-file-invoice", text: "Facturación" }
         ]},
         { section: "Soporte", items: [
+            { href: "perfil.html", icon: "fa-user-circle", text: "Perfil" },
             { href: "ayuda.html", icon: "fa-headset", text: "Ayuda y Soporte" },
             { href: "configuracion.html", icon: "fa-cog", text: "Configuración" }
         ]}
@@ -48,7 +51,17 @@ if (sidebars.length > 0) {
         "panel_cliente.html": clienteItems
     };
 
-    const menu = menus[page] || adminItems;
+    function obtenerMenuActual() {
+        if (menus[page]) return menus[page];
+
+        const rolActual = sessionStorage.getItem("rolActual") || "admin";
+
+        if (rolActual === "tecnico") return tecnicoItems;
+        if (rolActual === "cliente") return clienteItems;
+        return adminItems;
+    }
+
+    const menu = obtenerMenuActual();
 
     function crearMenu(grupos) {
         return `
