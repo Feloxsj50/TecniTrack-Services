@@ -186,27 +186,27 @@ document.getElementById("btnAgregarProducto").addEventListener("click", () => {
     const nota       = document.getElementById("notaProducto").value.trim();
 
     if (!nombre || !categoria || isNaN(stock) || isNaN(stockMinimo) || isNaN(compra) || isNaN(venta) || !ubicacion) {
-        alert("Completa los campos obligatorios.");
+        mostrarNotificacion("Completa los campos obligatorios.");
         return;
     }
 
     if (nombre.length < 3) {
-        alert("El nombre del producto debe tener al menos 3 caracteres.");
+        mostrarNotificacion("El nombre del producto debe tener al menos 3 caracteres.");
         return;
     }
 
     if (!esEnteroNoNegativo(stock) || !esEnteroNoNegativo(stockMinimo)) {
-        alert("El stock y el stock mínimo deben ser números enteros de 0 en adelante.");
+        mostrarNotificacion("El stock y el stock mínimo deben ser números enteros de 0 en adelante.");
         return;
     }
 
     if (!esPrecioValido(compra) || !esPrecioValido(venta)) {
-        alert("Los precios deben ser números de 0 en adelante.");
+        mostrarNotificacion("Los precios deben ser números de 0 en adelante.");
         return;
     }
 
     if (venta < compra) {
-        alert("El precio de venta no puede ser menor que el precio de compra.");
+        mostrarNotificacion("El precio de venta no puede ser menor que el precio de compra.");
         return;
     }
 
@@ -229,6 +229,7 @@ document.getElementById("btnAgregarProducto").addEventListener("click", () => {
     renderizarTabla(productos);
     actualizarCards();
     limpiarFormulario();
+    mostrarNotificacion("Producto guardado correctamente.", "success");
 });
 
 document.getElementById("btnCancelarProducto").addEventListener("click", limpiarFormulario);
@@ -251,7 +252,7 @@ document.getElementById("btnHistorial").addEventListener("click", () => {
         })
         .join("\n");
 
-    alert(`Historial actual de inventario:\n\n${resumen}`);
+    mostrarNotificacion(`Historial actual de inventario:\n\n${resumen}`, "info");
 });
 
 document.getElementById("btnExportar").addEventListener("click", () => {
@@ -275,8 +276,10 @@ document.getElementById("btnExportar").addEventListener("click", () => {
         ["ID", "Producto", "Categoría", "Stock", "Stock mínimo", "Precio compra", "Precio venta", "Ubicación", "Estado"],
         filas
     );
+    mostrarNotificacion("Reporte de inventario exportado correctamente.", "success");
 });
 
 renderizarTabla(productos);
 actualizarCards();
+
 

@@ -93,7 +93,7 @@ if (btnGuardar) {
         const estado = document.getElementById("estadoServicio").value;
 
         if (!cliente || !dispositivo || !servicio || !fecha) {
-            alert("Complete todos los campos");
+            mostrarNotificacion("Complete todos los campos");
             return;
         }
 
@@ -251,4 +251,5 @@ actualizarCards();
 // ===============================
 cargarServicios();
 actualizarCards();
+
 

@@ -100,22 +100,22 @@ btnGuardarTecnico.addEventListener("click", () => {
     const estado       = document.getElementById("estadoTecnico").value;
 
     if (!nombre || !especialidad || !telefono) {
-        alert("Completa todos los campos.");
+        mostrarNotificacion("Completa todos los campos.");
         return;
     }
 
     if (nombre.length < 3) {
-        alert("El nombre del técnico debe tener al menos 3 caracteres.");
+        mostrarNotificacion("El nombre del técnico debe tener al menos 3 caracteres.");
         return;
     }
 
     if (especialidad.length < 3) {
-        alert("La especialidad debe tener al menos 3 caracteres.");
+        mostrarNotificacion("La especialidad debe tener al menos 3 caracteres.");
         return;
     }
 
     if (!telefonoValido(telefono)) {
-        alert("Ingresa un teléfono válido de al menos 8 dígitos.");
+        mostrarNotificacion("Ingresa un teléfono válido de al menos 8 dígitos.");
         return;
     }
 
@@ -128,6 +128,7 @@ btnGuardarTecnico.addEventListener("click", () => {
     renderizarTabla(tecnicos);
     actualizarResumen();
     limpiarFormulario();
+    mostrarNotificacion("Técnico guardado correctamente.", "success");
 });
 
 document.getElementById("buscarTecnico").addEventListener("keyup", (e) => {
@@ -143,4 +144,5 @@ document.getElementById("buscarTecnico").addEventListener("keyup", (e) => {
 // Arrancar
 renderizarTabla(tecnicos);
 actualizarResumen();
+
 

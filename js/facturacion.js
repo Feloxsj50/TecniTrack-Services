@@ -189,22 +189,22 @@ document.getElementById("btnAgregarProductoFactura").addEventListener("click", (
     const precio    = parseFloat(document.getElementById("precioProducto").value);
 
     if (!producto || isNaN(cantidad) || isNaN(precio)) {
-        alert("Completa producto, cantidad y precio.");
+        mostrarNotificacion("Completa producto, cantidad y precio.");
         return;
     }
 
     if (producto.length < 3) {
-        alert("El producto debe tener al menos 3 caracteres.");
+        mostrarNotificacion("El producto debe tener al menos 3 caracteres.");
         return;
     }
 
     if (!esCantidadValida(cantidad)) {
-        alert("La cantidad debe ser un número entero mayor que 0.");
+        mostrarNotificacion("La cantidad debe ser un número entero mayor que 0.");
         return;
     }
 
     if (!esMontoValido(precio)) {
-        alert("El precio del producto debe ser de 0 en adelante.");
+        mostrarNotificacion("El precio del producto debe ser de 0 en adelante.");
         return;
     }
 
@@ -231,27 +231,27 @@ document.getElementById("btnGuardarFactura").addEventListener("click", () => {
     const total      = parseFloat(document.getElementById("resumenTotal").textContent.replace("$", "")) || 0;
 
     if (!fecha || !cliente || !tecnico) {
-        alert("Completa los campos principales de la factura.");
+        mostrarNotificacion("Completa los campos principales de la factura.");
         return;
     }
 
     if (cliente.length < 3) {
-        alert("El nombre del cliente debe tener al menos 3 caracteres.");
+        mostrarNotificacion("El nombre del cliente debe tener al menos 3 caracteres.");
         return;
     }
 
     if (indiceEditando < 0 && !servicio && detallesFactura.length === 0) {
-        alert("Selecciona un servicio o agrega al menos un producto.");
+        mostrarNotificacion("Selecciona un servicio o agrega al menos un producto.");
         return;
     }
 
     if (!esMontoValido(precioServicio)) {
-        alert("El precio del servicio debe ser de 0 en adelante.");
+        mostrarNotificacion("El precio del servicio debe ser de 0 en adelante.");
         return;
     }
 
     if (total <= 0) {
-        alert("La factura debe tener un total mayor que 0.");
+        mostrarNotificacion("La factura debe tener un total mayor que 0.");
         return;
     }
 
@@ -268,6 +268,7 @@ document.getElementById("btnGuardarFactura").addEventListener("click", () => {
 
     renderHistorialFacturas(facturas);
     limpiarFactura();
+    mostrarNotificacion("Factura guardada correctamente.", "success");
 });
 
 document.getElementById("btnCancelarFactura").addEventListener("click", limpiarFactura);
@@ -355,7 +356,7 @@ document.getElementById("btnHistorialFacturas").addEventListener("click", () => 
         .map(factura => `${factura.numero} - ${factura.cliente}: $${factura.total.toFixed(2)} (${factura.estado})`)
         .join("\n");
 
-    alert(`Historial actual de facturación:\n\n${resumen}`);
+    mostrarNotificacion(`Historial actual de facturación:\n\n${resumen}`, "info");
 });
 
 document.getElementById("btnExportarFacturas").addEventListener("click", () => {
@@ -374,6 +375,7 @@ document.getElementById("btnExportarFacturas").addEventListener("click", () => {
         ["Factura", "Fecha", "Cliente", "Técnico", "Total", "Método de pago", "Estado"],
         filas
     );
+    mostrarNotificacion("Reporte de facturación exportado correctamente.", "success");
 });
 
 document.getElementById("buscarFactura").addEventListener("input", (e) => {
@@ -389,4 +391,5 @@ document.getElementById("buscarFactura").addEventListener("input", (e) => {
 generarNumeroFactura();
 renderDetalleFactura();
 renderHistorialFacturas(facturas);
+
 

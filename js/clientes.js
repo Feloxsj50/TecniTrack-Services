@@ -116,22 +116,22 @@ btnGuardarCliente.addEventListener("click", () => {
     const estado   = document.getElementById("estadoCliente").value;
 
     if (!nombre || !correo || !telefono) {
-        alert("Completa todos los campos.");
+        mostrarNotificacion("Completa todos los campos.");
         return;
     }
 
     if (nombre.length < 3) {
-        alert("El nombre del cliente debe tener al menos 3 caracteres.");
+        mostrarNotificacion("El nombre del cliente debe tener al menos 3 caracteres.");
         return;
     }
 
     if (!correoValido(correo)) {
-        alert("Ingresa un correo válido.");
+        mostrarNotificacion("Ingresa un correo válido.");
         return;
     }
 
     if (!telefonoValido(telefono)) {
-        alert("Ingresa un teléfono válido de al menos 8 dígitos.");
+        mostrarNotificacion("Ingresa un teléfono válido de al menos 8 dígitos.");
         return;
     }
 
@@ -144,6 +144,7 @@ btnGuardarCliente.addEventListener("click", () => {
     renderizarTabla(clientes);
     actualizarResumenClientes();
     limpiarFormulario();
+    mostrarNotificacion("Cliente guardado correctamente.", "success");
 });
 
 buscarCliente.addEventListener("keyup", () => {
@@ -159,4 +160,5 @@ buscarCliente.addEventListener("keyup", () => {
 // Arrancar
 renderizarTabla(clientes);
 actualizarResumenClientes();
+
 

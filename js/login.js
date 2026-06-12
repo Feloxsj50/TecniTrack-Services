@@ -22,7 +22,7 @@ if (loginButton) {
         const pass = password.value.trim();
 
         if (!user || !pass) {
-            alert("Completa todos los campos");
+            mostrarNotificacion("Completa todos los campos");
             return;
         }
 
@@ -33,9 +33,10 @@ if (loginButton) {
         } else if (user === "cliente" && pass === "cli123") {
             window.location.href = "panel_cliente.html";
         } else {
-            alert("Usuario o contraseña incorrectos");
+            mostrarNotificacion("Usuario o contraseña incorrectos");
         }
     });
 }
+
 
 

@@ -87,9 +87,10 @@ if (registerButton) {
             return;
         }
 
-        alert("Registro validado correctamente");
+        mostrarNotificacion("Registro validado correctamente", "success");
         window.location.href = "index.html";
     });
 }
+
 
 
