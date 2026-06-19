@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario - TecniTrack</title>
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/inventario.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../../js/auth.js"></script>
+</head>
+<body>
+
+    <div class="sidebar"></div>
+
+    <div class="content">
+        <div class="topbar">
+            <h1>Inventario</h1>
+            <input type="text" id="busquedaProducto" placeholder="Buscar producto...">
+        </div>
+
+        <div class="cards">
+            <div class="card">
+                <h3 id="productosDisponibles">0</h3>
+                <p>Productos Disponibles</p>
+            </div>
+
+            <div class="card">
+                <h3 id="stockBajo">0</h3>
+                <p>Stock Bajo</p>
+            </div>
+
+            <div class="card">
+                <h3 id="productosAgotados">0</h3>
+                <p>Productos Agotados</p>
+            </div>
+
+            <div class="card">
+                <h3 id="valorInventario">$0.00</h3>
+                <p>Valor Total del Inventario</p>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <h2>Registro de Producto</h2>
+
+            <div class="form-grid">
+                <input type="text" id="nombreProducto" placeholder="Nombre del producto">
+
+                <select id="categoriaProducto">
+                    <option value="">Selecciona categoría</option>
+                    <option value="Almacenamiento">Almacenamiento</option>
+                    <option value="Pantallas">Pantallas</option>
+                    <option value="Baterías">Baterías</option>
+                    <option value="Accesorios">Accesorios</option>
+                    <option value="Cables">Cables</option>
+                </select>
+
+                <input type="text" id="proveedorProducto" placeholder="Proveedor">
+                <input type="text" id="serieProducto" placeholder="Número de serie">
+
+                <input type="number" id="stockProducto" placeholder="Stock inicial" min="0" step="1" onkeydown="return event.key !== '.'">
+                <input type="number" id="stockMinimoProducto" placeholder="Stock mínimo alerta" min="0" step="1" onkeydown="return event.key !== '.'">
+
+                <input type="number" id="precioCompraProducto" placeholder="Precio de compra" min="0" step="0.01">
+                <input type="number" id="precioVentaProducto" placeholder="Precio de venta" min="0" step="0.01">
+
+                <input type="text" id="ubicacionProducto" placeholder="Ubicación">
+                <input type="text" id="notaProducto" placeholder="Nota">
+            </div>
+
+            <div class="btn-group">
+                <button id="btnAgregarProducto">Añadir</button>
+                <button type="button" id="btnCancelarProducto" class="btn-cancelar">Cancelar</button>
+            </div>
+        </div>
+
+        <div class="historial">
+            <h2>Inventario Actual</h2>
+
+            <table id="tablaInventario">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Precio Compra</th>
+                        <th>Precio Venta</th>
+                        <th>Ubicación</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+            <div class="acciones-inventario">
+                <button id="btnHistorial">Historial de movimiento</button>
+                <button id="btnExportar">Exportar reporte</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../js/notifications.js"></script>
+    <script src="../../js/confirm-dialog.js"></script>
+    <script src="../../js/sidebar.js"></script>
+    <script src="../../js/inventario.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+

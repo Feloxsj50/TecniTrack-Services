@@ -2,19 +2,36 @@
     const SESSION_KEY = "tecnitrackSesion";
     const ROLE_KEY = "rolActual";
     const MESSAGE_KEY = "tecnitrackMensaje";
-    const publicPages = ["index.html", "registro.html"];
+    const publicPages = ["auth/index.html", "auth/registro.html"];
     const permissions = {
-        admin: ["panel_admin.html", "clientes.html", "tecnicos.html", "files.html", "inventario.html", "facturacion.html", "perfil.html", "ayuda.html", "configuracion.html", "panel_tecnico.html", "panel_cliente.html"],
-        tecnico: ["panel_tecnico.html", "inventario.html", "perfil.html", "ayuda.html"],
-        cliente: ["panel_cliente.html", "facturacion.html", "perfil.html", "ayuda.html"]
+        admin: [
+            "admin/panel_admin.html", "admin/clientes.html", "admin/tecnicos.html",
+            "admin/files.html", "admin/inventario.html", "admin/facturacion.html",
+            "admin/configuracion.html", "tecnico/panel_tecnico.html",
+            "tecnico/inventario.html", "cliente/panel_cliente.html",
+            "cliente/facturacion.html", "shared/perfil.html", "shared/ayuda.html"
+        ],
+        tecnico: [
+            "tecnico/panel_tecnico.html", "tecnico/inventario.html",
+            "shared/perfil.html", "shared/ayuda.html"
+        ],
+        cliente: [
+            "cliente/panel_cliente.html", "cliente/facturacion.html",
+            "shared/perfil.html", "shared/ayuda.html"
+        ]
     };
     const homePages = {
-        admin: "panel_admin.html",
-        tecnico: "panel_tecnico.html",
-        cliente: "panel_cliente.html"
+        admin: "admin/panel_admin.html",
+        tecnico: "tecnico/panel_tecnico.html",
+        cliente: "cliente/panel_cliente.html"
     };
 
-    const currentPage = () => window.location.pathname.split("/").pop() || "index.html";
+    const pagesRoot = () => new URL("../", window.location.href);
+    const pageUrl = route => new URL(route, pagesRoot()).href;
+    const currentRoute = () => {
+        const parts = window.location.pathname.split("/").filter(Boolean);
+        return parts.slice(-2).join("/");
+    };
     const saveMessage = (mensaje, tipo = "info") => {
         sessionStorage.setItem(MESSAGE_KEY, JSON.stringify({ mensaje, tipo }));
     };
@@ -42,7 +59,7 @@
         sessionStorage.removeItem(SESSION_KEY);
         sessionStorage.removeItem(ROLE_KEY);
         saveMessage("Sesión cerrada correctamente.", "success");
-        window.location.replace("index.html");
+        window.location.replace(pageUrl("auth/index.html"));
     }
 
     function canAccess(rol, pagina) {
@@ -50,20 +67,20 @@
     }
 
     function protectPage() {
-        const page = currentPage();
-        if (publicPages.includes(page)) return;
+        const route = currentRoute();
+        if (publicPages.includes(route)) return;
 
         document.documentElement.style.visibility = "hidden";
         const session = getSession();
         if (!session || !permissions[session.rol]) {
             saveMessage("Iniciá sesión para acceder al sistema.", "error");
-            window.location.replace("index.html");
+            window.location.replace(pageUrl("auth/index.html"));
             return;
         }
 
-        if (!canAccess(session.rol, page)) {
+        if (!canAccess(session.rol, route)) {
             saveMessage("Tu rol no tiene permiso para acceder a esa página.", "error");
-            window.location.replace(homePages[session.rol]);
+            window.location.replace(pageUrl(homePages[session.rol]));
             return;
         }
 
@@ -75,7 +92,9 @@
         cerrarSesion: logout,
         obtenerSesion: getSession,
         puedeAcceder: canAccess,
-        paginaInicio: rol => homePages[rol] || "index.html"
+        paginaInicio: rol => pageUrl(homePages[rol] || "auth/index.html"),
+        urlPagina: pageUrl,
+        rutaActual: currentRoute
     };
 
     protectPage();
