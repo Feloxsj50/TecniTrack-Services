@@ -62,7 +62,12 @@ function descargarCsv(nombreArchivo, encabezados, filas) {
 }
 
 function generarNumeroFactura() {
-    document.getElementById("numeroFactura").value = `F-${String(facturas.length + 1).padStart(3, "0")}`;
+    const mayorNumero = facturas.reduce((mayor, factura) => {
+        const numero = parseInt(factura.numero.replace("F-", ""), 10);
+        return Number.isNaN(numero) ? mayor : Math.max(mayor, numero);
+    }, 0);
+
+    document.getElementById("numeroFactura").value = `F-${String(mayorNumero + 1).padStart(3, "0")}`;
 }
 
 function renderDetalleFactura() {
@@ -115,9 +120,14 @@ function renderHistorialFacturas(lista) {
             <td>${factura.metodoPago}</td>
             <td><span class="${claseEstadoFactura(factura.estado)}">${factura.estado}</span></td>
             <td>
-                <button class="btn-editar-historial" data-index="${facturas.indexOf(factura)}">
-                    <i class="fa fa-pen"></i> Editar
-                </button>
+                <div class="table-actions">
+                    <button class="btn-editar-historial" data-index="${facturas.indexOf(factura)}">
+                        <i class="fa fa-pen"></i> Editar
+                    </button>
+                    <button class="btn-eliminar-tabla" data-index="${facturas.indexOf(factura)}">
+                        <i class="fa fa-trash"></i> Eliminar
+                    </button>
+                </div>
             </td>
         `;
         tbodyFacturas.appendChild(tr);
@@ -128,6 +138,30 @@ function renderHistorialFacturas(lista) {
         btn.addEventListener("click", () => {
             const i = parseInt(btn.getAttribute("data-index"));
             cargarFacturaEnFormulario(i);
+        });
+    });
+
+    tbodyFacturas.querySelectorAll(".btn-eliminar-tabla").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const index = parseInt(btn.getAttribute("data-index"), 10);
+            const factura = facturas[index];
+            const confirmado = await confirmarAccion({
+                titulo: "Eliminar factura",
+                mensaje: `¿Seguro que querés eliminar la factura ${factura.numero} de ${factura.cliente}?`
+            });
+
+            if (!confirmado) return;
+
+            facturas.splice(index, 1);
+            if (indiceEditando === index) {
+                limpiarFactura();
+            } else if (indiceEditando > index) {
+                indiceEditando--;
+            }
+
+            renderHistorialFacturas(facturas);
+            generarNumeroFactura();
+            mostrarNotificacion("Factura eliminada correctamente.", "success");
         });
     });
 }

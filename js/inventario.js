@@ -45,6 +45,15 @@ function esPrecioValido(valor) {
     return Number.isFinite(valor) && valor >= 0;
 }
 
+function generarIdProducto() {
+    const mayorId = productos.reduce((mayor, producto) => {
+        const numero = parseInt(producto.id.replace("PR-", ""), 10);
+        return Number.isNaN(numero) ? mayor : Math.max(mayor, numero);
+    }, 0);
+
+    return `PR-${String(mayorId + 1).padStart(3, "0")}`;
+}
+
 function limpiarValorCsv(valor) {
     return `"${String(valor).replaceAll('"', '""')}"`;
 }
@@ -92,9 +101,14 @@ function renderizarTabla(lista) {
             <td>${producto.ubicacion}</td>
             <td><span class="${claseEstado(estado)}">${estado}</span></td>
             <td>
-                <button class="btn-editar-historial" data-index="${productos.indexOf(producto)}">
-                    <i class="fa fa-pen"></i> Editar
-                </button>
+                <div class="table-actions">
+                    <button class="btn-editar-historial" data-index="${productos.indexOf(producto)}">
+                        <i class="fa fa-pen"></i> Editar
+                    </button>
+                    <button class="btn-eliminar-tabla" data-index="${productos.indexOf(producto)}">
+                        <i class="fa fa-trash"></i> Eliminar
+                    </button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -105,6 +119,30 @@ function renderizarTabla(lista) {
         btn.addEventListener("click", () => {
             const i = parseInt(btn.getAttribute("data-index"));
             cargarProductoEnFormulario(i);
+        });
+    });
+
+    tbody.querySelectorAll(".btn-eliminar-tabla").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const index = parseInt(btn.getAttribute("data-index"), 10);
+            const producto = productos[index];
+            const confirmado = await confirmarAccion({
+                titulo: "Eliminar producto",
+                mensaje: `¿Seguro que querés eliminar ${producto.nombre} del inventario?`
+            });
+
+            if (!confirmado) return;
+
+            productos.splice(index, 1);
+            if (indiceEditando === index) {
+                limpiarFormulario();
+            } else if (indiceEditando > index) {
+                indiceEditando--;
+            }
+
+            renderizarTabla(productos);
+            actualizarCards();
+            mostrarNotificacion("Producto eliminado correctamente.", "success");
         });
     });
 }
@@ -220,7 +258,7 @@ document.getElementById("btnAgregarProducto").addEventListener("click", () => {
     } else {
         // Modo agregar - nuevo producto
         productos.push({
-            id: `PR-${String(productos.length + 1).padStart(3, "0")}`,
+            id: generarIdProducto(),
             nombre, categoria, proveedor, serie,
             stock, stockMinimo, compra, venta, ubicacion, nota
         });

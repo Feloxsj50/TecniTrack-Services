@@ -68,11 +68,23 @@ function renderizarTabla(lista) {
             cargarClienteEnFormulario(indexReal);
         });
 
-        tr.querySelector(".btn-eliminar").addEventListener("click", () => {
+        tr.querySelector(".btn-eliminar").addEventListener("click", async () => {
+            const confirmado = await confirmarAccion({
+                titulo: "Eliminar cliente",
+                mensaje: `¿Seguro que querés eliminar a ${cliente.nombre}? Esta acción no se puede deshacer.`
+            });
+
+            if (!confirmado) return;
+
             clientes.splice(indexReal, 1);
-            if (indiceEditando === indexReal) limpiarFormulario();
+            if (indiceEditando === indexReal) {
+                limpiarFormulario();
+            } else if (indiceEditando > indexReal) {
+                indiceEditando--;
+            }
             renderizarTabla(clientes);
             actualizarResumenClientes();
+            mostrarNotificacion("Cliente eliminado correctamente.", "success");
         });
 
         tablaClientes.appendChild(tr);

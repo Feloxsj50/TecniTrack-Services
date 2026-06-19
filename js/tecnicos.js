@@ -52,11 +52,23 @@ function renderizarTabla(lista) {
             cargarTecnicoEnFormulario(indexReal);
         });
 
-        tr.querySelector(".btn-eliminar").addEventListener("click", () => {
+        tr.querySelector(".btn-eliminar").addEventListener("click", async () => {
+            const confirmado = await confirmarAccion({
+                titulo: "Eliminar técnico",
+                mensaje: `¿Seguro que querés eliminar a ${tecnico.nombre}? Esta acción no se puede deshacer.`
+            });
+
+            if (!confirmado) return;
+
             tecnicos.splice(indexReal, 1);
-            if (indiceEditando === indexReal) limpiarFormulario();
+            if (indiceEditando === indexReal) {
+                limpiarFormulario();
+            } else if (indiceEditando > indexReal) {
+                indiceEditando--;
+            }
             renderizarTabla(tecnicos);
             actualizarResumen();
+            mostrarNotificacion("Técnico eliminado correctamente.", "success");
         });
 
         tablaTecnicos.appendChild(tr);
