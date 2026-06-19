@@ -9,14 +9,14 @@
             "admin/files.html", "admin/inventario.html", "admin/facturacion.html",
             "admin/configuracion.html", "tecnico/panel_tecnico.html",
             "tecnico/inventario.html", "cliente/panel_cliente.html",
-            "cliente/facturacion.html", "shared/perfil.html", "shared/ayuda.html"
+            "cliente/mis-pagos.html", "shared/perfil.html", "shared/ayuda.html"
         ],
         tecnico: [
             "tecnico/panel_tecnico.html", "tecnico/inventario.html",
             "shared/perfil.html", "shared/ayuda.html"
         ],
         cliente: [
-            "cliente/panel_cliente.html", "cliente/facturacion.html",
+            "cliente/panel_cliente.html", "cliente/mis-pagos.html",
             "shared/perfil.html", "shared/ayuda.html"
         ]
     };

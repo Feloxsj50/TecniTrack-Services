@@ -35,7 +35,7 @@ if (sidebars.length > 0) {
     const clienteItems = [
         { section: "General", items: [
             { href: "cliente/panel_cliente.html", icon: "fa-house-laptop", text: "Mi Panel" },
-            { href: "cliente/facturacion.html", icon: "fa-file-invoice", text: "Facturación" }
+            { href: "cliente/mis-pagos.html", icon: "fa-receipt", text: "Mis pagos" }
         ]},
         { section: "Soporte", items: [
             { href: "shared/perfil.html", icon: "fa-user-circle", text: "Perfil" },

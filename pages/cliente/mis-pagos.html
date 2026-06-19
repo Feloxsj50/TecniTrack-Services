@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis pagos - TecniTrack</title>
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/cliente-pagos.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="../../js/auth.js"></script>
+</head>
+
+<body>
+    <div class="sidebar"></div>
+
+    <main class="content">
+        <div class="topbar pagos-topbar">
+            <h1>Mis pagos</h1>
+            <div class="buscador-pagos">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="buscarPago" placeholder="Buscar recibo o servicio">
+            </div>
+        </div>
+
+        <section class="cards pagos-cards" aria-label="Resumen de pagos">
+            <div class="card"><h3 id="totalPagado">$0.00</h3><p>Total Pagado</p></div>
+            <div class="card"><h3 id="saldoPendiente">$0.00</h3><p>Saldo Pendiente</p></div>
+            <div class="card"><h3 id="pagosRealizados">0</h3><p>Pagos Realizados</p></div>
+            <div class="card"><h3 id="ultimaGarantia">—</h3><p>Última Garantía</p></div>
+        </section>
+
+        <section class="pago-actual" id="pagoPendiente">
+            <div class="pago-actual-header">
+                <div>
+                    <span class="pago-eyebrow">Pago pendiente</span>
+                    <h2 id="pendienteServicio">Sin pagos pendientes</h2>
+                </div>
+                <span class="estado-factura pendiente" id="pendienteEstado">Pendiente</span>
+            </div>
+
+            <div class="pago-detalles">
+                <div><span>Dispositivo</span><strong id="pendienteDispositivo">—</strong></div>
+                <div><span>Técnico</span><strong id="pendienteTecnico">—</strong></div>
+                <div><span>Servicio</span><strong id="pendienteServicioMonto">$0.00</strong></div>
+                <div><span>Repuestos</span><strong id="pendienteRepuestos">$0.00</strong></div>
+            </div>
+
+            <div class="pago-total">
+                <span>Total a pagar</span>
+                <strong id="pendienteTotal">$0.00</strong>
+            </div>
+
+            <button type="button" class="btn-recibo" id="btnVerPendiente">
+                <i class="fa-solid fa-receipt"></i> Ver resumen
+            </button>
+        </section>
+
+        <section class="historial historial-pagos">
+            <div class="historial-header">
+                <h2>Historial de pagos</h2>
+                <span id="cantidadResultados">0 recibos</span>
+            </div>
+
+            <div class="tabla-scroll">
+                <table id="tablaPagosCliente">
+                    <thead>
+                        <tr>
+                            <th>Recibo</th>
+                            <th>Fecha</th>
+                            <th>Servicio</th>
+                            <th>Técnico</th>
+                            <th>Método</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Recibo</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div class="recibo-modal" id="reciboModal" hidden>
+        <div class="recibo-backdrop" data-cerrar-recibo></div>
+        <section class="recibo-dialog" role="dialog" aria-modal="true" aria-labelledby="reciboTitulo">
+            <button type="button" class="recibo-cerrar" data-cerrar-recibo aria-label="Cerrar recibo">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div id="reciboContenido"></div>
+            <button type="button" class="btn-imprimir-recibo" id="btnImprimirRecibo">
+                <i class="fa-solid fa-print"></i> Imprimir recibo
+            </button>
+        </section>
+    </div>
+
+    <script src="../../js/notifications.js"></script>
+    <script src="../../js/sidebar.js"></script>
+    <script src="../../js/cliente-pagos.js"></script>
+</body>
+
+</html>
