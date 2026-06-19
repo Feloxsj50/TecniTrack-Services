@@ -24,13 +24,11 @@ if (sidebars.length > 0) {
     const tecnicoItems = [
         { section: "General", items: [
             { href: "panel_tecnico.html", icon: "fa-screwdriver-wrench", text: "Mi Panel" },
-            { href: "panel_admin.html", icon: "fa-chart-bar", text: "Dashboard" },
             { href: "inventario.html", icon: "fa-box", text: "Inventario" }
         ]},
         { section: "Soporte", items: [
             { href: "perfil.html", icon: "fa-user-circle", text: "Perfil" },
-            { href: "ayuda.html", icon: "fa-headset", text: "Ayuda y Soporte" },
-            { href: "configuracion.html", icon: "fa-cog", text: "Configuración" }
+            { href: "ayuda.html", icon: "fa-headset", text: "Ayuda y Soporte" }
         ]}
     ];
 
@@ -41,8 +39,7 @@ if (sidebars.length > 0) {
         ]},
         { section: "Soporte", items: [
             { href: "perfil.html", icon: "fa-user-circle", text: "Perfil" },
-            { href: "ayuda.html", icon: "fa-headset", text: "Ayuda y Soporte" },
-            { href: "configuracion.html", icon: "fa-cog", text: "Configuración" }
+            { href: "ayuda.html", icon: "fa-headset", text: "Ayuda y Soporte" }
         ]}
     ];
 
@@ -54,7 +51,7 @@ if (sidebars.length > 0) {
     function obtenerMenuActual() {
         if (menus[page]) return menus[page];
 
-        const rolActual = sessionStorage.getItem("rolActual") || "admin";
+        const rolActual = TecniAuth.obtenerSesion()?.rol || "admin";
 
         if (rolActual === "tecnico") return tecnicoItems;
         if (rolActual === "cliente") return clienteItems;
@@ -89,6 +86,11 @@ if (sidebars.length > 0) {
 
     sidebars.forEach(sidebar => {
         sidebar.innerHTML = crearMenu(menu);
+    });
+
+    document.getElementById("logoutBtn")?.addEventListener("click", event => {
+        event.preventDefault();
+        TecniAuth.cerrarSesion();
     });
 }
 

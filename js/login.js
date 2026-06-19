@@ -27,14 +27,14 @@ if (loginButton) {
         }
 
         if (user === "admin" && pass === "admin123") {
-            sessionStorage.setItem("rolActual", "admin");
-            window.location.href = "panel_admin.html";
+            TecniAuth.iniciarSesion("admin", user);
+            window.location.replace(TecniAuth.paginaInicio("admin"));
         } else if (user === "tecnico" && pass === "tec123") {
-            sessionStorage.setItem("rolActual", "tecnico");
-            window.location.href = "panel_tecnico.html";
+            TecniAuth.iniciarSesion("tecnico", user);
+            window.location.replace(TecniAuth.paginaInicio("tecnico"));
         } else if (user === "cliente" && pass === "cli123") {
-            sessionStorage.setItem("rolActual", "cliente");
-            window.location.href = "panel_cliente.html";
+            TecniAuth.iniciarSesion("cliente", user);
+            window.location.replace(TecniAuth.paginaInicio("cliente"));
         } else {
             mostrarNotificacion("Usuario o contraseña incorrectos");
         }

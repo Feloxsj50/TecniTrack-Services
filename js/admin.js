@@ -30,18 +30,6 @@ items.forEach(item => {
 });
 
 // ===============================
-// CERRAR SESION
-// ===============================
-const logoutBtn = document.getElementById("logoutBtn");
-
-if (logoutBtn) {
-    logoutBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        window.location.href = "index.html";
-    });
-}
-
-// ===============================
 // MINI BASE DE DATOS
 // ===============================
 const serviciosIniciales = [

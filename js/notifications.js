@@ -39,4 +39,16 @@
         contenedor.appendChild(notificacion);
         setTimeout(cerrar, tiempoVisible);
     };
+
+    const mensajePendiente = sessionStorage.getItem("tecnitrackMensaje");
+    if (mensajePendiente) {
+        sessionStorage.removeItem("tecnitrackMensaje");
+
+        try {
+            const { mensaje, tipo } = JSON.parse(mensajePendiente);
+            window.mostrarNotificacion(mensaje, tipo);
+        } catch {
+            // Ignorar mensajes de sesión inválidos.
+        }
+    }
 })();
