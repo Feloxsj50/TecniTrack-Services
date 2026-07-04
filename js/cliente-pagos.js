@@ -70,8 +70,8 @@ function renderizarHistorial(lista) {
                 <td colspan="8">
                     <div class="empty-state">
                         <i class="fa-solid fa-receipt"></i>
-                        <strong>Sin pagos registrados</strong>
-                        <span>Cuando el cliente tenga recibos pagados, apareceran aqui.</span>
+                        <strong>Sin recibos registrados</strong>
+                        <span>Cuando el admin emita un recibo por un servicio completado, aparecera aqui.</span>
                     </div>
                 </td>
             </tr>

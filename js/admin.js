@@ -1,243 +1,176 @@
-﻿// ===============================
-// MENU PRINCIPAL
-// ===============================
-const items = document.querySelectorAll(".menu-item");
-const sections = document.querySelectorAll(".panel-section");
+const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
 
-items.forEach(item => {
-    item.addEventListener("click", (e) => {
-        const sectionId = item.getAttribute("data-section");
-
-        // Solo manejar con JS los enlaces internos
-        if (sectionId) {
-            e.preventDefault();
-
-            // Quitar activo a todos
-            items.forEach(i => i.classList.remove("active"));
-            item.classList.add("active");
-
-            // Ocultar todas las secciones
-            sections.forEach(sec => sec.classList.remove("active-section"));
-
-            // Mostrar sección seleccionada
-            const section = document.getElementById(sectionId);
-            if (section) {
-                section.classList.add("active-section");
-            }
-        }
-        // Si NO tiene data-section, deja que navegue normal con href
-    });
-});
-
-// ===============================
-// MINI BASE DE DATOS
-// ===============================
-const serviciosIniciales = [
-    {
-        id: 1414234234324,
-        cliente: "Juan Quintanilla",
-        dispositivo: "Dell",
-        servicio: "Pantalla",
-        fecha: "2025-01-01",
-        estado: "Pendiente"
-    },
-    {
-        id: 224325235235,
-        cliente: "Maria Candas",
-        dispositivo: "HP",
-        servicio: "Formateo",
-        fecha: "2025-01-02",
-        estado: "Pendiente"
-    },
-    {
-        id: 343242342342,
-        cliente: "Carlos Lopez",
-        dispositivo: "HP",
-        servicio: "Batería",
-        fecha: "2025-01-03",
-        estado: "Completado"
+function obtenerSolicitudes() {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY_SOLICITUDES)) || [];
+    } catch {
+        return [];
     }
-];
-
-// Revisar si localStorage ya tiene estructura válida
-const serviciosGuardados = JSON.parse(localStorage.getItem("servicios"));
-
-if (!serviciosGuardados || !Array.isArray(serviciosGuardados) || !serviciosGuardados[0]?.cliente) {
-    localStorage.setItem("servicios", JSON.stringify(serviciosIniciales));
 }
 
-// ===============================
-// GUARDAR SERVICIO
-// ===============================
-const btnGuardar = document.getElementById("btnGuardar");
-
-if (btnGuardar) {
-    btnGuardar.addEventListener("click", function () {
-        const idEditar = document.getElementById("idEditar").value;
-        const cliente = document.getElementById("cliente").value.trim();
-        const dispositivo = document.getElementById("dispositivo").value.trim();
-        const servicio = document.getElementById("servicio").value.trim();
-        const fecha = document.getElementById("fecha").value;
-        const estado = document.getElementById("estadoServicio").value;
-
-        if (!cliente || !dispositivo || !servicio || !fecha) {
-            mostrarNotificacion("Complete todos los campos");
-            return;
-        }
-
-        let servicios = JSON.parse(localStorage.getItem("servicios")) || [];
-
-        if (idEditar) {
-            servicios = servicios.map(s => {
-                if (s.id == idEditar) {
-                    return {
-                        ...s,
-                        cliente,
-                        dispositivo,
-                        servicio,
-                        fecha,
-                        estado
-                    };
-                }
-                return s;
-            });
-        } else {
-            servicios.push({
-                id: Date.now(),
-                cliente,
-                dispositivo,
-                servicio,
-                fecha,
-                estado: "Pendiente"
-            });
-        }
-
-        localStorage.setItem("servicios", JSON.stringify(servicios));
-
-        limpiarFormulario();
-        cargarServicios();
-        actualizarCards();
-    });
+function guardarSolicitudes(solicitudes) {
+    localStorage.setItem(STORAGE_KEY_SOLICITUDES, JSON.stringify(solicitudes));
 }
 
+function escaparHtml(valor) {
+    return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
 
-// ===============================
-// CARGAR SERVICIOS EN TABLA
-// ===============================
+function claseEstado(estado) {
+    if (estado === "Completado") return "completado";
+    if (estado === "En Proceso") return "en-proceso";
+    return "pendiente";
+}
+
+function crearIdSolicitud(solicitudes) {
+    return `SOL-${String(solicitudes.length + 1).padStart(3, "0")}`;
+}
+
+function actualizarCards() {
+    const solicitudes = obtenerSolicitudes();
+    const pendientes = solicitudes.filter(s => s.estado === "Pendiente");
+    const proceso = solicitudes.filter(s => s.estado === "En Proceso");
+    const completados = solicitudes.filter(s => s.estado === "Completado");
+
+    document.getElementById("totalServicios").textContent = solicitudes.length;
+    document.getElementById("serviciosPendientes").textContent = pendientes.length;
+    document.getElementById("serviciosProceso").textContent = proceso.length;
+    document.getElementById("serviciosCompletados").textContent = completados.length;
+}
+
 function cargarServicios() {
     const tabla = document.querySelector("#tablaServicios tbody");
     if (!tabla) return;
 
+    const solicitudes = obtenerSolicitudes();
     tabla.innerHTML = "";
 
-    const servicios = JSON.parse(localStorage.getItem("servicios")) || [];
-
-    servicios.slice().reverse().forEach(s => {
-        const claseEstado = s.estado === "Completado" ? "completado" : "pendiente";
-
-        const fila = `
-            <tr>
-                <td>${s.fecha}</td>
-                <td>${s.id}</td>
-                <td>${s.cliente}</td>
-                <td>${s.dispositivo}</td>
-                <td>${s.servicio}</td>
-                <td>
-                    <span class="estado ${claseEstado}">${s.estado}</span>
-                    <br>
-                    <button class="btn-editar-historial" onclick="editarServicio(${s.id})">
-                        Editar
-                    </button>
+    if (!solicitudes.length) {
+        tabla.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="8">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-screwdriver-wrench"></i>
+                        <strong>Sin solicitudes pendientes</strong>
+                        <span>Cuando un cliente envie una solicitud, aparecera aqui para asignarla a un tecnico.</span>
+                    </div>
                 </td>
             </tr>
         `;
+        return;
+    }
 
-        tabla.innerHTML += fila;
+    solicitudes.forEach(solicitud => {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+            <td>${escaparHtml(solicitud.fecha)}</td>
+            <td>${escaparHtml(solicitud.id)}</td>
+            <td>${escaparHtml(solicitud.cliente)}</td>
+            <td>${escaparHtml(solicitud.dispositivo)}</td>
+            <td>${escaparHtml(solicitud.servicio)}</td>
+            <td>${escaparHtml(solicitud.tecnico || "Sin asignar")}</td>
+            <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(solicitud.estado)}</span></td>
+            <td>
+                <div class="table-actions">
+                    <button class="btn-editar-historial" type="button" data-editar="${solicitud.id}">
+                        <i class="fa-solid fa-pen"></i> Editar
+                    </button>
+                </div>
+            </td>
+        `;
+        tabla.appendChild(fila);
+    });
+
+    tabla.querySelectorAll("[data-editar]").forEach(boton => {
+        boton.addEventListener("click", () => editarServicio(boton.dataset.editar));
     });
 }
 
-// ===============================
-// ACTUALIZAR CARDS
-// ===============================
-function actualizarCards() {
-    const servicios = JSON.parse(localStorage.getItem("servicios")) || [];
-
-    const total = document.getElementById("totalServicios");
-    const pendientesEl = document.getElementById("serviciosPendientes");
-    const procesoEl = document.getElementById("serviciosProceso");
-    const completadosEl = document.getElementById("serviciosCompletados");
-
-    const pendientes = servicios.filter(s => s.estado === "Pendiente");
-    const proceso = servicios.filter(s => s.estado === "En Proceso");
-    const completados = servicios.filter(s => s.estado === "Completado");
-
-    if (total) total.textContent = servicios.length;
-    if (pendientesEl) pendientesEl.textContent = pendientes.length;
-    if (procesoEl) procesoEl.textContent = proceso.length;
-    if (completadosEl) completadosEl.textContent = completados.length;
-}
-
-// ===============================
-// LIMPIAR FORMULARIO
-// ===============================
 function limpiarFormulario() {
     document.getElementById("idEditar").value = "";
     document.getElementById("cliente").value = "";
     document.getElementById("dispositivo").value = "";
     document.getElementById("servicio").value = "";
     document.getElementById("fecha").value = "";
+    document.getElementById("tecnicoServicio").value = "";
     document.getElementById("estadoServicio").value = "Pendiente";
-
     document.getElementById("tituloFormulario").textContent = "Solicitud de Servicio";
     document.getElementById("btnGuardar").textContent = "Guardar Servicio";
 }
 
-function cambiarEstado(id) {
-    let servicios = JSON.parse(localStorage.getItem("servicios")) || [];
+function editarServicio(id) {
+    const solicitud = obtenerSolicitudes().find(item => item.id === id);
+    if (!solicitud) return;
 
-    servicios = servicios.map(s => {
-        if (s.id === id) {
-            if (s.estado === "Pendiente") {
-                s.estado = "Completado";
-            } else {
-                s.estado = "Pendiente";
-            }
-        }
-        return s;
-    });
+    document.getElementById("idEditar").value = solicitud.id;
+    document.getElementById("cliente").value = solicitud.cliente;
+    document.getElementById("dispositivo").value = solicitud.dispositivo;
+    document.getElementById("servicio").value = solicitud.servicio;
+    document.getElementById("fecha").value = solicitud.fecha;
+    document.getElementById("tecnicoServicio").value = solicitud.tecnico || "";
+    document.getElementById("estadoServicio").value = solicitud.estado;
+    document.getElementById("tituloFormulario").textContent = "Asignar o actualizar solicitud";
+    document.getElementById("btnGuardar").textContent = "Actualizar Solicitud";
 
-    localStorage.setItem("servicios", JSON.stringify(servicios));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+document.getElementById("btnGuardar")?.addEventListener("click", () => {
+    const idEditar = document.getElementById("idEditar").value;
+    const cliente = document.getElementById("cliente").value.trim();
+    const dispositivo = document.getElementById("dispositivo").value.trim();
+    const servicio = document.getElementById("servicio").value.trim();
+    const fecha = document.getElementById("fecha").value;
+    const tecnico = document.getElementById("tecnicoServicio").value;
+    const estadoManual = document.getElementById("estadoServicio").value;
+
+    if (!cliente || !dispositivo || !servicio || !fecha) {
+        mostrarNotificacion("Completa cliente, dispositivo, servicio y fecha.", "error");
+        return;
+    }
+
+    let solicitudes = obtenerSolicitudes();
+
+    if (idEditar) {
+        solicitudes = solicitudes.map(solicitud => {
+            if (solicitud.id !== idEditar) return solicitud;
+
+            return {
+                ...solicitud,
+                cliente,
+                dispositivo,
+                servicio,
+                fecha,
+                tecnico,
+                estado: tecnico && estadoManual === "Pendiente" ? "En Proceso" : estadoManual
+            };
+        });
+        mostrarNotificacion("Solicitud actualizada correctamente.", "success");
+    } else {
+        solicitudes.unshift({
+            id: crearIdSolicitud(solicitudes),
+            cliente,
+            dispositivo,
+            servicio,
+            fecha,
+            tecnico,
+            diagnostico: "",
+            estado: tecnico ? "En Proceso" : "Pendiente",
+            creadoEn: new Date().toISOString()
+        });
+        mostrarNotificacion("Solicitud creada correctamente.", "success");
+    }
+
+    guardarSolicitudes(solicitudes);
+    limpiarFormulario();
     cargarServicios();
     actualizarCards();
-}
-function editarServicio(id) {
-    const servicios = JSON.parse(localStorage.getItem("servicios")) || [];
-    const servicioEncontrado = servicios.find(s => s.id === id);
+});
 
-    if (!servicioEncontrado) return;
-
-    document.getElementById("idEditar").value = servicioEncontrado.id;
-    document.getElementById("cliente").value = servicioEncontrado.cliente;
-    document.getElementById("dispositivo").value = servicioEncontrado.dispositivo;
-    document.getElementById("servicio").value = servicioEncontrado.servicio;
-    document.getElementById("fecha").value = servicioEncontrado.fecha;
-    document.getElementById("estadoServicio").value = servicioEncontrado.estado;
-
-    document.getElementById("tituloFormulario").textContent = "Editar Servicio";
-    document.getElementById("btnGuardar").textContent = "Actualizar Servicio";
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-    cargarServicios();
-actualizarCards();
-}
-
-// ===============================
-// INICIALIZAR
-// ===============================
 cargarServicios();
 actualizarCards();
-
-

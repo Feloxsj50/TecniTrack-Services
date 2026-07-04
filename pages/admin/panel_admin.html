@@ -57,8 +57,17 @@
 <input type="text" id="servicio" placeholder="Tipo de Servicio">
 <input type="date" id="fecha">
 
+<select id="tecnicoServicio">
+    <option value="">Asignar tecnico</option>
+    <option value="tecnico">Tecnico principal</option>
+    <option value="Luis Canda">Luis Canda</option>
+    <option value="Natalia Ruiz">Natalia Ruiz</option>
+    <option value="Pedro Lopez">Pedro Lopez</option>
+</select>
+
 <select id="estadoServicio">
     <option value="Pendiente">Pendiente</option>
+    <option value="En Proceso">En Proceso</option>
     <option value="Completado">Completado</option>
 </select>
 
@@ -71,12 +80,16 @@
 
                 <table id="tablaServicios">
                     <thead>
-        <th>Fecha</th>
-<th>ID</th>
-<th>Cliente</th>
-<th>Dispositivo</th>
-<th>Servicio</th>
-<th>Estado</th>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Dispositivo</th>
+                            <th>Servicio</th>
+                            <th>Tecnico</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
                     </thead>
                     <tbody></tbody>
                 </table>

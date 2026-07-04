@@ -19,40 +19,39 @@
 
             <div class="cards">
                 <div class="card">
-                    <h3>6</h3>
+                    <h3 id="totalAsignados">0</h3>
                     <p>Servicios Asignados</p>
                 </div>
 
                 <div class="card">
-                    <h3>3</h3>
+                    <h3 id="totalProceso">0</h3>
                     <p>En Proceso</p>
                 </div>
 
                 <div class="card">
-                    <h3>2</h3>
+                    <h3 id="totalCompletados">0</h3>
                     <p>Completados</p>
                 </div>
 
                 <div class="card">
-                    <h3>1</h3>
+                    <h3 id="totalPendientes">0</h3>
                     <p>Pendientes</p>
                 </div>
             </div>
 
-            <div class="form-container">
+            <form class="form-container" id="formTecnico">
                 <h2>Actualizar Servicio</h2>
 
-                <input type="text" placeholder="ID del servicio">
-                <input type="text" placeholder="Diagnóstico">
-                <input type="text" placeholder="Repuesto utilizado">
-                <select>
-                    <option>Pendiente</option>
-                    <option>En Proceso</option>
-                    <option>Completado</option>
+                <input type="text" id="idServicioTecnico" placeholder="ID del servicio" readonly>
+                <input type="text" id="diagnosticoTecnico" placeholder="Diagnostico">
+                <input type="text" id="repuestoTecnico" placeholder="Repuesto utilizado">
+                <select id="estadoTecnico">
+                    <option value="En Proceso">En Proceso</option>
+                    <option value="Completado">Completado</option>
                 </select>
 
-                <button>Guardar Actualización</button>
-            </div>
+                <button type="submit">Guardar Actualización</button>
+            </form>
 
             <div class="historial">
                 <h2>Servicios Asignados</h2>
@@ -66,34 +65,10 @@
                             <th>Dispositivo</th>
                             <th>Servicio</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>2026-02-22</td>
-                            <td>ST-101</td>
-                            <td>Juan Pérez</td>
-                            <td>Dell Inspiron</td>
-                            <td>Cambio de pantalla</td>
-                            <td><span class="estado en-proceso">En Proceso</span></td>
-                        </tr>
-                        <tr>
-                            <td>2026-02-22</td>
-                            <td>ST-102</td>
-                            <td>María López</td>
-                            <td>HP Pavilion</td>
-                            <td>Limpieza interna</td>
-                            <td><span class="estado pendiente">Pendiente</span></td>
-                        </tr>
-                        <tr>
-                            <td>2026-02-21</td>
-                            <td>ST-103</td>
-                            <td>Carlos Ruiz</td>
-                            <td>Lenovo ThinkPad</td>
-                            <td>Cambio de batería</td>
-                            <td><span class="estado completado">Completado</span></td>
-                        </tr>
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </section>
@@ -101,6 +76,7 @@
 
     <script src="../../js/notifications.js"></script>
     <script src="../../js/sidebar.js"></script>
+    <script src="../../js/tecnico-panel.js"></script>
 </body>
 
 </html>

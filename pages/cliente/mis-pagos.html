@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis pagos - TecniTrack</title>
+    <title>Mis recibos - TecniTrack</title>
     <link rel="stylesheet" href="../../css/admin.css">
     <link rel="stylesheet" href="../../css/cliente-pagos.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -16,25 +16,25 @@
 
     <main class="content">
         <div class="topbar pagos-topbar">
-            <h1>Mis pagos</h1>
+            <h1>Mis recibos</h1>
             <div class="buscador-pagos">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="search" id="buscarPago" placeholder="Buscar recibo o servicio">
             </div>
         </div>
 
-        <section class="cards pagos-cards" aria-label="Resumen de pagos">
-            <div class="card"><h3 id="totalPagado">$0.00</h3><p>Total Pagado</p></div>
-            <div class="card"><h3 id="saldoPendiente">$0.00</h3><p>Saldo Pendiente</p></div>
-            <div class="card"><h3 id="pagosRealizados">0</h3><p>Pagos Realizados</p></div>
+        <section class="cards pagos-cards" aria-label="Resumen de recibos">
+            <div class="card"><h3 id="totalPagado">$0.00</h3><p>Total en Recibos</p></div>
+            <div class="card"><h3 id="saldoPendiente">$0.00</h3><p>Pendiente de Recibo</p></div>
+            <div class="card"><h3 id="pagosRealizados">0</h3><p>Recibos Emitidos</p></div>
             <div class="card"><h3 id="ultimaGarantia">-</h3><p>Ultima Garantia</p></div>
         </section>
 
         <section class="pago-actual" id="pagoPendiente">
             <div class="pago-actual-header">
                 <div>
-                    <span class="pago-eyebrow">Pago pendiente</span>
-                    <h2 id="pendienteServicio">Sin pagos pendientes</h2>
+                    <span class="pago-eyebrow">Recibo pendiente</span>
+                    <h2 id="pendienteServicio">Sin recibos pendientes</h2>
                 </div>
                 <span class="estado-factura pendiente" id="pendienteEstado">Pendiente</span>
             </div>
@@ -47,7 +47,7 @@
             </div>
 
             <div class="pago-total">
-                <span>Total a pagar</span>
+                <span>Total del recibo</span>
                 <strong id="pendienteTotal">$0.00</strong>
             </div>
 
@@ -58,7 +58,7 @@
 
         <section class="historial historial-pagos">
             <div class="historial-header">
-                <h2>Historial de pagos</h2>
+                <h2>Historial de recibos</h2>
                 <span id="cantidadResultados">0 recibos</span>
             </div>
 
