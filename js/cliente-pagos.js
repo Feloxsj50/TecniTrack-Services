@@ -1,61 +1,4 @@
-const pagosCliente = [
-    {
-        recibo: "REC-001",
-        fecha: "2026-02-20",
-        cliente: "Cliente TecniTrack",
-        dispositivo: "Dell Inspiron",
-        servicio: "Limpieza interna",
-        tecnico: "Luis Canda",
-        metodo: "Efectivo",
-        garantia: "30 días",
-        montoServicio: 25,
-        repuestos: [{ nombre: "Pasta térmica", monto: 10 }],
-        total: 35,
-        estado: "Pagado"
-    },
-    {
-        recibo: "REC-002",
-        fecha: "2026-03-05",
-        cliente: "Cliente TecniTrack",
-        dispositivo: "Lenovo IdeaPad",
-        servicio: "Cambio de batería",
-        tecnico: "Natalia Ruiz",
-        metodo: "Transferencia",
-        garantia: "30 días",
-        montoServicio: 30,
-        repuestos: [{ nombre: "Batería compatible", monto: 40 }],
-        total: 70,
-        estado: "Pagado"
-    },
-    {
-        recibo: "REC-003",
-        fecha: "2026-04-12",
-        cliente: "Cliente TecniTrack",
-        dispositivo: "HP Pavilion",
-        servicio: "Diagnóstico",
-        tecnico: "Pedro López",
-        metodo: "Tarjeta",
-        garantia: "15 días",
-        montoServicio: 20,
-        repuestos: [],
-        total: 20,
-        estado: "Pagado"
-    },
-    {
-        recibo: "REC-004",
-        fecha: "2026-06-18",
-        cliente: "Cliente TecniTrack",
-        dispositivo: "HP Pavilion",
-        servicio: "Cambio de pantalla",
-        tecnico: "Pedro López",
-        metodo: "Por definir",
-        garantia: "30 días",
-        montoServicio: 25,
-        repuestos: [{ nombre: "Pantalla compatible", monto: 95 }],
-        total: 120,
-        estado: "Pendiente"
-    }
-];
+const pagosCliente = [];
 
 const tablaPagos = document.querySelector("#tablaPagosCliente tbody");
 const modalRecibo = document.getElementById("reciboModal");
@@ -95,7 +38,7 @@ function actualizarResumen() {
     document.getElementById("totalPagado").textContent = moneda(totalPagado);
     document.getElementById("saldoPendiente").textContent = moneda(saldoPendiente);
     document.getElementById("pagosRealizados").textContent = pagados.length;
-    document.getElementById("ultimaGarantia").textContent = ultimoPago?.garantia || "—";
+    document.getElementById("ultimaGarantia").textContent = ultimoPago?.garantia || "-";
 }
 
 function cargarPagoPendiente() {
@@ -120,6 +63,20 @@ function cargarPagoPendiente() {
 function renderizarHistorial(lista) {
     tablaPagos.innerHTML = "";
     const pagados = lista.filter(pago => pago.estado === "Pagado");
+
+    if (!pagados.length) {
+        tablaPagos.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="8">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-receipt"></i>
+                        <strong>Sin pagos registrados</strong>
+                        <span>Cuando el cliente tenga recibos pagados, apareceran aqui.</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
 
     pagados.forEach(pago => {
         const fila = document.createElement("tr");
@@ -164,15 +121,15 @@ function contenidoRecibo(pago) {
     return `
         <div class="recibo-cabecera">
             <h2 id="reciboTitulo">TecniTrack Services</h2>
-            <p>${escaparHtml(pago.recibo)} · ${pago.estado}</p>
+            <p>${escaparHtml(pago.recibo)} - ${pago.estado}</p>
         </div>
         <div class="recibo-meta">
             <div><span>Cliente</span><strong>${escaparHtml(pago.cliente)}</strong></div>
             <div><span>Fecha</span><strong>${fechaLegible(pago.fecha)}</strong></div>
             <div><span>Dispositivo</span><strong>${escaparHtml(pago.dispositivo)}</strong></div>
-            <div><span>Técnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
-            <div><span>Método</span><strong>${escaparHtml(pago.metodo)}</strong></div>
-            <div><span>Garantía</span><strong>${escaparHtml(pago.garantia)}</strong></div>
+            <div><span>Tecnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
+            <div><span>Metodo</span><strong>${escaparHtml(pago.metodo)}</strong></div>
+            <div><span>Garantia</span><strong>${escaparHtml(pago.garantia)}</strong></div>
         </div>
         <div class="recibo-lineas">
             <div class="recibo-linea">
@@ -186,6 +143,7 @@ function contenidoRecibo(pago) {
 }
 
 function abrirRecibo(pago) {
+    if (!pago) return;
     reciboActual = pago;
     document.getElementById("reciboContenido").innerHTML = contenidoRecibo(pago);
     modalRecibo.hidden = false;
@@ -203,7 +161,7 @@ function imprimirRecibo() {
     const ventana = window.open("", "_blank");
 
     if (!ventana) {
-        mostrarNotificacion("El navegador bloqueó la ventana de impresión.");
+        mostrarNotificacion("El navegador bloqueo la ventana de impresion.");
         return;
     }
 

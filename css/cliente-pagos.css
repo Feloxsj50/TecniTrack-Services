@@ -183,6 +183,15 @@
     background: rgba(139, 92, 246, 0.04);
 }
 
+#tablaPagosCliente .empty-row:hover {
+    background: transparent;
+}
+
+#tablaPagosCliente .empty-row td {
+    padding: 28px 12px;
+    white-space: normal;
+}
+
 .estado-factura {
     display: inline-flex;
     align-items: center;

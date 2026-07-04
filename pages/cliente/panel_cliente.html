@@ -19,36 +19,36 @@
 
             <div class="cards">
                 <div class="card">
-                    <h3>4</h3>
+                    <h3 id="totalServicios">0</h3>
                     <p>Servicios Solicitados</p>
                 </div>
 
                 <div class="card">
-                    <h3>1</h3>
+                    <h3 id="serviciosRevision">0</h3>
                     <p>En Revisión</p>
                 </div>
 
                 <div class="card">
-                    <h3>3</h3>
+                    <h3 id="serviciosCompletados">0</h3>
                     <p>Completados</p>
                 </div>
 
                 <div class="card">
-                    <h3>$120</h3>
+                    <h3>$0</h3>
                     <p>Saldo Pendiente</p>
                 </div>
             </div>
 
-            <div class="form-container">
+            <form class="form-container" id="formSolicitud">
                 <h2>Solicitar Servicio</h2>
 
-                <input type="text" placeholder="Nombre del cliente">
-                <input type="text" placeholder="Dispositivo">
-                <input type="text" placeholder="Tipo de problema">
-                <input type="date">
+                <input type="text" id="nombreCliente" placeholder="Nombre del cliente" required>
+                <input type="text" id="dispositivoCliente" placeholder="Dispositivo" required>
+                <input type="text" id="problemaCliente" placeholder="Tipo de problema" required>
+                <input type="date" id="fechaSolicitud" required>
 
-                <button>Enviar Solicitud</button>
-            </div>
+                <button type="submit">Enviar Solicitud</button>
+            </form>
 
             <div class="historial">
                 <h2>Mis Servicios</h2>
@@ -65,29 +65,14 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>2026-02-22</td>
-                            <td>CL-201</td>
-                            <td>Cliente</td>
-                            <td>HP Pavilion</td>
-                            <td>Diagnóstico</td>
-                            <td><span class="estado en-proceso">En Proceso</span></td>
-                        </tr>
-                        <tr>
-                            <td>2026-02-20</td>
-                            <td>CL-202</td>
-                            <td>Cliente</td>
-                            <td>Dell Inspiron</td>
-                            <td>Limpieza interna</td>
-                            <td><span class="estado completado">Completado</span></td>
-                        </tr>
-                        <tr>
-                            <td>2026-02-19</td>
-                            <td>CL-203</td>
-                            <td>Cliente</td>
-                            <td>Lenovo IdeaPad</td>
-                            <td>Cambio de batería</td>
-                            <td><span class="estado pendiente">Pendiente</span></td>
+                        <tr class="empty-row">
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-clipboard-list"></i>
+                                    <strong>Sin servicios registrados</strong>
+                                    <span>Cuando el cliente solicite o reciba un servicio, aparecerá aquí su historial.</span>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -97,6 +82,7 @@
 
     <script src="../../js/notifications.js"></script>
     <script src="../../js/sidebar.js"></script>
+    <script src="../../js/cliente-panel.js"></script>
 </body>
 
 </html>
