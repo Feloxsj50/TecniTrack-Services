@@ -27,6 +27,12 @@ function claseEstado(estado) {
     return "pendiente";
 }
 
+function clasePrioridad(prioridad) {
+    if (prioridad === "Alta") return "prioridad alta";
+    if (prioridad === "Baja") return "prioridad baja";
+    return "prioridad media";
+}
+
 function crearIdSolicitud(solicitudes) {
     return `SOL-${String(solicitudes.length + 1).padStart(3, "0")}`;
 }
@@ -53,7 +59,7 @@ function cargarServicios() {
     if (!solicitudes.length) {
         tabla.innerHTML = `
             <tr class="empty-row">
-                <td colspan="8">
+                <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
                         <strong>Sin solicitudes pendientes</strong>
@@ -74,6 +80,7 @@ function cargarServicios() {
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
             <td>${escaparHtml(solicitud.tecnico || "Sin asignar")}</td>
+            <td><span class="${clasePrioridad(solicitud.prioridad)}">${escaparHtml(solicitud.prioridad || "Media")}</span></td>
             <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(solicitud.estado)}</span></td>
             <td>
                 <div class="table-actions">
@@ -98,6 +105,7 @@ function limpiarFormulario() {
     document.getElementById("servicio").value = "";
     document.getElementById("fecha").value = "";
     document.getElementById("tecnicoServicio").value = "";
+    document.getElementById("prioridadServicio").value = "Media";
     document.getElementById("estadoServicio").value = "Pendiente";
     document.getElementById("tituloFormulario").textContent = "Solicitud de Servicio";
     document.getElementById("btnGuardar").textContent = "Guardar Servicio";
@@ -113,6 +121,7 @@ function editarServicio(id) {
     document.getElementById("servicio").value = solicitud.servicio;
     document.getElementById("fecha").value = solicitud.fecha;
     document.getElementById("tecnicoServicio").value = solicitud.tecnico || "";
+    document.getElementById("prioridadServicio").value = solicitud.prioridad || "Media";
     document.getElementById("estadoServicio").value = solicitud.estado;
     document.getElementById("tituloFormulario").textContent = "Asignar o actualizar solicitud";
     document.getElementById("btnGuardar").textContent = "Actualizar Solicitud";
@@ -127,6 +136,7 @@ document.getElementById("btnGuardar")?.addEventListener("click", () => {
     const servicio = document.getElementById("servicio").value.trim();
     const fecha = document.getElementById("fecha").value;
     const tecnico = document.getElementById("tecnicoServicio").value;
+    const prioridad = document.getElementById("prioridadServicio").value;
     const estadoManual = document.getElementById("estadoServicio").value;
 
     if (!cliente || !dispositivo || !servicio || !fecha) {
@@ -147,6 +157,7 @@ document.getElementById("btnGuardar")?.addEventListener("click", () => {
                 servicio,
                 fecha,
                 tecnico,
+                prioridad,
                 estado: tecnico && estadoManual === "Pendiente" ? "En Proceso" : estadoManual
             };
         });
@@ -160,6 +171,8 @@ document.getElementById("btnGuardar")?.addEventListener("click", () => {
             fecha,
             tecnico,
             diagnostico: "",
+            repuesto: "",
+            prioridad,
             estado: tecnico ? "En Proceso" : "Pendiente",
             creadoEn: new Date().toISOString()
         });

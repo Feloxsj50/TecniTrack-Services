@@ -24,7 +24,7 @@ if (sidebars.length > 0) {
     const tecnicoItems = [
         { section: "General", items: [
             { href: "tecnico/panel_tecnico.html", icon: "fa-screwdriver-wrench", text: "Mi Panel" },
-            { href: "tecnico/inventario.html", icon: "fa-box", text: "Inventario" }
+            { href: "tecnico/mis-trabajos.html", icon: "fa-clipboard-check", text: "Mis Trabajos" }
         ]},
         { section: "Soporte", items: [
             { href: "shared/perfil.html", icon: "fa-user-circle", text: "Perfil" },

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -16,6 +16,8 @@
     <div class="content">
         <section class="panel-section active-section">
             <h1>Panel Técnico</h1>
+
+            <div class="tech-alerts" id="notificacionesTecnico"></div>
 
             <div class="cards">
                 <div class="card">
@@ -39,22 +41,8 @@
                 </div>
             </div>
 
-            <form class="form-container" id="formTecnico">
-                <h2>Actualizar Servicio</h2>
-
-                <input type="text" id="idServicioTecnico" placeholder="ID del servicio" readonly>
-                <input type="text" id="diagnosticoTecnico" placeholder="Diagnostico">
-                <input type="text" id="repuestoTecnico" placeholder="Repuesto utilizado">
-                <select id="estadoTecnico">
-                    <option value="En Proceso">En Proceso</option>
-                    <option value="Completado">Completado</option>
-                </select>
-
-                <button type="submit">Guardar Actualización</button>
-            </form>
-
             <div class="historial">
-                <h2>Servicios Asignados</h2>
+                <h2>Trabajos Asignados</h2>
 
                 <table id="tablaServicios">
                     <thead>
@@ -64,6 +52,8 @@
                             <th>Cliente</th>
                             <th>Dispositivo</th>
                             <th>Servicio</th>
+                            <th>Prioridad</th>
+                            <th>Tiempo</th>
                             <th>Estado</th>
                             <th>Acciones</th>
                         </tr>
@@ -71,8 +61,55 @@
                     <tbody></tbody>
                 </table>
             </div>
+
+            <div class="quick-inventory">
+                <h2>Consulta rápida de inventario</h2>
+                <div class="quick-inventory-grid">
+                    <div><span>Pasta térmica</span><strong>12 disponibles</strong></div>
+                    <div><span>SSD 480GB</span><strong>5 disponibles</strong></div>
+                    <div><span>Cargadores universales</span><strong>3 disponibles</strong></div>
+                </div>
+            </div>
         </section>
     </div>
+
+    <aside class="work-panel" id="panelTrabajo" hidden>
+        <div class="work-panel-header">
+            <div>
+                <span id="panelTrabajoId">Servicio</span>
+                <h2 id="panelTrabajoTitulo">Actualizar trabajo</h2>
+            </div>
+            <button type="button" id="cerrarPanelTrabajo" aria-label="Cerrar panel">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <form id="formTecnico" class="work-panel-form">
+            <input type="hidden" id="idServicioTecnico">
+
+            <label>
+                Diagnóstico
+                <textarea id="diagnosticoTecnico" rows="4" placeholder="Describe el diagnostico del equipo"></textarea>
+            </label>
+
+            <label>
+                Repuesto utilizado
+                <input type="text" id="repuestoTecnico" placeholder="Ej. SSD, pantalla, pasta termica">
+            </label>
+
+            <label>
+                Estado
+                <select id="estadoTecnico">
+                    <option value="En Proceso">En Proceso</option>
+                    <option value="Completado">Completado</option>
+                </select>
+            </label>
+
+            <button type="submit">Guardar Actualización</button>
+        </form>
+    </aside>
+
+    <div class="work-panel-backdrop" id="panelTrabajoBackdrop" hidden></div>
 
     <script src="../../js/notifications.js"></script>
     <script src="../../js/sidebar.js"></script>
@@ -80,11 +117,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
-

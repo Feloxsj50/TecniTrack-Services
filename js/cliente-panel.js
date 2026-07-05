@@ -92,7 +92,9 @@ formSolicitud.addEventListener("submit", event => {
         servicio: document.getElementById("problemaCliente").value.trim(),
         tecnico: "",
         diagnostico: "",
+        repuesto: "",
         usuarioCliente,
+        prioridad: "Media",
         estado: "Pendiente",
         creadoEn: new Date().toISOString()
     };

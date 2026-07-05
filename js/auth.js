@@ -12,7 +12,7 @@
             "cliente/mis-pagos.html", "shared/perfil.html", "shared/ayuda.html"
         ],
         tecnico: [
-            "tecnico/panel_tecnico.html", "tecnico/inventario.html",
+            "tecnico/panel_tecnico.html", "tecnico/inventario.html", "tecnico/mis-trabajos.html",
             "shared/perfil.html", "shared/ayuda.html"
         ],
         cliente: [

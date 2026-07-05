@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -15,86 +15,57 @@
 
     <div class="content">
         <section class="panel-section active-section">
-            <h1>Ayuda y Soporte</h1>
+            <h1 id="ayudaTitulo">Ayuda y Soporte</h1>
 
             <div class="cards">
                 <div class="card">
-                    <h3>24/7</h3>
-                    <p>Atención Disponible</p>
+                    <h3 id="statPrincipal">0</h3>
+                    <p id="statPrincipalTexto">Soporte</p>
                 </div>
 
                 <div class="card">
-                    <h3>4</h3>
-                    <p>Guías Rápidas</p>
+                    <h3 id="statCanal">Web</h3>
+                    <p>Canal de Soporte</p>
                 </div>
 
                 <div class="card">
-                    <h3>2</h3>
-                    <p>Tickets Abiertos</p>
+                    <h3 id="statTickets">0</h3>
+                    <p id="statTicketsTexto">Tickets Abiertos</p>
                 </div>
 
                 <div class="card">
-                    <h3>15m</h3>
+                    <h3 id="statTiempo">15m</h3>
                     <p>Tiempo Promedio</p>
                 </div>
             </div>
 
-            <div class="form-container">
-                <h2>Enviar Solicitud</h2>
+            <form class="form-container" id="formSoporte">
+                <h2 id="formTitulo">Enviar Solicitud</h2>
 
-                <input type="text" placeholder="Nombre">
-                <input type="email" placeholder="Correo">
-                <input type="text" placeholder="Asunto">
-                <select>
-                    <option>Soporte técnico</option>
-                    <option>Facturación</option>
-                    <option>Inventario</option>
-                    <option>Cuenta de usuario</option>
-                </select>
+                <input type="text" id="soporteNombre" placeholder="Nombre" required>
+                <input type="email" id="soporteCorreo" placeholder="Correo" required>
+                <input type="text" id="soporteAsunto" placeholder="Asunto" required>
+                <select id="soporteArea" required></select>
+                <input type="text" id="soporteDetalle" placeholder="Detalle breve" required>
 
-                <button>Enviar Mensaje</button>
-            </div>
+                <button type="submit" id="btnSoporte">Enviar Mensaje</button>
+            </form>
 
-            <div class="historial">
-                <h2>Preguntas Frecuentes</h2>
+            <div class="historial" id="ticketsSoporte">
+                <h2 id="ticketsTitulo">Tickets de Soporte</h2>
 
-                <table id="tablaServicios">
+                <table id="tablaTickets">
                     <thead>
                         <tr>
-                            <th>Área</th>
+                            <th>Fecha</th>
                             <th>ID</th>
-                            <th>Tema</th>
-                            <th>Descripción</th>
-                            <th>Prioridad</th>
+                            <th>Usuario</th>
+                            <th>Area</th>
+                            <th>Asunto</th>
                             <th>Estado</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>Login</td>
-                            <td>AY-001</td>
-                            <td>Acceso al sistema</td>
-                            <td>Verificar usuario, contraseña y rol asignado.</td>
-                            <td>Alta</td>
-                            <td><span class="estado completado">Disponible</span></td>
-                        </tr>
-                        <tr>
-                            <td>Inventario</td>
-                            <td>AY-002</td>
-                            <td>Stock bajo</td>
-                            <td>Revisar productos con alerta antes de facturar.</td>
-                            <td>Media</td>
-                            <td><span class="estado completado">Disponible</span></td>
-                        </tr>
-                        <tr>
-                            <td>Facturación</td>
-                            <td>AY-003</td>
-                            <td>Impresión</td>
-                            <td>Usar el botón imprimir desde el módulo de facturas.</td>
-                            <td>Media</td>
-                            <td><span class="estado en-proceso">En Revisión</span></td>
-                        </tr>
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </section>
@@ -102,14 +73,7 @@
 
     <script src="../../js/notifications.js"></script>
     <script src="../../js/sidebar.js"></script>
+    <script src="../../js/ayuda.js"></script>
 </body>
 
 </html>
-
-
-
-
-
-
-
-
