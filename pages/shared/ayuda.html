@@ -25,7 +25,7 @@
 
                 <div class="card">
                     <h3 id="statCanal">Web</h3>
-                    <p>Canal de Soporte</p>
+                    <p id="statCanalTexto">Canal de Soporte</p>
                 </div>
 
                 <div class="card">
@@ -35,7 +35,7 @@
 
                 <div class="card">
                     <h3 id="statTiempo">15m</h3>
-                    <p>Tiempo Promedio</p>
+                    <p id="statTiempoTexto">Tiempo Promedio</p>
                 </div>
             </div>
 
@@ -56,18 +56,35 @@
 
                 <table id="tablaTickets">
                     <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>ID</th>
-                            <th>Usuario</th>
-                            <th>Area</th>
-                            <th>Asunto</th>
-                            <th>Estado</th>
-                        </tr>
+                        <tr id="ticketsHead"></tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
+
+            <section class="client-faq" id="faqCliente" hidden>
+                <h2>Preguntas comunes</h2>
+
+                <details>
+                    <summary>Cuanto tarda una reparacion?</summary>
+                    <p>Depende del diagnostico y disponibilidad de repuestos. Los servicios simples suelen tardar de 1 a 2 dias habiles.</p>
+                </details>
+
+                <details>
+                    <summary>Como veo el estado de mi equipo?</summary>
+                    <p>Desde Mi Panel, en la tabla Mis Servicios, podes ver si tu solicitud esta Pendiente, En Proceso o Completada.</p>
+                </details>
+
+                <details>
+                    <summary>Las reparaciones tienen garantia?</summary>
+                    <p>Si. La garantia depende del tipo de servicio y repuesto usado. El detalle final aparecera en tu recibo.</p>
+                </details>
+
+                <details>
+                    <summary>Cuando pago el servicio?</summary>
+                    <p>El pago se realiza presencialmente al retirar el equipo, despues de que el taller confirme el costo final.</p>
+                </details>
+            </section>
         </section>
     </div>
 

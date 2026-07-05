@@ -951,6 +951,55 @@ body {
     font-size: 13px;
 }
 
+.client-faq {
+    width: calc(100vw - 230px - 80px);
+    max-width: 100%;
+    margin-top: 24px;
+}
+
+.client-faq h2 {
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.client-faq details {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    margin-bottom: 9px;
+    overflow: hidden;
+}
+
+.client-faq summary {
+    cursor: pointer;
+    padding: 13px 15px;
+    color: var(--text-primary);
+    font-weight: 500;
+    list-style: none;
+}
+
+.client-faq summary::-webkit-details-marker {
+    display: none;
+}
+
+.client-faq summary::after {
+    content: '+';
+    float: right;
+    color: var(--accent-cyan);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.client-faq details[open] summary::after {
+    content: '-';
+}
+
+.client-faq p {
+    padding: 0 15px 14px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1100px) {
     .cards { grid-template-columns: repeat(2, 1fr); }
