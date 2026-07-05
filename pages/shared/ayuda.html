@@ -35,7 +35,7 @@
 
                 <div class="card">
                     <h3 id="statTiempo">15m</h3>
-                    <p id="statTiempoTexto">Tiempo Promedio</p>
+                    <p id="statTiempoTexto">Sin Responder</p>
                 </div>
             </div>
 
@@ -85,6 +85,39 @@
                     <p>El pago se realiza presencialmente al retirar el equipo, despues de que el taller confirme el costo final.</p>
                 </details>
             </section>
+        </section>
+    </div>
+
+    <div class="support-modal" id="modalRespuesta" hidden>
+        <div class="support-modal-backdrop" data-cerrar-respuesta></div>
+        <section class="support-dialog" role="dialog" aria-modal="true" aria-labelledby="respuestaTitulo">
+            <button type="button" class="support-close" data-cerrar-respuesta aria-label="Cerrar respuesta">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="support-dialog-header">
+                <span id="respuestaTicketId">Ticket</span>
+                <h2 id="respuestaTitulo">Responder consulta</h2>
+                <p id="respuestaResumen"></p>
+            </div>
+
+            <form id="formRespuesta" class="support-response-form">
+                <input type="hidden" id="respuestaId">
+                <label>
+                    Respuesta del admin
+                    <textarea id="respuestaTexto" rows="5" placeholder="Escribi una respuesta clara para el usuario" required></textarea>
+                </label>
+                <button type="submit">
+                    <i class="fa-solid fa-paper-plane"></i> Enviar respuesta
+                </button>
+            </form>
+
+            <div class="support-response-view" id="respuestaLectura" hidden>
+                <p id="respuestaCompleta"></p>
+                <button type="button" data-cerrar-respuesta>
+                    <i class="fa-solid fa-check"></i> Entendido
+                </button>
+            </div>
         </section>
     </div>
 

@@ -17,7 +17,7 @@ const configuracionAyuda = {
             ["Admin", "Vista General"],
             ["Web", "Canal de Soporte"],
             [null, "Tickets Totales"],
-            ["10m", "Tiempo Promedio"]
+            [null, "Sin Responder"]
         ],
         formTitulo: "Registrar Nota Interna",
         boton: "Guardar Nota",
@@ -30,7 +30,7 @@ const configuracionAyuda = {
             ["Tec", "Mesa Interna"],
             ["Web", "Canal de Soporte"],
             [null, "Mis Tickets"],
-            ["15m", "Tiempo Promedio"]
+            [null, "Sin Responder"]
         ],
         formTitulo: "Pedir Apoyo al Admin",
         boton: "Enviar Consulta",
@@ -91,9 +91,11 @@ function configurarCards(config, totalTickets) {
         ["statTiempo", "statTiempoTexto"]
     ];
 
+    const pendientes = ticketsVisibles().filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido").length;
+
     config.cards.forEach((card, index) => {
         const [valorId, textoId] = ids[index];
-        document.getElementById(valorId).textContent = card[0] ?? totalTickets;
+        document.getElementById(valorId).textContent = card[0] ?? (index === 3 ? pendientes : totalTickets);
         document.getElementById(textoId).textContent = card[1];
     });
 }
@@ -122,10 +124,10 @@ function configurarVista() {
 
 function renderizarEncabezadoTickets() {
     const columnas = rolAyuda === "cliente"
-        ? ["Fecha", "ID", "Area", "Asunto", "Respuesta", "Estado"]
+        ? ["Fecha", "ID", "Area", "Asunto", "Respuesta", "Estado", "Acciones"]
         : rolAyuda === "admin"
             ? ["Fecha", "ID", "Usuario", "Area", "Asunto", "Respuesta", "Estado", "Acciones"]
-            : ["Fecha", "ID", "Usuario", "Area", "Asunto", "Respuesta", "Estado"];
+            : ["Fecha", "ID", "Usuario", "Area", "Asunto", "Respuesta", "Estado", "Acciones"];
 
     document.getElementById("ticketsHead").innerHTML = columnas
         .map(columna => `<th>${columna}</th>`)
@@ -135,7 +137,7 @@ function renderizarEncabezadoTickets() {
 function renderizarTickets() {
     const tbody = document.querySelector("#tablaTickets tbody");
     const tickets = ticketsVisibles();
-    const columnas = rolAyuda === "cliente" ? 6 : rolAyuda === "admin" ? 8 : 7;
+    const columnas = rolAyuda === "cliente" ? 7 : 8;
 
     if (!tickets.length) {
         tbody.innerHTML = `
@@ -155,9 +157,7 @@ function renderizarTickets() {
     tbody.innerHTML = tickets.map(ticket => {
         const respuesta = ticket.respuesta || "Pendiente de respuesta";
         const usuario = rolAyuda === "cliente" ? "" : `<td>${escaparHtml(ticket.nombre)}</td>`;
-        const acciones = rolAyuda === "admin"
-            ? `<td><button type="button" class="btn-editar-historial" data-responder="${ticket.id}"><i class="fa-solid fa-reply"></i> Responder</button></td>`
-            : "";
+        const acciones = accionesTicket(ticket);
 
         return `
             <tr>
@@ -176,6 +176,43 @@ function renderizarTickets() {
     tbody.querySelectorAll("[data-responder]").forEach(boton => {
         boton.addEventListener("click", () => responderTicket(boton.dataset.responder));
     });
+
+    tbody.querySelectorAll("[data-ver-mensaje]").forEach(boton => {
+        boton.addEventListener("click", () => verMensaje(boton.dataset.verMensaje));
+    });
+
+    tbody.querySelectorAll("[data-ver-respuesta]").forEach(boton => {
+        boton.addEventListener("click", () => verRespuesta(boton.dataset.verRespuesta));
+    });
+}
+
+function accionesTicket(ticket) {
+    if (rolAyuda === "admin") {
+        return `
+            <td>
+                <div class="table-actions">
+                    <button type="button" class="btn-editar-historial" data-ver-mensaje="${ticket.id}">
+                        <i class="fa-solid fa-envelope-open-text"></i> Ver mensaje
+                    </button>
+                    <button type="button" class="btn-editar-historial" data-responder="${ticket.id}">
+                        <i class="fa-solid fa-reply"></i> ${ticket.respuesta ? "Editar respuesta" : "Responder"}
+                    </button>
+                </div>
+            </td>
+        `;
+    }
+
+    if (ticket.respuesta) {
+        return `
+            <td>
+                <button type="button" class="btn-editar-historial" data-ver-respuesta="${ticket.id}">
+                    <i class="fa-solid fa-eye"></i> Ver respuesta
+                </button>
+            </td>
+        `;
+    }
+
+    return `<td><span class="estado pendiente">Sin respuesta</span></td>`;
 }
 
 function crearIdTicket(tickets) {
@@ -183,8 +220,71 @@ function crearIdTicket(tickets) {
 }
 
 function responderTicket(id) {
-    const respuesta = window.prompt("Respuesta para el cliente:");
-    if (!respuesta || !respuesta.trim()) return;
+    const ticket = obtenerTickets().find(item => item.id === id);
+    if (!ticket) return;
+
+    prepararModalRespuesta("editar");
+    document.getElementById("respuestaId").value = ticket.id;
+    document.getElementById("respuestaTicketId").textContent = ticket.id;
+    document.getElementById("respuestaTitulo").textContent = `Responder a ${ticket.nombre}`;
+    document.getElementById("respuestaResumen").textContent = `${ticket.area} - ${ticket.asunto}`;
+    document.getElementById("respuestaTexto").value = ticket.respuesta || "";
+
+    document.getElementById("modalRespuesta").hidden = false;
+    document.body.classList.add("modal-open");
+    document.getElementById("respuestaTexto").focus();
+}
+
+function verRespuesta(id) {
+    const ticket = obtenerTickets().find(item => item.id === id);
+    if (!ticket || !ticket.respuesta) return;
+
+    prepararModalRespuesta("lectura");
+    document.getElementById("respuestaTicketId").textContent = ticket.id;
+    document.getElementById("respuestaTitulo").textContent = `Respuesta de soporte`;
+    document.getElementById("respuestaResumen").textContent = `${ticket.area} - ${ticket.asunto}`;
+    document.getElementById("respuestaCompleta").textContent = ticket.respuesta;
+
+    document.getElementById("modalRespuesta").hidden = false;
+    document.body.classList.add("modal-open");
+}
+
+function verMensaje(id) {
+    const ticket = obtenerTickets().find(item => item.id === id);
+    if (!ticket) return;
+
+    prepararModalRespuesta("lectura");
+    document.getElementById("respuestaTicketId").textContent = ticket.id;
+    document.getElementById("respuestaTitulo").textContent = `Mensaje de ${ticket.nombre}`;
+    document.getElementById("respuestaResumen").textContent = `${ticket.area} - ${ticket.asunto}`;
+    document.getElementById("respuestaCompleta").textContent = ticket.detalle || "Sin detalle registrado.";
+
+    document.getElementById("modalRespuesta").hidden = false;
+    document.body.classList.add("modal-open");
+}
+
+function prepararModalRespuesta(modo) {
+    const esLectura = modo === "lectura";
+    document.getElementById("formRespuesta").hidden = esLectura;
+    document.getElementById("respuestaLectura").hidden = !esLectura;
+}
+
+function cerrarModalRespuesta() {
+    document.getElementById("modalRespuesta").hidden = true;
+    document.body.classList.remove("modal-open");
+    document.getElementById("formRespuesta").reset();
+    document.getElementById("respuestaCompleta").textContent = "";
+}
+
+document.getElementById("formRespuesta").addEventListener("submit", event => {
+    event.preventDefault();
+
+    const id = document.getElementById("respuestaId").value;
+    const respuesta = document.getElementById("respuestaTexto").value.trim();
+    if (!respuesta) {
+        mostrarNotificacion("Escribi una respuesta antes de enviarla.", "error");
+        return;
+    }
 
     const tickets = obtenerTickets().map(ticket => {
         if (ticket.id !== id) return ticket;
@@ -196,10 +296,20 @@ function responderTicket(id) {
     });
 
     guardarTickets(tickets);
+    cerrarModalRespuesta();
     configurarVista();
     renderizarTickets();
     mostrarNotificacion("Respuesta guardada correctamente.", "success");
-}
+});
+
+document.querySelectorAll("[data-cerrar-respuesta]").forEach(elemento => {
+    elemento.addEventListener("click", cerrarModalRespuesta);
+});
+
+document.addEventListener("keydown", event => {
+    const modal = document.getElementById("modalRespuesta");
+    if (event.key === "Escape" && !modal.hidden) cerrarModalRespuesta();
+});
 
 document.getElementById("formSoporte").addEventListener("submit", event => {
     event.preventDefault();
