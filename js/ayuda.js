@@ -15,13 +15,13 @@ const configuracionAyuda = {
     admin: {
         titulo: "Centro de Soporte del Sistema",
         cards: [
-            ["Admin", "Vista General"],
-            ["Web", "Canal de Soporte"],
+            [null, "Tickets Respondidos"],
+            [null, "Sin Responder"],
             [null, "Tickets Totales"],
-            [null, "Sin Responder"]
+            [null, "Tiempo Resp."]
         ],
-        formTitulo: "Registrar Nota Interna",
-        boton: "Guardar Nota",
+        formTitulo: "Responder Ticket",
+        boton: "Enviar Respuesta",
         areas: ["Sistema", "Usuarios", "Inventario", "Recibos", "Reportes"],
         ticketsTitulo: "Tickets abiertos por usuarios"
     },
@@ -107,6 +107,19 @@ function configurarCards(config, totalTickets) {
         ["statTiempo", "statTiempoTexto"]
     ];
 
+    if (rolAyuda === "admin") {
+        const metricas = metricasSoporteAdmin();
+        document.getElementById("statPrincipal").textContent = metricas.respondidos;
+        document.getElementById("statPrincipalTexto").textContent = "Tickets Respondidos";
+        document.getElementById("statCanal").textContent = metricas.pendientes;
+        document.getElementById("statCanalTexto").textContent = "Sin Responder";
+        document.getElementById("statTickets").textContent = metricas.total;
+        document.getElementById("statTicketsTexto").textContent = "Tickets Totales";
+        document.getElementById("statTiempo").textContent = metricas.tiempoPromedio;
+        document.getElementById("statTiempoTexto").textContent = "Tiempo Resp.";
+        return;
+    }
+
     const pendientes = ticketsVisibles().filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido").length;
 
     config.cards.forEach((card, index) => {
@@ -114,6 +127,35 @@ function configurarCards(config, totalTickets) {
         document.getElementById(valorId).textContent = card[0] ?? (index === 3 ? pendientes : totalTickets);
         document.getElementById(textoId).textContent = card[1];
     });
+}
+
+function metricasSoporteAdmin() {
+    const tickets = obtenerTickets();
+    const respondidos = tickets.filter(ticket => ticket.respuesta || ticket.estado === "Respondido");
+    const pendientes = tickets.filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido");
+    const tiempos = respondidos
+        .map(ticket => {
+            if (!ticket.creadoEn || !ticket.respondidoEn) return null;
+            return new Date(ticket.respondidoEn).getTime() - new Date(ticket.creadoEn).getTime();
+        })
+        .filter(tiempo => Number.isFinite(tiempo) && tiempo >= 0);
+
+    return {
+        total: tickets.length,
+        respondidos: respondidos.length,
+        pendientes: pendientes.length,
+        tiempoPromedio: formatearDuracion(tiempos)
+    };
+}
+
+function formatearDuracion(tiempos) {
+    if (!tiempos.length) return "N/D";
+    const promedio = tiempos.reduce((total, tiempo) => total + tiempo, 0) / tiempos.length;
+    const minutos = Math.max(1, Math.round(promedio / 60000));
+    if (minutos < 60) return `${minutos}m`;
+    const horas = Math.round(minutos / 60);
+    if (horas < 24) return `${horas}h`;
+    return `${Math.round(horas / 24)}d`;
 }
 
 function autollenarDatos() {
@@ -142,10 +184,27 @@ function configurarVista() {
     document.getElementById("btnSoporte").textContent = config.boton;
     document.getElementById("ticketsTitulo").textContent = config.ticketsTitulo;
     document.getElementById("faqCliente").hidden = rolAyuda !== "cliente";
+    document.getElementById("formSoporte").hidden = rolAyuda === "admin";
+    document.getElementById("filtrosSoporte").hidden = rolAyuda !== "admin";
 
     document.getElementById("soporteArea").innerHTML = config.areas
         .map(area => `<option value="${escaparHtml(area)}">${escaparHtml(area)}</option>`)
         .join("");
+
+    if (rolAyuda === "admin") cargarFiltrosAdmin();
+}
+
+function cargarFiltrosAdmin() {
+    const areas = [...new Set(obtenerTickets().map(ticket => ticket.area).filter(Boolean))];
+    const select = document.getElementById("filtroAreaTicket");
+    const valorActual = select.value || "todas";
+
+    select.innerHTML = `
+        <option value="todas">Todas las areas</option>
+        ${areas.map(area => `<option value="${escaparHtml(area)}">${escaparHtml(area)}</option>`).join("")}
+    `;
+
+    select.value = areas.includes(valorActual) ? valorActual : "todas";
 }
 
 function renderizarEncabezadoTickets() {
@@ -162,7 +221,7 @@ function renderizarEncabezadoTickets() {
 
 function renderizarTickets() {
     const tbody = document.querySelector("#tablaTickets tbody");
-    const tickets = ticketsVisibles();
+    const tickets = ticketsFiltrados();
     const columnas = rolAyuda === "cliente" ? 7 : 8;
 
     if (!tickets.length) {
@@ -210,6 +269,26 @@ function renderizarTickets() {
     tbody.querySelectorAll("[data-ver-respuesta]").forEach(boton => {
         boton.addEventListener("click", () => verRespuesta(boton.dataset.verRespuesta));
     });
+}
+
+function ticketsFiltrados() {
+    let tickets = ticketsVisibles();
+    if (rolAyuda !== "admin") return tickets;
+
+    const estado = document.getElementById("filtroEstadoTicket")?.value || "todos";
+    const area = document.getElementById("filtroAreaTicket")?.value || "todas";
+
+    if (estado === "sin-responder") {
+        tickets = tickets.filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido");
+    } else if (estado !== "todos") {
+        tickets = tickets.filter(ticket => ticket.estado === estado);
+    }
+
+    if (area !== "todas") {
+        tickets = tickets.filter(ticket => ticket.area === area);
+    }
+
+    return tickets;
 }
 
 function accionesTicket(ticket) {
@@ -317,7 +396,8 @@ document.getElementById("formRespuesta").addEventListener("submit", event => {
         return {
             ...ticket,
             respuesta: respuesta.trim(),
-            estado: "Respondido"
+            estado: "Respondido",
+            respondidoEn: new Date().toISOString()
         };
     });
 
@@ -352,7 +432,9 @@ document.getElementById("formSoporte").addEventListener("submit", event => {
         area: document.getElementById("soporteArea").value,
         detalle: document.getElementById("soporteDetalle").value.trim(),
         respuesta: "",
-        estado: rolAyuda === "admin" ? "Nota interna" : "Abierto"
+        estado: rolAyuda === "admin" ? "Nota interna" : "Abierto",
+        creadoEn: new Date().toISOString(),
+        respondidoEn: ""
     };
 
     if (!nuevoTicket.nombre || !nuevoTicket.correo || !nuevoTicket.asunto || !nuevoTicket.detalle) {
@@ -369,6 +451,9 @@ document.getElementById("formSoporte").addEventListener("submit", event => {
     renderizarTickets();
     mostrarNotificacion("Consulta registrada correctamente.", "success");
 });
+
+document.getElementById("filtroEstadoTicket")?.addEventListener("change", renderizarTickets);
+document.getElementById("filtroAreaTicket")?.addEventListener("change", renderizarTickets);
 
 configurarVista();
 autollenarDatos();

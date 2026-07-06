@@ -1197,6 +1197,49 @@ body {
     cursor: pointer;
 }
 
+.support-filters {
+    width: calc(100vw - 230px - 80px);
+    max-width: 100%;
+    display: flex;
+    align-items: end;
+    gap: 12px;
+    margin: 0 0 22px;
+    padding: 16px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+}
+
+.support-filters[hidden] {
+    display: none;
+}
+
+.support-filters div {
+    display: grid;
+    gap: 6px;
+    min-width: 190px;
+}
+
+.support-filters label {
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.support-filters select {
+    width: 100%;
+    padding: 10px 13px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font: inherit;
+}
+
 .backup-panel {
     width: calc(100vw - 230px - 80px);
     max-width: 100%;

@@ -51,6 +51,25 @@
                 <button type="submit" id="btnSoporte">Enviar Mensaje</button>
             </form>
 
+            <div class="support-filters" id="filtrosSoporte" hidden>
+                <div>
+                    <label for="filtroEstadoTicket">Estado</label>
+                    <select id="filtroEstadoTicket">
+                        <option value="todos">Todos</option>
+                        <option value="sin-responder">Sin responder</option>
+                        <option value="Respondido">Respondidos</option>
+                        <option value="Abierto">Abiertos</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="filtroAreaTicket">Area</label>
+                    <select id="filtroAreaTicket">
+                        <option value="todas">Todas las areas</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="historial" id="ticketsSoporte">
                 <h2 id="ticketsTitulo">Tickets de Soporte</h2>
 
