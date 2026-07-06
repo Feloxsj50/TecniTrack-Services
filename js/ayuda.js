@@ -1,4 +1,5 @@
 const STORAGE_KEY_TICKETS = "tecnitrackTicketsSoporte";
+const STORAGE_TALLER = "tecnitrackTaller";
 
 const sesionAyuda = TecniAuth.obtenerSesion();
 const rolAyuda = sesionAyuda?.rol || "cliente";
@@ -51,6 +52,21 @@ const configuracionAyuda = {
         ticketsTitulo: "Mis consultas"
     }
 };
+
+const tallerDefault = {
+    direccion: "Managua",
+    telefono: "8888-0000",
+    whatsapp: "8888-0000",
+    horario: "Lun-Sab"
+};
+
+function obtenerTaller() {
+    try {
+        return JSON.parse(localStorage.getItem(STORAGE_TALLER)) || tallerDefault;
+    } catch {
+        return tallerDefault;
+    }
+}
 
 function obtenerTickets() {
     try {
@@ -109,6 +125,16 @@ function autollenarDatos() {
 function configurarVista() {
     const config = configuracionAyuda[rolAyuda] || configuracionAyuda.cliente;
     const tickets = ticketsVisibles();
+
+    if (rolAyuda === "cliente") {
+        const taller = obtenerTaller();
+        config.cards = [
+            [taller.direccion || tallerDefault.direccion, "Direccion del Taller"],
+            [taller.telefono || tallerDefault.telefono, "Telefono Directo"],
+            [taller.horario || tallerDefault.horario, "Horario de Atencion"],
+            [taller.whatsapp || tallerDefault.whatsapp, "WhatsApp"]
+        ];
+    }
 
     document.getElementById("ayudaTitulo").textContent = config.titulo;
     configurarCards(config, tickets.length);

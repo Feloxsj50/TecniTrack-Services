@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -19,98 +19,72 @@
 
             <div class="cards">
                 <div class="card">
-                    <h3>Admin</h3>
-                    <p>Rol Actual</p>
+                    <h3 id="totalUsuarios">0</h3>
+                    <p>Usuarios Registrados</p>
                 </div>
 
                 <div class="card">
-                    <h3>ES</h3>
-                    <p>Idioma</p>
+                    <h3>v1.0</h3>
+                    <p>Versión del Sistema</p>
                 </div>
 
                 <div class="card">
-                    <h3>$</h3>
-                    <p>Moneda</p>
+                    <h3 id="estadoDatos">Local</h3>
+                    <p>Estado de Datos</p>
                 </div>
 
                 <div class="card">
-                    <h3>On</h3>
-                    <p>Notificaciones</p>
+                    <h3 id="totalTickets">0</h3>
+                    <p>Tickets de Soporte</p>
                 </div>
             </div>
 
-            <div class="form-container">
-                <h2>Preferencias del Sistema</h2>
+            <form class="form-container" id="formTaller">
+                <h2>Datos del Taller</h2>
 
-                <input type="text" value="TecniTrack Services" placeholder="Nombre del negocio">
-                <input type="email" value="soporte@tecnitrack.com" placeholder="Correo de soporte">
-                <select>
-                    <option>Español</option>
-                    <option>Inglés</option>
-                </select>
-                <select>
-                    <option>Dólar estadounidense</option>
-                    <option>Córdoba nicaragüense</option>
-                </select>
+                <input type="text" id="nombreTaller" placeholder="Nombre del negocio" required>
+                <input type="email" id="correoTaller" placeholder="Correo de soporte" required>
+                <input type="text" id="direccionTaller" placeholder="Dirección del taller" required>
+                <input type="text" id="telefonoTaller" placeholder="Teléfono directo" required>
+                <input type="text" id="whatsappTaller" placeholder="WhatsApp" required>
+                <input type="text" id="horarioTaller" placeholder="Horario de atención" required>
 
-                <button>Guardar Configuración</button>
-            </div>
+                <button type="submit">Guardar Datos del Taller</button>
+            </form>
 
             <div class="historial">
-                <h2>Opciones Activas</h2>
+                <h2>Gestión de Usuarios</h2>
 
-                <table id="tablaServicios">
+                <table id="tablaUsuariosConfig">
                     <thead>
                         <tr>
-                            <th>Módulo</th>
-                            <th>ID</th>
-                            <th>Opción</th>
-                            <th>Valor</th>
                             <th>Usuario</th>
+                            <th>Nombre</th>
+                            <th>Rol</th>
+                            <th>Correo</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>Usuarios</td>
-                            <td>CF-001</td>
-                            <td>Registro manual</td>
-                            <td>Activo</td>
-                            <td>Admin</td>
-                            <td><span class="estado completado">Activo</span></td>
-                        </tr>
-                        <tr>
-                            <td>Facturación</td>
-                            <td>CF-002</td>
-                            <td>Impresión directa</td>
-                            <td>Pendiente</td>
-                            <td>Admin</td>
-                            <td><span class="estado pendiente">Pendiente</span></td>
-                        </tr>
-                        <tr>
-                            <td>Reportes</td>
-                            <td>CF-003</td>
-                            <td>Exportar CSV</td>
-                            <td>Activo</td>
-                            <td>Admin</td>
-                            <td><span class="estado completado">Activo</span></td>
-                        </tr>
-                    </tbody>
+                    <tbody></tbody>
                 </table>
+            </div>
+
+            <div class="backup-panel">
+                <div>
+                    <h2>Respaldo de Datos</h2>
+                    <p>Exporta solicitudes, tickets, datos del taller y usuarios guardados en localStorage.</p>
+                </div>
+                <button type="button" id="btnExportarBackup">
+                    <i class="fa-solid fa-download"></i> Exportar JSON
+                </button>
             </div>
         </section>
     </div>
 
     <script src="../../js/notifications.js"></script>
     <script src="../../js/sidebar.js"></script>
+    <script src="../../js/configuracion.js"></script>
 </body>
 
 </html>
-
-
-
-
-
-
-
-

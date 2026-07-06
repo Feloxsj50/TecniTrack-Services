@@ -531,11 +531,22 @@ body {
     table-layout: auto;
 }
 
+#tablaUsuariosConfig {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--text-primary);
+    table-layout: auto;
+}
+
 #tablaServicios thead tr {
     border-bottom: 0.5px solid var(--border);
 }
 
 #tablaTickets thead tr {
+    border-bottom: 0.5px solid var(--border);
+}
+
+#tablaUsuariosConfig thead tr {
     border-bottom: 0.5px solid var(--border);
 }
 
@@ -551,6 +562,17 @@ body {
 }
 
 #tablaTickets th {
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 10px 14px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+#tablaUsuariosConfig th {
     color: var(--text-muted);
     font-size: 10.5px;
     font-weight: 500;
@@ -579,6 +601,15 @@ body {
     white-space: nowrap;
 }
 
+#tablaUsuariosConfig td {
+    padding: 13px 14px;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.04);
+    font-size: 13px;
+    color: var(--text-secondary);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
 /* ID con monospace */
 #tablaServicios td:nth-child(2) {
     font-family: 'JetBrains Mono', monospace;
@@ -594,11 +625,19 @@ body {
     transition: background var(--transition);
 }
 
+#tablaUsuariosConfig tbody tr {
+    transition: background var(--transition);
+}
+
 #tablaServicios tbody tr:hover {
     background: rgba(139, 92, 246, 0.04);
 }
 
 #tablaTickets tbody tr:hover {
+    background: rgba(139, 92, 246, 0.04);
+}
+
+#tablaUsuariosConfig tbody tr:hover {
     background: rgba(139, 92, 246, 0.04);
 }
 
@@ -610,11 +649,19 @@ body {
     color: var(--text-primary);
 }
 
+#tablaUsuariosConfig tbody tr:hover td {
+    color: var(--text-primary);
+}
+
 #tablaServicios tbody tr:last-child td {
     border-bottom: none;
 }
 
 #tablaTickets tbody tr:last-child td {
+    border-bottom: none;
+}
+
+#tablaUsuariosConfig tbody tr:last-child td {
     border-bottom: none;
 }
 
@@ -1148,6 +1195,53 @@ body {
     font: inherit;
     font-weight: 600;
     cursor: pointer;
+}
+
+.backup-panel {
+    width: calc(100vw - 230px - 80px);
+    max-width: 100%;
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 20px 22px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+}
+
+.backup-panel h2 {
+    margin-bottom: 4px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.backup-panel p {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.backup-panel button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 10px 14px;
+    border: 0.5px solid rgba(139, 92, 246, 0.35);
+    border-radius: var(--radius-sm);
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--accent-purple);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.backup-panel button:hover {
+    background: var(--accent-purple);
+    color: white;
 }
 
 /* ===== RESPONSIVE ===== */

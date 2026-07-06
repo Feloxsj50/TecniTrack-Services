@@ -26,6 +26,11 @@ if (loginButton) {
             return;
         }
 
+        if (!usuarioActivo(user)) {
+            mostrarNotificacion("Este usuario está inactivo. Contacta al administrador.", "error");
+            return;
+        }
+
         if (user === "admin" && pass === "admin123") {
             TecniAuth.iniciarSesion("admin", user);
             window.location.replace(TecniAuth.paginaInicio("admin"));
@@ -41,5 +46,14 @@ if (loginButton) {
     });
 }
 
+function usuarioActivo(usuario) {
+    try {
+        const usuarios = JSON.parse(localStorage.getItem("tecnitrackUsuarios")) || [];
+        const encontrado = usuarios.find(item => item.usuario === usuario);
+        return encontrado ? encontrado.activo !== false : true;
+    } catch {
+        return true;
+    }
+}
 
 
