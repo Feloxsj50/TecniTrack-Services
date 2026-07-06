@@ -33,6 +33,7 @@
 /* ===== FORM GRID ===== */
 .content > .form-container {
     width: min(760px, 100%);
+    display: block;
 }
 
 .form-grid {
@@ -69,42 +70,60 @@
     color: #f1f5f9;
 }
 
-/* ===== BOTONES DENTRO DEL FORM-GRID ===== */
-.form-grid .btn-anadir,
-.form-grid .btn-cancelar {
+/* ===== BOTONES DEL FORMULARIO ===== */
+.btn-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.btn-group button {
+    min-width: 120px;
     height: 42px;
-    padding: 0 20px;
+    padding: 0 18px;
     border-radius: 8px;
     font-family: 'Sora', sans-serif;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     transition: background 0.2s, color 0.2s, border-color 0.2s;
-    width: 100%;
 }
 
-.form-grid .btn-anadir {
+#btnAgregarProducto {
     background: rgba(139, 92, 246, 0.15);
     color: #8b5cf6;
     border: 0.5px solid rgba(139, 92, 246, 0.35);
 }
 
-.form-grid .btn-anadir:hover {
+#btnAgregarProducto:hover {
     background: #8b5cf6;
     color: white;
     border-color: #8b5cf6;
 }
 
-.form-grid .btn-cancelar {
+.btn-group .btn-cancelar {
     background: rgba(255, 255, 255, 0.05);
     color: #94a3b8;
     border: 0.5px solid rgba(255, 255, 255, 0.10);
 }
 
-.form-grid .btn-cancelar:hover {
+.btn-group .btn-cancelar:hover {
     background: rgba(255, 255, 255, 0.10);
     color: #f1f5f9;
     border-color: rgba(255, 255, 255, 0.20);
+}
+
+#tablaInventario .btn-eliminar-tabla {
+    border: 0.5px solid rgba(239, 68, 68, 0.30);
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+}
+
+#tablaInventario .btn-eliminar-tabla:hover {
+    border-color: rgba(239, 68, 68, 0.45);
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
 }
 
 /* ===== HISTORIAL / TABLA - igual al dashboard ===== */
