@@ -31,9 +31,13 @@
 }
 
 /* ===== FORM GRID ===== */
+.content > .form-container {
+    width: min(760px, 100%);
+}
+
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
     gap: 12px;
 }
 
