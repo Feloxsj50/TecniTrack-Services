@@ -14,6 +14,7 @@
 /* fondo tecnológico */
 .background{
     position:fixed;
+    inset:0;
     width:100%;
     height:100%;
     background:url("../img/PlacaYourMother.png") no-repeat center;
@@ -210,6 +211,73 @@ small,
 .strength-meter.strong span{
     width:100%;
     background:#4ade80;
+}
+
+.register-page{
+    padding:18px;
+}
+
+.register-page .background{
+    background-position:center;
+    background-size:cover;
+    filter:brightness(0.52);
+}
+
+.register-page .login-box{
+    width:390px;
+    padding:32px 38px;
+    background:rgba(15,23,42,0.82);
+    border-color:rgba(139,92,246,0.58);
+    box-shadow:0 0 38px rgba(34,211,238,0.08), 0 0 34px rgba(139,92,246,0.24);
+}
+
+.register-page .logo-area{
+    margin-bottom:18px;
+}
+
+.register-page h1{
+    margin:0 0 18px;
+    font-size:32px;
+}
+
+.register-page .forgot{
+    margin:0 0 14px;
+}
+
+.register-page .input-group{
+    min-height:48px;
+    margin:10px 0;
+    padding:0 12px;
+}
+
+.register-page small{
+    min-height:0;
+    margin-top:4px;
+}
+
+.register-page small:empty{
+    display:none;
+}
+
+.register-page .strength-meter{
+    margin:4px 0 0;
+}
+
+.register-page .btn-login{
+    margin-top:24px;
+}
+
+@media (max-height:760px){
+    .register-page{
+        align-items:flex-start;
+        padding-top:16px;
+        padding-bottom:16px;
+    }
+
+    .register-page .login-box{
+        padding-top:26px;
+        padding-bottom:26px;
+    }
 }
 
 .notification-stack {

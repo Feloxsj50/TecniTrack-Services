@@ -20,7 +20,6 @@ const ayudas = {
 const toggle = document.querySelector(".toggle");
 const registerButton = document.querySelector(".btn-login");
 const strengthMeter = document.querySelector(".strength-meter");
-const radios = document.querySelectorAll('input[name="role"]');
 
 function mostrarMensaje(elemento, mensaje, clase) {
     if (!elemento) return;
@@ -116,7 +115,6 @@ function obtenerUsuarios() {
 }
 
 function guardarUsuario() {
-    const rol = document.querySelector('input[name="role"]:checked')?.value || "cliente";
     const correo = campos.email.value.trim().toLowerCase();
     const usuarios = obtenerUsuarios();
     const usuario = correo.split("@")[0].replace(/[^a-z0-9._-]/gi, "") || correo;
@@ -131,7 +129,7 @@ function guardarUsuario() {
         nombre: `${campos.nombres.value.trim()} ${campos.apellidos.value.trim()}`,
         correo,
         telefono: campos.telefono.value.trim(),
-        rol,
+        rol: "cliente",
         password: campos.password.value,
         activo: true
     });
@@ -157,12 +155,6 @@ campos.email?.addEventListener("input", validarCorreo);
 campos.telefono?.addEventListener("input", validarTelefono);
 campos.password?.addEventListener("input", actualizarFortaleza);
 campos.confirmPassword?.addEventListener("input", validarConfirmacion);
-
-radios.forEach(radio => {
-    radio.addEventListener("change", () => {
-        mostrarMensaje(document.getElementById("roleHelp"), "", "");
-    });
-});
 
 if (registerButton) {
     registerButton.addEventListener("click", (e) => {
