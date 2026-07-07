@@ -44,11 +44,12 @@
         }
     }
 
-    function login(rol, usuario) {
+    function login(rol, usuario, datos = {}) {
         if (!permissions[rol]) return false;
         sessionStorage.setItem(SESSION_KEY, JSON.stringify({
             rol,
             usuario,
+            datos,
             inicio: new Date().toISOString()
         }));
         sessionStorage.setItem(ROLE_KEY, rol);

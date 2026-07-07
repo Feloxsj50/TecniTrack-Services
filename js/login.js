@@ -2,6 +2,7 @@
 const password = document.getElementById("password");
 const toggle = document.querySelector(".toggle");
 const loginButton = document.querySelector(".btn-login");
+const API_BASE = "http://127.0.0.1:8000";
 
 if (toggle && password) {
     toggle.addEventListener("click", () => {
@@ -15,61 +16,42 @@ if (toggle && password) {
 }
 
 if (loginButton) {
-    loginButton.addEventListener("click", (e) => {
+    loginButton.addEventListener("click", async (e) => {
         e.preventDefault();
 
         const user = usuario.value.trim();
         const pass = password.value.trim();
 
         if (!user || !pass) {
-            mostrarNotificacion("Completa todos los campos");
+            mostrarNotificacion("Completa todos los campos", "error");
             return;
         }
 
-        if (!usuarioActivo(user)) {
-            mostrarNotificacion("Este usuario está inactivo. Contacta al administrador.", "error");
-            return;
-        }
+        loginButton.disabled = true;
+        loginButton.textContent = "Entrando...";
 
-        const usuarioRegistrado = buscarUsuarioRegistrado(user, pass);
+        try {
+            const respuesta = await fetch(`${API_BASE}/usuarios/login/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ usuario: user, password: pass })
+            });
 
-        if (usuarioRegistrado) {
-            TecniAuth.iniciarSesion(usuarioRegistrado.rol, usuarioRegistrado.usuario);
-            window.location.replace(TecniAuth.paginaInicio(usuarioRegistrado.rol));
-        } else if (user === "admin" && pass === "admin123") {
-            TecniAuth.iniciarSesion("admin", user);
-            window.location.replace(TecniAuth.paginaInicio("admin"));
-        } else if (user === "tecnico" && pass === "tec123") {
-            TecniAuth.iniciarSesion("tecnico", user);
-            window.location.replace(TecniAuth.paginaInicio("tecnico"));
-        } else if (user === "cliente" && pass === "cli123") {
-            TecniAuth.iniciarSesion("cliente", user);
-            window.location.replace(TecniAuth.paginaInicio("cliente"));
-        } else {
-            mostrarNotificacion("Usuario o contraseña incorrectos");
+            const datos = await respuesta.json();
+
+            if (!respuesta.ok || !datos.ok) {
+                mostrarNotificacion(datos.error || "Usuario o contraseña incorrectos", "error");
+                return;
+            }
+
+            const usuarioBackend = datos.usuario;
+            TecniAuth.iniciarSesion(usuarioBackend.rol, usuarioBackend.username, usuarioBackend);
+            window.location.replace(TecniAuth.paginaInicio(usuarioBackend.rol));
+        } catch (error) {
+            mostrarNotificacion("No se pudo conectar con Django. Inicia el servidor backend.", "error");
+        } finally {
+            loginButton.disabled = false;
+            loginButton.textContent = "Entrar";
         }
     });
 }
-
-function usuarioActivo(usuario) {
-    try {
-        const usuarios = JSON.parse(localStorage.getItem("tecnitrackUsuarios")) || [];
-        const encontrado = usuarios.find(item => item.usuario === usuario || item.correo === usuario);
-        return encontrado ? encontrado.activo !== false : true;
-    } catch {
-        return true;
-    }
-}
-
-function buscarUsuarioRegistrado(usuario, password) {
-    try {
-        const usuarios = JSON.parse(localStorage.getItem("tecnitrackUsuarios")) || [];
-        return usuarios.find(item => {
-            const mismoUsuario = item.usuario === usuario || item.correo === usuario;
-            return mismoUsuario && item.password === password && item.activo !== false;
-        });
-    } catch {
-        return null;
-    }
-}
-

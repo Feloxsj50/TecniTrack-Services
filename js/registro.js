@@ -20,6 +20,7 @@ const ayudas = {
 const toggle = document.querySelector(".toggle");
 const registerButton = document.querySelector(".btn-login");
 const strengthMeter = document.querySelector(".strength-meter");
+const API_BASE = "http://127.0.0.1:8000";
 
 function mostrarMensaje(elemento, mensaje, clase) {
     if (!elemento) return;
@@ -106,36 +107,27 @@ function validarConfirmacion() {
     return valido;
 }
 
-function obtenerUsuarios() {
-    try {
-        return JSON.parse(localStorage.getItem("tecnitrackUsuarios")) || [];
-    } catch {
-        return [];
-    }
-}
-
-function guardarUsuario() {
-    const correo = campos.email.value.trim().toLowerCase();
-    const usuarios = obtenerUsuarios();
-    const usuario = correo.split("@")[0].replace(/[^a-z0-9._-]/gi, "") || correo;
-
-    if (usuarios.some(item => item.correo?.toLowerCase() === correo || item.usuario === usuario)) {
-        mostrarNotificacion("Este correo ya est\u00e1 registrado.", "error");
-        return false;
-    }
-
-    usuarios.push({
-        usuario,
-        nombre: `${campos.nombres.value.trim()} ${campos.apellidos.value.trim()}`,
-        correo,
-        telefono: campos.telefono.value.trim(),
-        rol: "cliente",
-        password: campos.password.value,
-        activo: true
+async function registrarCliente() {
+    const respuesta = await fetch(`${API_BASE}/usuarios/registro/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            nombres: campos.nombres.value.trim(),
+            apellidos: campos.apellidos.value.trim(),
+            email: campos.email.value.trim().toLowerCase(),
+            telefono: campos.telefono.value.trim(),
+            password: campos.password.value,
+            confirmPassword: campos.confirmPassword.value
+        })
     });
 
-    localStorage.setItem("tecnitrackUsuarios", JSON.stringify(usuarios));
-    return true;
+    const datos = await respuesta.json();
+
+    if (!respuesta.ok || !datos.ok) {
+        throw new Error(datos.error || "No se pudo crear la cuenta.");
+    }
+
+    return datos.usuario;
 }
 
 if (toggle && campos.password) {
@@ -157,7 +149,7 @@ campos.password?.addEventListener("input", actualizarFortaleza);
 campos.confirmPassword?.addEventListener("input", validarConfirmacion);
 
 if (registerButton) {
-    registerButton.addEventListener("click", (e) => {
+    registerButton.addEventListener("click", async (e) => {
         e.preventDefault();
 
         const formularioValido = [
@@ -176,11 +168,20 @@ if (registerButton) {
             return;
         }
 
-        if (!guardarUsuario()) return;
+        registerButton.disabled = true;
+        registerButton.textContent = "Creando cuenta...";
 
-        mostrarNotificacion("Cuenta creada correctamente. Ya puedes iniciar sesi\u00f3n.", "success");
-        setTimeout(() => {
-            window.location.href = "index.html";
-        }, 900);
+        try {
+            await registrarCliente();
+            mostrarNotificacion("Cuenta de cliente creada correctamente. Ya puedes iniciar sesi\u00f3n.", "success");
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 900);
+        } catch (error) {
+            mostrarNotificacion(error.message || "No se pudo conectar con Django.", "error");
+        } finally {
+            registerButton.disabled = false;
+            registerButton.textContent = "Registrarme";
+        }
     });
 }
