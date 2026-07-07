@@ -961,6 +961,16 @@ body {
     border-color: var(--border-focus);
 }
 
+.work-panel-form select option {
+    background: #111827;
+    color: #f8fafc;
+}
+
+.work-panel-form select option:checked {
+    background: #2563eb;
+    color: #ffffff;
+}
+
 .work-panel-form button {
     margin-top: 4px;
     padding: 11px;
@@ -1340,4 +1350,5 @@ body {
     z-index: 10;
     background: transparent !important;
 }
+
 

@@ -2,6 +2,7 @@ import json
 import re
 
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import update_session_auth_hash
 from django.middleware.csrf import get_token
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -13,12 +14,19 @@ from apps.usuarios.models import Usuario
 
 
 def serializar_usuario(usuario):
+    area = "Administracion" if usuario.rol == Usuario.Rol.ADMIN else "Cliente"
+    if usuario.rol == Usuario.Rol.TECNICO and hasattr(usuario, "perfil_tecnico"):
+        area = usuario.perfil_tecnico.especialidad or "Tecnico"
+
     return {
         "id": usuario.id,
         "username": usuario.username,
         "nombre": usuario.get_full_name() or usuario.username,
         "email": usuario.email,
+        "telefono": usuario.telefono,
         "rol": usuario.rol,
+        "area": area,
+        "activo": usuario.activo,
     }
 
 
@@ -132,3 +140,73 @@ def usuario_actual(request):
         return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
 
     return JsonResponse({"ok": True, "usuario": serializar_usuario(request.user)})
+
+
+@require_POST
+def actualizar_perfil(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+
+    datos, error = obtener_datos_request(request)
+    if error:
+        return error
+
+    nombre = datos.get("nombre", "").strip()
+    email = datos.get("email", "").strip().lower()
+    telefono = datos.get("telefono", "").strip()
+
+    if not all([nombre, email, telefono]):
+        return JsonResponse({"ok": False, "error": "Completa nombre, correo y telefono."}, status=400)
+
+    if len(nombre) < 3:
+        return JsonResponse({"ok": False, "error": "El nombre debe tener al menos 3 caracteres."}, status=400)
+
+    if "@" not in email or "." not in email:
+        return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+
+    if not re.fullmatch(r"\d{4}-\d{4}", telefono):
+        return JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
+
+    if Usuario.objects.filter(email=email).exclude(id=request.user.id).exists():
+        return JsonResponse({"ok": False, "error": "Este correo ya esta en uso."}, status=409)
+
+    partes = nombre.split()
+    request.user.first_name = partes[0]
+    request.user.last_name = " ".join(partes[1:])
+    request.user.email = email
+    request.user.telefono = telefono
+    request.user.save()
+
+    return JsonResponse({"ok": True, "usuario": serializar_usuario(request.user)})
+
+
+@require_POST
+def cambiar_password(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+
+    datos, error = obtener_datos_request(request)
+    if error:
+        return error
+
+    actual = datos.get("actual", "")
+    nueva = datos.get("nueva", "")
+    confirmacion = datos.get("confirmacion", "")
+
+    if not all([actual, nueva, confirmacion]):
+        return JsonResponse({"ok": False, "error": "Completa todos los campos de contrasena."}, status=400)
+
+    if not request.user.check_password(actual):
+        return JsonResponse({"ok": False, "error": "La contrasena actual no es correcta."}, status=400)
+
+    if len(nueva) < 8:
+        return JsonResponse({"ok": False, "error": "La nueva contrasena debe tener al menos 8 caracteres."}, status=400)
+
+    if nueva != confirmacion:
+        return JsonResponse({"ok": False, "error": "La nueva contrasena y la confirmacion no coinciden."}, status=400)
+
+    request.user.set_password(nueva)
+    request.user.save()
+    update_session_auth_hash(request, request.user)
+
+    return JsonResponse({"ok": True})

@@ -1,75 +1,33 @@
-﻿const perfiles = {
-    admin: {
-        nombre: "Administrador TecniTrack",
-        rol: "Administrador",
-        usuario: "admin",
-        correo: "admin@tecnitrack.com",
-        telefono: "8888-0000",
-        area: "AdministraciÃ³n",
-        panel: "Dashboard",
-        permisos: "Completos"
-    },
-    tecnico: {
-        nombre: "TÃ©cnico TecniTrack",
-        rol: "TÃ©cnico",
-        usuario: "tecnico",
-        correo: "tecnico@tecnitrack.com",
-        telefono: "8888-1234",
-        area: "Soporte tÃ©cnico",
-        panel: "Mi Panel",
-        permisos: "Servicios e inventario"
-    },
-    cliente: {
-        nombre: "Cliente TecniTrack",
-        rol: "Cliente",
-        usuario: "cliente",
-        correo: "cliente@email.com",
-        telefono: "7777-7777",
-        area: "Cliente",
-        panel: "Mi Panel",
-        permisos: "Servicios y facturaciÃ³n"
-    }
-};
-
-function obtenerRolActual() {
-    return sessionStorage.getItem("rolActual") || "admin";
-}
+﻿const API_BASE = "http://127.0.0.1:8000";
+let perfilActual = null;
+let csrfToken = "";
 
 function obtenerIniciales(nombre) {
-    return nombre
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map(parte => parte[0].toUpperCase())
-        .join("");
+    return nombre.split(" ").filter(Boolean).slice(0, 2).map(parte => parte[0].toUpperCase()).join("");
 }
 
-function cargarPerfil() {
-    const rol = obtenerRolActual();
-    const perfil = perfiles[rol] || perfiles.admin;
-
-    document.getElementById("perfilIniciales").textContent = obtenerIniciales(perfil.nombre);
-    document.getElementById("perfilNombre").textContent = perfil.nombre;
-    document.getElementById("perfilRol").textContent = perfil.rol;
-    document.getElementById("perfilUsuario").textContent = perfil.usuario;
-    document.getElementById("perfilCorreo").textContent = perfil.correo;
-    document.getElementById("perfilTelefono").textContent = perfil.telefono;
-    document.getElementById("perfilArea").textContent = perfil.area;
-    document.getElementById("perfilPanel").textContent = perfil.panel;
-    document.getElementById("perfilPermisos").textContent = perfil.permisos;
-
-    document.getElementById("nombrePerfil").value = perfil.nombre;
-    document.getElementById("correoPerfil").value = perfil.correo;
-    document.getElementById("telefonoPerfil").value = perfil.telefono;
-    document.getElementById("areaPerfil").value = perfil.area;
+function nombreRol(rol) {
+    return { admin: "Administrador", tecnico: "Tecnico", cliente: "Cliente" }[rol] || "Usuario";
 }
 
-function correoValido(correo) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+function panelRol(rol) {
+    return { admin: "Dashboard", tecnico: "Mi Panel", cliente: "Mi Panel" }[rol] || "Panel";
+}
+
+function permisosRol(rol) {
+    return {
+        admin: "Completos",
+        tecnico: "Trabajos asignados",
+        cliente: "Solicitudes y recibos"
+    }[rol] || "Basicos";
 }
 
 function telefonoValido(telefono) {
     return /^\d{4}-\d{4}$/.test(telefono);
+}
+
+function correoValido(correo) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
 }
 
 function formatearTelefono(input) {
@@ -77,48 +35,138 @@ function formatearTelefono(input) {
     input.value = digitos.length > 4 ? `${digitos.slice(0, 4)}-${digitos.slice(4)}` : digitos;
 }
 
-document.getElementById("btnGuardarPerfil").addEventListener("click", () => {
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return {
+            ok: false,
+            error: respuesta.status === 403
+                ? "No se pudo validar la seguridad de Django. Inicia sesion nuevamente desde http://127.0.0.1:8000/."
+                : "Django devolvio una respuesta no valida."
+        };
+    }
+}
+
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, {
+        credentials: "include"
+    });
+    const datos = await leerRespuestaJson(respuesta);
+
+    if (!respuesta.ok || !datos.ok) {
+        throw new Error(datos.error || "No se pudo preparar la seguridad de Django.");
+    }
+
+    csrfToken = datos.csrfToken;
+    return csrfToken;
+}
+
+async function cargarPerfil() {
+    try {
+        const respuesta = await fetch(`${API_BASE}/usuarios/me/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo cargar el perfil.");
+
+        perfilActual = datos.usuario;
+        pintarPerfil(perfilActual);
+    } catch (error) {
+        mostrarNotificacion(error.message || "Inicia sesion nuevamente.", "error");
+    }
+}
+
+function etiquetaAreaPerfil(perfil) {
+    return perfil.rol === "cliente" ? "Cliente" : (perfil.area || nombreRol(perfil.rol));
+}
+
+function pintarPerfil(perfil) {
+    const areaVisible = etiquetaAreaPerfil(perfil);
+
+    document.getElementById("perfilIniciales").textContent = obtenerIniciales(perfil.nombre);
+    document.getElementById("perfilNombre").textContent = perfil.nombre;
+    document.getElementById("perfilRol").textContent = nombreRol(perfil.rol);
+    document.getElementById("perfilUsuario").textContent = perfil.username;
+    document.getElementById("perfilCorreo").textContent = perfil.email;
+    document.getElementById("perfilTelefono").textContent = perfil.telefono || "Sin telefono";
+    document.getElementById("perfilArea").textContent = areaVisible;
+    document.getElementById("perfilPanel").textContent = panelRol(perfil.rol);
+    document.getElementById("perfilPermisos").textContent = permisosRol(perfil.rol);
+
+    document.getElementById("nombrePerfil").value = perfil.nombre;
+    document.getElementById("correoPerfil").value = perfil.email;
+    document.getElementById("telefonoPerfil").value = perfil.telefono || "";
+    document.getElementById("areaPerfil").value = areaVisible;
+    document.getElementById("areaPerfil").readOnly = true;
+}
+
+async function actualizarPerfil() {
     const nombre = document.getElementById("nombrePerfil").value.trim();
-    const correo = document.getElementById("correoPerfil").value.trim();
+    const email = document.getElementById("correoPerfil").value.trim().toLowerCase();
     const telefono = document.getElementById("telefonoPerfil").value.trim();
-    const area = document.getElementById("areaPerfil").value.trim();
 
-    if (!nombre || !correo || !telefono || !area) {
-        mostrarNotificacion("Completa todos los campos del perfil.");
-        return;
-    }
+    if (!nombre || !email || !telefono) return mostrarNotificacion("Completa nombre, correo y telefono.", "error");
+    if (!correoValido(email)) return mostrarNotificacion("Ingresa un correo valido.", "error");
+    if (!telefonoValido(telefono)) return mostrarNotificacion("Ingresa un telefono valido con formato 7777-8888.", "error");
 
-    if (nombre.length < 3) {
-        mostrarNotificacion("El nombre debe tener al menos 3 caracteres.");
-        return;
-    }
+    const token = await obtenerCsrfToken();
+    const respuesta = await fetch(`${API_BASE}/usuarios/perfil/actualizar/`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": token
+        },
+        body: JSON.stringify({ nombre, email, telefono })
+    });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo actualizar el perfil.");
 
-    if (!correoValido(correo)) {
-        mostrarNotificacion("Ingresa un correo vÃ¡lido.");
-        return;
-    }
-
-    if (!telefonoValido(telefono)) {
-        mostrarNotificacion("Ingresa un teléfono válido con formato 7777-8888.");
-        return;
-    }
-
-    const rol = obtenerRolActual();
-    perfiles[rol] = {
-        ...perfiles[rol],
-        nombre,
-        correo,
-        telefono,
-        area
-    };
-
-    cargarPerfil();
+    perfilActual = datos.usuario;
+    pintarPerfil(perfilActual);
     mostrarNotificacion("Perfil actualizado correctamente.", "success");
+}
+
+async function cambiarPassword() {
+    const actual = document.getElementById("passwordActual").value;
+    const nueva = document.getElementById("passwordNueva").value;
+    const confirmacion = document.getElementById("passwordConfirmar").value;
+
+    if (!actual || !nueva || !confirmacion) return mostrarNotificacion("Completa todos los campos de contrasena.", "error");
+    if (nueva.length < 8) return mostrarNotificacion("La nueva contrasena debe tener al menos 8 caracteres.", "error");
+    if (nueva !== confirmacion) return mostrarNotificacion("La nueva contrasena y la confirmacion no coinciden.", "error");
+
+    const token = await obtenerCsrfToken();
+    const respuesta = await fetch(`${API_BASE}/usuarios/password/cambiar/`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": token
+        },
+        body: JSON.stringify({ actual, nueva, confirmacion })
+    });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo cambiar la contrasena.");
+
+    document.getElementById("passwordActual").value = "";
+    document.getElementById("passwordNueva").value = "";
+    document.getElementById("passwordConfirmar").value = "";
+    mostrarNotificacion("Contrasena actualizada correctamente.", "success");
+}
+
+document.getElementById("btnGuardarPerfil").addEventListener("click", async () => {
+    try { await actualizarPerfil(); } catch (error) { mostrarNotificacion(error.message, "error"); }
 });
 
-document.getElementById("telefonoPerfil")?.addEventListener("input", (event) => {
-    formatearTelefono(event.target);
+document.getElementById("btnCambiarPassword").addEventListener("click", async () => {
+    try { await cambiarPassword(); } catch (error) { mostrarNotificacion(error.message, "error"); }
 });
+
+document.getElementById("telefonoPerfil")?.addEventListener("input", event => formatearTelefono(event.target));
 
 cargarPerfil();
+
 

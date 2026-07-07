@@ -1,4 +1,4 @@
-const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
+﻿const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
 
 const formTecnico = document.getElementById("formTecnico");
 const tablaTecnico = document.querySelector("#tablaServicios tbody");
@@ -72,7 +72,7 @@ function renderizarNotificaciones(asignadas) {
         contenedor.innerHTML = `
             <div class="tech-alert muted">
                 <i class="fa-solid fa-circle-check"></i>
-                <span>No tenes trabajos pendientes por ahora.</span>
+                <span>No tienes trabajos pendientes por ahora.</span>
             </div>
         `;
         return;
@@ -81,7 +81,7 @@ function renderizarNotificaciones(asignadas) {
     contenedor.innerHTML = `
         <div class="tech-alert">
             <i class="fa-solid fa-bell"></i>
-            <span>Tenes ${activos.length} trabajo${activos.length === 1 ? "" : "s"} activo${activos.length === 1 ? "" : "s"} asignado${activos.length === 1 ? "" : "s"}.</span>
+            <span>Tienes ${activos.length} trabajo${activos.length === 1 ? "" : "s"} activo${activos.length === 1 ? "" : "s"} asignado${activos.length === 1 ? "" : "s"}.</span>
         </div>
         ${urgentes.length ? `
             <div class="tech-alert urgent">
@@ -105,7 +105,7 @@ function renderizarAsignadas() {
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
                         <strong>Sin trabajos asignados</strong>
-                        <span>Cuando el admin asigne una solicitud a este tecnico, aparecera aqui.</span>
+                        <span>Cuando el admin asigne una solicitud a este técnico, aparecerá aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -123,7 +123,7 @@ function renderizarAsignadas() {
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
             <td><span class="${clasePrioridad(solicitud.prioridad)}">${escaparHtml(solicitud.prioridad || "Media")}</span></td>
-            <td>${dias} ${dias === 1 ? "dia" : "dias"}</td>
+            <td>${dias} ${dias === 1 ? "día" : "días"}</td>
             <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(solicitud.estado)}</span></td>
             <td>
                 <button type="button" class="btn-editar-historial" data-trabajo="${solicitud.id}">
@@ -197,3 +197,4 @@ document.addEventListener("keydown", event => {
 });
 
 renderizarAsignadas();
+

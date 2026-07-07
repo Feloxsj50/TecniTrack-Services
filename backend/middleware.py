@@ -1,4 +1,4 @@
-from django.conf import settings
+﻿from django.conf import settings
 from django.http import HttpResponse
 
 
@@ -10,6 +10,8 @@ class DevCorsMiddleware:
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     }
+
+    no_cache_prefixes = ("/pages/", "/js/", "/css/")
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -28,5 +30,10 @@ class DevCorsMiddleware:
             response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
             response["Access-Control-Allow-Headers"] = "Content-Type, X-CSRFToken"
             response["Access-Control-Allow-Credentials"] = "true"
+
+        if settings.DEBUG and request.path.startswith(self.no_cache_prefixes):
+            response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response["Pragma"] = "no-cache"
+            response["Expires"] = "0"
 
         return response

@@ -2,8 +2,10 @@
 const tablaClientes = document.querySelector("#tablaClientes tbody");
 const buscarCliente = document.getElementById("buscarCliente");
 const nombreCliente = document.getElementById("nombreCliente");
+const usuarioCliente = document.getElementById("usuarioCliente");
 const correoCliente = document.getElementById("correoCliente");
 const telefonoCliente = document.getElementById("telefonoCliente");
+const passwordCliente = document.getElementById("passwordCliente");
 const estadoCliente = document.getElementById("estadoCliente");
 
 const totalClientes = document.getElementById("totalClientes");
@@ -42,6 +44,25 @@ function correoValido(correo) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
 }
 
+function usuarioValido(usuario) {
+    return /^[A-Za-z0-9._-]{4,30}$/.test(usuario);
+}
+
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return {
+            ok: false,
+            error: respuesta.status === 403
+                ? "No se pudo validar la seguridad de Django. Inicia sesion como admin nuevamente."
+                : "Django devolvio una respuesta no valida. Abre el sitio desde http://127.0.0.1:8000/."
+        };
+    }
+}
+
 async function obtenerCsrfToken() {
     if (csrfToken) return csrfToken;
 
@@ -56,21 +77,6 @@ async function obtenerCsrfToken() {
 
     csrfToken = datos.csrfToken;
     return csrfToken;
-}
-
-async function leerRespuestaJson(respuesta) {
-    const texto = await respuesta.text();
-
-    try {
-        return JSON.parse(texto);
-    } catch {
-        return {
-            ok: false,
-            error: respuesta.status === 403
-                ? "No se pudo validar la seguridad de Django. Inicia sesion como admin nuevamente."
-                : "Django devolvio una respuesta no valida. Revisa que la sesion admin este activa."
-        };
-    }
 }
 
 function actualizarResumenClientes(lista = clientes) {
@@ -177,8 +183,12 @@ function cargarClienteEnFormulario(clienteId) {
 
     clienteEditandoId = cliente.id;
     nombreCliente.value = cliente.nombre;
+    usuarioCliente.value = cliente.usuario;
+    usuarioCliente.disabled = true;
     correoCliente.value = cliente.correo;
     telefonoCliente.value = cliente.telefono || "";
+    passwordCliente.value = "";
+    passwordCliente.placeholder = "Nueva contrasena temporal (opcional)";
     estadoCliente.value = cliente.estado;
 
     btnGuardarCliente.textContent = "Guardar cambios";
@@ -192,8 +202,12 @@ function cargarClienteEnFormulario(clienteId) {
 function limpiarFormulario() {
     clienteEditandoId = null;
     nombreCliente.value = "";
+    usuarioCliente.value = "";
+    usuarioCliente.disabled = false;
     correoCliente.value = "";
     telefonoCliente.value = "";
+    passwordCliente.value = "";
+    passwordCliente.placeholder = "Contrasena temporal";
     estadoCliente.value = "Activo";
 
     btnGuardarCliente.textContent = "Guardar Cliente";
@@ -202,49 +216,80 @@ function limpiarFormulario() {
     btnGuardarCliente.style.borderColor = "";
 }
 
-async function actualizarCliente() {
-    const nombre = nombreCliente.value.trim();
-    const correo = correoCliente.value.trim().toLowerCase();
-    const telefono = telefonoCliente.value.trim();
-    const estado = estadoCliente.value;
-
-    if (!clienteEditandoId) {
-        mostrarNotificacion("Selecciona un cliente con el boton Editar antes de guardar cambios.", "info");
-        return;
-    }
-
+function validarFormularioCliente({ nombre, username, correo, telefono, password }) {
     if (!nombre || !correo || !telefono) {
         mostrarNotificacion("Completa nombre, correo y telefono.", "error");
-        return;
+        return false;
+    }
+
+    if (!clienteEditandoId && !username) {
+        mostrarNotificacion("Ingresa un usuario para el cliente.", "error");
+        return false;
+    }
+
+    if (username && !usuarioValido(username)) {
+        mostrarNotificacion("El usuario debe tener de 4 a 30 caracteres validos.", "error");
+        return false;
     }
 
     if (!correoValido(correo)) {
         mostrarNotificacion("Ingresa un correo valido.", "error");
-        return;
+        return false;
     }
 
     if (!telefonoValido(telefono)) {
         mostrarNotificacion("Ingresa un telefono valido con formato 7777-8888.", "error");
-        return;
+        return false;
     }
 
+    if (!clienteEditandoId && !password) {
+        mostrarNotificacion("Ingresa una contrasena temporal para el cliente.", "error");
+        return false;
+    }
+
+    if (password && password.length < 8) {
+        mostrarNotificacion("La contrasena temporal debe tener al menos 8 caracteres.", "error");
+        return false;
+    }
+
+    return true;
+}
+
+async function guardarCliente() {
+    const nombre = nombreCliente.value.trim();
+    const username = usuarioCliente.value.trim();
+    const correo = correoCliente.value.trim().toLowerCase();
+    const telefono = telefonoCliente.value.trim();
+    const password = passwordCliente.value;
+    const estado = estadoCliente.value;
+
+    const payload = { nombre, username, correo, telefono, password, estado };
+    if (!validarFormularioCliente(payload)) return;
+
     const token = await obtenerCsrfToken();
-    const respuesta = await fetch(`${API_BASE}/clientes/${clienteEditandoId}/actualizar/`, {
+    const url = clienteEditandoId
+        ? `${API_BASE}/clientes/${clienteEditandoId}/actualizar/`
+        : `${API_BASE}/clientes/crear/`;
+
+    const respuesta = await fetch(url, {
         method: "POST",
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": token
         },
-        body: JSON.stringify({ nombre, correo, telefono, estado })
+        body: JSON.stringify(payload)
     });
     const datos = await leerRespuestaJson(respuesta);
 
     if (!respuesta.ok || !datos.ok) {
-        throw new Error(datos.error || "No se pudo actualizar el cliente.");
+        throw new Error(datos.error || "No se pudo guardar el cliente.");
     }
 
-    mostrarNotificacion("Cliente actualizado correctamente.", "success");
+    mostrarNotificacion(
+        clienteEditandoId ? "Cliente actualizado correctamente." : "Cliente registrado correctamente.",
+        "success"
+    );
     limpiarFormulario();
     await cargarClientes();
 }
@@ -255,7 +300,7 @@ async function eliminarCliente(clienteId) {
 
     const confirmado = await confirmarAccion({
         titulo: "Eliminar cliente",
-        mensaje: `¿Seguro que queres eliminar a ${cliente.nombre}? Esta accion no se puede deshacer.`
+        mensaje: `Seguro que queres eliminar a ${cliente.nombre}? Esta accion no se puede deshacer.`
     });
 
     if (!confirmado) return;
@@ -279,7 +324,7 @@ async function eliminarCliente(clienteId) {
 
 btnGuardarCliente?.addEventListener("click", async () => {
     try {
-        await actualizarCliente();
+        await guardarCliente();
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo guardar el cliente.", "error");
     }

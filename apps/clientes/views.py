@@ -1,21 +1,22 @@
-import json
+﻿import json
 import re
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.usuarios.models import Usuario
 from .models import Cliente
 
 
-def es_admin(usuario):
-    return usuario.is_authenticated and usuario.rol == "admin"
+TELEFONO_RE = r"\d{4}-\d{4}"
+USERNAME_RE = r"[A-Za-z0-9._-]{4,30}"
 
 
 def validar_admin(request):
     if not request.user.is_authenticated:
         return JsonResponse({"ok": False, "error": "Sesion Django no activa. Cierra sesion e inicia como admin nuevamente."}, status=401)
 
-    if request.user.rol != "admin":
+    if request.user.rol != Usuario.Rol.ADMIN:
         return JsonResponse({"ok": False, "error": "Solo admin puede modificar clientes."}, status=403)
 
     return None
@@ -35,7 +36,7 @@ def serializar_cliente(cliente):
 
 
 def obtener_datos_request(request):
-    if request.content_type == "application/json":
+    if request.content_type and request.content_type.startswith("application/json"):
         try:
             return json.loads(request.body.decode("utf-8")), None
         except json.JSONDecodeError:
@@ -53,9 +54,67 @@ def separar_nombre(nombre):
     return partes[0], " ".join(partes[1:])
 
 
+def validar_campos_cliente(datos, requiere_usuario=False, requiere_password=False, usuario_actual=None):
+    nombre = datos.get("nombre", "").strip()
+    username = datos.get("username", "").strip()
+    correo = datos.get("correo", "").strip().lower()
+    telefono = datos.get("telefono", "").strip()
+    password = datos.get("password", "")
+    estado = datos.get("estado", "Activo").strip()
+
+    if not all([nombre, correo, telefono, estado]):
+        return None, JsonResponse({"ok": False, "error": "Completa nombre, correo, telefono y estado."}, status=400)
+
+    if requiere_usuario and not username:
+        return None, JsonResponse({"ok": False, "error": "Ingresa un nombre de usuario para el cliente."}, status=400)
+
+    if requiere_password and not password:
+        return None, JsonResponse({"ok": False, "error": "Ingresa una contrasena temporal para el cliente."}, status=400)
+
+    if len(nombre) < 3:
+        return None, JsonResponse({"ok": False, "error": "El nombre debe tener al menos 3 caracteres."}, status=400)
+
+    if username and not re.fullmatch(USERNAME_RE, username):
+        return None, JsonResponse({"ok": False, "error": "El usuario debe tener 4 a 30 caracteres validos."}, status=400)
+
+    if "@" not in correo or "." not in correo:
+        return None, JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+
+    if not re.fullmatch(TELEFONO_RE, telefono):
+        return None, JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
+
+    if password and len(password) < 8:
+        return None, JsonResponse({"ok": False, "error": "La contrasena temporal debe tener al menos 8 caracteres."}, status=400)
+
+    if estado not in ["Activo", "Inactivo"]:
+        return None, JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+
+    correo_query = Usuario.objects.filter(email=correo)
+    if usuario_actual:
+        correo_query = correo_query.exclude(id=usuario_actual.id)
+    if correo_query.exists():
+        return None, JsonResponse({"ok": False, "error": "Este correo ya esta en uso."}, status=409)
+
+    if username:
+        username_query = Usuario.objects.filter(username__iexact=username)
+        if usuario_actual:
+            username_query = username_query.exclude(id=usuario_actual.id)
+        if username_query.exists():
+            return None, JsonResponse({"ok": False, "error": "Este nombre de usuario ya esta en uso."}, status=409)
+
+    return {
+        "nombre": nombre,
+        "username": username,
+        "correo": correo,
+        "telefono": telefono,
+        "password": password,
+        "estado": estado,
+    }, None
+
+
 @require_GET
 def listar_clientes(request):
-    clientes = Cliente.objects.select_related("usuario").all()
+    clientes = Cliente.objects.select_related("usuario").all().order_by("-creado_en")
     data = [serializar_cliente(cliente) for cliente in clientes]
 
     return JsonResponse({
@@ -63,6 +122,36 @@ def listar_clientes(request):
         "clientes": data,
         "total": len(data),
     })
+
+
+@require_POST
+def crear_cliente(request):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
+    datos, error = obtener_datos_request(request)
+    if error:
+        return error
+
+    limpio, error = validar_campos_cliente(datos, requiere_usuario=True, requiere_password=True)
+    if error:
+        return error
+
+    first_name, last_name = separar_nombre(limpio["nombre"])
+    usuario = Usuario.objects.create_user(
+        username=limpio["username"],
+        email=limpio["correo"],
+        password=limpio["password"],
+        first_name=first_name,
+        last_name=last_name,
+        telefono=limpio["telefono"],
+        rol=Usuario.Rol.CLIENTE,
+        activo=limpio["estado"] == "Activo",
+    )
+    cliente = Cliente.objects.create(usuario=usuario)
+
+    return JsonResponse({"ok": True, "cliente": serializar_cliente(cliente)}, status=201)
 
 
 @require_POST
@@ -80,34 +169,19 @@ def actualizar_cliente(request, cliente_id):
     except Cliente.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Cliente no encontrado."}, status=404)
 
-    nombre = datos.get("nombre", "").strip()
-    correo = datos.get("correo", "").strip().lower()
-    telefono = datos.get("telefono", "").strip()
-    estado = datos.get("estado", "Activo").strip()
-
-    if not all([nombre, correo, telefono, estado]):
-        return JsonResponse({"ok": False, "error": "Completa todos los campos."}, status=400)
-
-    if len(nombre) < 3:
-        return JsonResponse({"ok": False, "error": "El nombre debe tener al menos 3 caracteres."}, status=400)
-
-    if "@" not in correo or "." not in correo:
-        return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
-
-    if not re.fullmatch(r"\d{4}-\d{4}", telefono):
-        return JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
-
-    if estado not in ["Activo", "Inactivo"]:
-        return JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+    limpio, error = validar_campos_cliente(datos, usuario_actual=cliente.usuario)
+    if error:
+        return error
 
     usuario = cliente.usuario
-    if usuario.__class__.objects.filter(email=correo).exclude(id=usuario.id).exists():
-        return JsonResponse({"ok": False, "error": "Este correo ya esta en uso."}, status=409)
+    usuario.first_name, usuario.last_name = separar_nombre(limpio["nombre"])
+    usuario.email = limpio["correo"]
+    usuario.telefono = limpio["telefono"]
+    usuario.activo = limpio["estado"] == "Activo"
 
-    usuario.first_name, usuario.last_name = separar_nombre(nombre)
-    usuario.email = correo
-    usuario.telefono = telefono
-    usuario.activo = estado == "Activo"
+    if limpio["password"]:
+        usuario.set_password(limpio["password"])
+
     usuario.save()
 
     return JsonResponse({"ok": True, "cliente": serializar_cliente(cliente)})

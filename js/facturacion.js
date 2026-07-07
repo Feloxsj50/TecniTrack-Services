@@ -1,4 +1,6 @@
-﻿const detallesFactura = [];
+﻿const API_BASE = "http://127.0.0.1:8000";
+const detallesFactura = [];
+let tecnicosDisponibles = [];
 const facturas = [
     {
         numero: "F-001",
@@ -45,6 +47,64 @@ function esCantidadValida(valor) {
 
 function limpiarValorCsv(valor) {
     return `"${String(valor).replaceAll('"', '""')}"`;
+}
+
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvio una respuesta no valida." };
+    }
+}
+
+function pintarSelectTecnicos(valorSeleccionado = "") {
+    const select = document.getElementById("tecnicoFactura");
+    if (!select) return;
+
+    select.innerHTML = `<option value="">Seleccionar tecnico</option>`;
+
+    tecnicosDisponibles.forEach(tecnico => {
+        const option = document.createElement("option");
+        option.value = tecnico.username;
+        option.textContent = tecnico.nombre;
+        select.appendChild(option);
+    });
+
+    if (valorSeleccionado && !tecnicosDisponibles.some(tecnico => tecnico.username === valorSeleccionado)) {
+        const option = document.createElement("option");
+        option.value = valorSeleccionado;
+        option.textContent = valorSeleccionado;
+        select.appendChild(option);
+    }
+
+    select.value = valorSeleccionado;
+}
+
+function nombreTecnico(valor) {
+    const tecnico = tecnicosDisponibles.find(item => item.username === valor);
+    return tecnico ? tecnico.nombre : valor;
+}
+
+async function cargarTecnicosFactura() {
+    const select = document.getElementById("tecnicoFactura");
+    if (select) select.innerHTML = `<option value="">Cargando tecnicos...</option>`;
+
+    try {
+        const respuesta = await fetch(`${API_BASE}/tecnicos/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+
+        if (!respuesta.ok || !datos.ok) {
+            throw new Error(datos.error || "No se pudieron cargar los tecnicos.");
+        }
+
+        tecnicosDisponibles = datos.tecnicos.filter(tecnico => tecnico.estado === "Activo");
+        pintarSelectTecnicos();
+    } catch (error) {
+        tecnicosDisponibles = [];
+        if (select) select.innerHTML = `<option value="">Sin tecnicos disponibles</option>`;
+        mostrarNotificacion(error.message || "No se pudieron cargar los tecnicos.", "error");
+    }
 }
 
 function descargarCsv(nombreArchivo, encabezados, filas) {
@@ -115,7 +175,7 @@ function renderHistorialFacturas(lista) {
             <td>${factura.numero}</td>
             <td>${factura.fecha}</td>
             <td>${factura.cliente}</td>
-            <td>${factura.tecnico}</td>
+            <td>${nombreTecnico(factura.tecnico)}</td>
             <td>$${factura.total.toFixed(2)}</td>
             <td>${factura.metodoPago}</td>
             <td><span class="${claseEstadoFactura(factura.estado)}">${factura.estado}</span></td>
@@ -173,7 +233,7 @@ function cargarFacturaEnFormulario(index) {
     document.getElementById("numeroFactura").value    = f.numero;
     document.getElementById("fechaFactura").value     = f.fecha;
     document.getElementById("clienteFactura").value   = f.cliente;
-    document.getElementById("tecnicoFactura").value   = f.tecnico;
+    pintarSelectTecnicos(f.tecnico);
     document.getElementById("precioServicio").value   = f.total;
     document.getElementById("metodoPagoFactura").value = f.metodoPago;
     document.getElementById("estadoFactura").value    = f.estado;
@@ -193,7 +253,7 @@ function cargarFacturaEnFormulario(index) {
 function limpiarFactura() {
     document.getElementById("fechaFactura").value      = "";
     document.getElementById("clienteFactura").value    = "";
-    document.getElementById("tecnicoFactura").value    = "";
+    pintarSelectTecnicos();
     document.getElementById("servicioFactura").value   = "";
     document.getElementById("precioServicio").value    = "";
     document.getElementById("productoFactura").value   = "";
@@ -311,7 +371,7 @@ document.getElementById("btnImprimirFactura").addEventListener("click", () => {
     const numero = document.getElementById("numeroFactura").value;
     const fecha = document.getElementById("fechaFactura").value || "Sin fecha";
     const cliente = document.getElementById("clienteFactura").value.trim() || "Sin cliente";
-    const tecnico = document.getElementById("tecnicoFactura").value || "Sin técnico";
+    const tecnico = nombreTecnico(document.getElementById("tecnicoFactura").value) || "Sin tecnico";
     const servicio = document.getElementById("servicioFactura").value || "Servicio no seleccionado";
     const metodoPago = document.getElementById("metodoPagoFactura").value;
     const estado = document.getElementById("estadoFactura").value;
@@ -417,13 +477,16 @@ document.getElementById("buscarFactura").addEventListener("input", (e) => {
     const filtradas = facturas.filter(f =>
         f.numero.toLowerCase().includes(texto) ||
         f.cliente.toLowerCase().includes(texto) ||
-        f.tecnico.toLowerCase().includes(texto)
+        nombreTecnico(f.tecnico).toLowerCase().includes(texto)
     );
     renderHistorialFacturas(filtradas);
 });
 
-generarNumeroFactura();
-renderDetalleFactura();
-renderHistorialFacturas(facturas);
+async function iniciarFacturacion() {
+    await cargarTecnicosFactura();
+    generarNumeroFactura();
+    renderDetalleFactura();
+    renderHistorialFacturas(facturas);
+}
 
-
+iniciarFacturacion();

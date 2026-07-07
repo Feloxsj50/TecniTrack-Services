@@ -1,4 +1,6 @@
-const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
+﻿const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
+const API_BASE = "http://127.0.0.1:8000";
+let tecnicosDisponibles = [];
 
 function obtenerSolicitudes() {
     try {
@@ -21,6 +23,15 @@ function escaparHtml(valor) {
         .replaceAll("'", "&#039;");
 }
 
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvio una respuesta no valida." };
+    }
+}
+
 function claseEstado(estado) {
     if (estado === "Completado") return "completado";
     if (estado === "En Proceso") return "en-proceso";
@@ -37,6 +48,50 @@ function crearIdSolicitud(solicitudes) {
     return `SOL-${String(solicitudes.length + 1).padStart(3, "0")}`;
 }
 
+function pintarSelectTecnicos(valorSeleccionado = "") {
+    const select = document.getElementById("tecnicoServicio");
+    if (!select) return;
+
+    select.innerHTML = `<option value="">Asignar tecnico</option>`;
+
+    tecnicosDisponibles.forEach(tecnico => {
+        const option = document.createElement("option");
+        option.value = tecnico.username;
+        option.textContent = tecnico.nombre;
+        select.appendChild(option);
+    });
+
+    if (valorSeleccionado && !tecnicosDisponibles.some(tecnico => tecnico.username === valorSeleccionado)) {
+        const option = document.createElement("option");
+        option.value = valorSeleccionado;
+        option.textContent = valorSeleccionado;
+        select.appendChild(option);
+    }
+
+    select.value = valorSeleccionado;
+}
+
+async function cargarTecnicosDisponibles() {
+    const select = document.getElementById("tecnicoServicio");
+    if (select) select.innerHTML = `<option value="">Cargando tecnicos...</option>`;
+
+    try {
+        const respuesta = await fetch(`${API_BASE}/tecnicos/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+
+        if (!respuesta.ok || !datos.ok) {
+            throw new Error(datos.error || "No se pudieron cargar los tecnicos.");
+        }
+
+        tecnicosDisponibles = datos.tecnicos.filter(tecnico => tecnico.estado === "Activo");
+        pintarSelectTecnicos();
+    } catch (error) {
+        tecnicosDisponibles = [];
+        if (select) select.innerHTML = `<option value="">Sin tecnicos disponibles</option>`;
+        mostrarNotificacion(error.message || "No se pudieron cargar los tecnicos.", "error");
+    }
+}
+
 function actualizarCards() {
     const solicitudes = obtenerSolicitudes();
     const pendientes = solicitudes.filter(s => s.estado === "Pendiente");
@@ -47,6 +102,11 @@ function actualizarCards() {
     document.getElementById("serviciosPendientes").textContent = pendientes.length;
     document.getElementById("serviciosProceso").textContent = proceso.length;
     document.getElementById("serviciosCompletados").textContent = completados.length;
+}
+
+function nombreTecnico(valor) {
+    const tecnico = tecnicosDisponibles.find(item => item.username === valor);
+    return tecnico ? tecnico.nombre : valor;
 }
 
 function cargarServicios() {
@@ -79,7 +139,7 @@ function cargarServicios() {
             <td>${escaparHtml(solicitud.cliente)}</td>
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
-            <td>${escaparHtml(solicitud.tecnico || "Sin asignar")}</td>
+            <td>${escaparHtml(solicitud.tecnico ? nombreTecnico(solicitud.tecnico) : "Sin asignar")}</td>
             <td><span class="${clasePrioridad(solicitud.prioridad)}">${escaparHtml(solicitud.prioridad || "Media")}</span></td>
             <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(solicitud.estado)}</span></td>
             <td>
@@ -104,7 +164,7 @@ function limpiarFormulario() {
     document.getElementById("dispositivo").value = "";
     document.getElementById("servicio").value = "";
     document.getElementById("fecha").value = "";
-    document.getElementById("tecnicoServicio").value = "";
+    pintarSelectTecnicos();
     document.getElementById("prioridadServicio").value = "Media";
     document.getElementById("estadoServicio").value = "Pendiente";
     document.getElementById("tituloFormulario").textContent = "Registrar Servicio Presencial";
@@ -120,7 +180,7 @@ function editarServicio(id) {
     document.getElementById("dispositivo").value = solicitud.dispositivo;
     document.getElementById("servicio").value = solicitud.servicio;
     document.getElementById("fecha").value = solicitud.fecha;
-    document.getElementById("tecnicoServicio").value = solicitud.tecnico || "";
+    pintarSelectTecnicos(solicitud.tecnico || "");
     document.getElementById("prioridadServicio").value = solicitud.prioridad || "Media";
     document.getElementById("estadoServicio").value = solicitud.estado;
     document.getElementById("tituloFormulario").textContent = "Asignar o Actualizar Orden";
@@ -185,5 +245,10 @@ document.getElementById("btnGuardar")?.addEventListener("click", () => {
     actualizarCards();
 });
 
-cargarServicios();
-actualizarCards();
+async function iniciarDashboardAdmin() {
+    await cargarTecnicosDisponibles();
+    cargarServicios();
+    actualizarCards();
+}
+
+iniciarDashboardAdmin();
