@@ -48,13 +48,14 @@
 
             <!-- Formulario -->
             <div class="form-container">
-                <h2 id="tituloFormulario">Solicitud de Servicio</h2>
+                <h2 id="tituloFormulario">Registrar Servicio Presencial</h2>
+                <p class="form-helper">Crea una orden cuando el cliente llega al taller. La factura se genera despues, cuando el servicio este completado.</p>
 
 <input type="hidden" id="idEditar">
 
 <input type="text" id="cliente" placeholder="Cliente">
 <input type="text" id="dispositivo" placeholder="Dispositivo">
-<input type="text" id="servicio" placeholder="Tipo de Servicio">
+<input type="text" id="servicio" placeholder="Problema o servicio solicitado">
 <input type="date" id="fecha">
 
 <select id="tecnicoServicio">
@@ -77,12 +78,12 @@
     <option value="Completado">Completado</option>
 </select>
 
-<button id="btnGuardar">Guardar Servicio</button>
+<button id="btnGuardar">Guardar Orden</button>
 </div>  <!-- <- cerrá el form-container aquí -->
 
             <!-- Historial -->
             <div class="historial">
-                <h2>Actividades Recientes</h2>
+                <h2>Ordenes y Solicitudes</h2>
 
                 <table id="tablaServicios">
                     <thead>

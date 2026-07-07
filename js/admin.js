@@ -62,8 +62,8 @@ function cargarServicios() {
                 <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
-                        <strong>Sin solicitudes pendientes</strong>
-                        <span>Cuando un cliente envie una solicitud, aparecera aqui para asignarla a un tecnico.</span>
+                        <strong>Sin ordenes registradas</strong>
+                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecera aqui.</span>
                     </div>
                 </td>
             </tr>
@@ -107,8 +107,8 @@ function limpiarFormulario() {
     document.getElementById("tecnicoServicio").value = "";
     document.getElementById("prioridadServicio").value = "Media";
     document.getElementById("estadoServicio").value = "Pendiente";
-    document.getElementById("tituloFormulario").textContent = "Solicitud de Servicio";
-    document.getElementById("btnGuardar").textContent = "Guardar Servicio";
+    document.getElementById("tituloFormulario").textContent = "Registrar Servicio Presencial";
+    document.getElementById("btnGuardar").textContent = "Guardar Orden";
 }
 
 function editarServicio(id) {
@@ -123,8 +123,8 @@ function editarServicio(id) {
     document.getElementById("tecnicoServicio").value = solicitud.tecnico || "";
     document.getElementById("prioridadServicio").value = solicitud.prioridad || "Media";
     document.getElementById("estadoServicio").value = solicitud.estado;
-    document.getElementById("tituloFormulario").textContent = "Asignar o actualizar solicitud";
-    document.getElementById("btnGuardar").textContent = "Actualizar Solicitud";
+    document.getElementById("tituloFormulario").textContent = "Asignar o Actualizar Orden";
+    document.getElementById("btnGuardar").textContent = "Actualizar Orden";
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -161,7 +161,7 @@ document.getElementById("btnGuardar")?.addEventListener("click", () => {
                 estado: tecnico && estadoManual === "Pendiente" ? "En Proceso" : estadoManual
             };
         });
-        mostrarNotificacion("Solicitud actualizada correctamente.", "success");
+        mostrarNotificacion("Orden actualizada correctamente.", "success");
     } else {
         solicitudes.unshift({
             id: crearIdSolicitud(solicitudes),
@@ -176,7 +176,7 @@ document.getElementById("btnGuardar")?.addEventListener("click", () => {
             estado: tecnico ? "En Proceso" : "Pendiente",
             creadoEn: new Date().toISOString()
         });
-        mostrarNotificacion("Solicitud creada correctamente.", "success");
+        mostrarNotificacion("Orden creada correctamente. Facturacion se realiza al completar el servicio.", "success");
     }
 
     guardarSolicitudes(solicitudes);

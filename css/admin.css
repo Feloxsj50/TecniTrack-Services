@@ -453,6 +453,14 @@ body {
     margin-bottom: 4px;
 }
 
+.form-helper {
+    grid-column: 1 / -1;
+    margin: -2px 0 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
 .form-container input,
 .form-container select {
     padding: 10px 13px;
