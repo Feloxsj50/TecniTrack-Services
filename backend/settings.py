@@ -26,7 +26,12 @@ SECRET_KEY = 'django-insecure-=_^mt5l9ak_&v4eudso2of*6xa#5)nu#3+aj2o2*t9t9b^1yh3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'testserver',
+    'enrich-plop-patronize.ngrok-free.dev',
+]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5500",

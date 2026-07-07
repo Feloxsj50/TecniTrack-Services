@@ -1,4 +1,4 @@
-﻿const API_BASE = "http://127.0.0.1:8000";
+﻿const API_BASE = window.location.origin;
 let perfilActual = null;
 let csrfToken = "";
 
@@ -43,7 +43,7 @@ async function leerRespuestaJson(respuesta) {
         return {
             ok: false,
             error: respuesta.status === 403
-                ? "No se pudo validar la seguridad de Django. Inicia sesion nuevamente desde http://127.0.0.1:8000/."
+                ? "No se pudo validar la seguridad de Django. Inicia sesion nuevamente desde este mismo enlace."
                 : "Django devolvio una respuesta no valida."
         };
     }
@@ -168,5 +168,6 @@ document.getElementById("btnCambiarPassword").addEventListener("click", async ()
 document.getElementById("telefonoPerfil")?.addEventListener("input", event => formatearTelefono(event.target));
 
 cargarPerfil();
+
 
 

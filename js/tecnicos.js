@@ -13,7 +13,7 @@ const telefonoTecnico = document.getElementById("telefonoTecnico");
 const passwordTecnico = document.getElementById("passwordTecnico");
 const estadoTecnico = document.getElementById("estadoTecnico");
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = window.location.origin;
 let tecnicos = [];
 let tecnicoEditandoId = null;
 
@@ -212,3 +212,4 @@ buscarTecnico.addEventListener("keyup", () => {
 
 telefonoTecnico?.addEventListener("input", (event) => formatearTelefono(event.target));
 cargarTecnicos();
+

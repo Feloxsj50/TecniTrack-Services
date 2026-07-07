@@ -17,7 +17,7 @@ const resumenTotal = document.getElementById("resumenTotal");
 const resumenActivos = document.getElementById("resumenActivos");
 const resumenInactivos = document.getElementById("resumenInactivos");
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = window.location.origin;
 let clientes = [];
 let clienteEditandoId = null;
 let csrfToken = "";
@@ -58,7 +58,7 @@ async function leerRespuestaJson(respuesta) {
             ok: false,
             error: respuesta.status === 403
                 ? "No se pudo validar la seguridad de Django. Inicia sesion como admin nuevamente."
-                : "Django devolvio una respuesta no valida. Abre el sitio desde http://127.0.0.1:8000/."
+                : "Django devolvio una respuesta no valida. Abre el sitio desde el servidor de Django."
         };
     }
 }
@@ -167,7 +167,7 @@ async function cargarClientes() {
                     <div class="empty-state">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         <strong>No se pudo conectar con Django</strong>
-                        <span>Verifica que el servidor este activo en http://127.0.0.1:8000/.</span>
+                        <span>Verifica que el servidor de Django este activo.</span>
                     </div>
                 </td>
             </tr>
@@ -348,3 +348,4 @@ telefonoCliente?.addEventListener("input", (event) => {
 });
 
 cargarClientes();
+

@@ -2,7 +2,7 @@
 const password = document.getElementById("password");
 const toggle = document.querySelector(".toggle");
 const loginButton = document.querySelector(".btn-login");
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = window.location.origin;
 
 if (toggle && password) {
     toggle.addEventListener("click", () => {
@@ -56,3 +56,4 @@ if (loginButton) {
         }
     });
 }
+
