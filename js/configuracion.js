@@ -44,6 +44,15 @@ function escaparHtml(valor) {
         .replaceAll("'", "&#039;");
 }
 
+function telefonoValido(telefono) {
+    return /^\d{4}-\d{4}$/.test(telefono);
+}
+
+function formatearTelefono(input) {
+    const digitos = input.value.replace(/\D/g, "").slice(0, 8);
+    input.value = digitos.length > 4 ? `${digitos.slice(0, 4)}-${digitos.slice(4)}` : digitos;
+}
+
 function cargarTaller() {
     const taller = leerJson(STORAGE_TALLER, tallerDefault);
     document.getElementById("nombreTaller").value = taller.nombre;
@@ -153,11 +162,18 @@ document.getElementById("formTaller").addEventListener("submit", event => {
         return;
     }
 
+    if (!telefonoValido(taller.telefono) || !telefonoValido(taller.whatsapp)) {
+        mostrarNotificacion("Telefono y WhatsApp deben tener formato 7777-8888.", "error");
+        return;
+    }
+
     guardarJson(STORAGE_TALLER, taller);
     mostrarNotificacion("Datos del taller guardados correctamente.", "success");
 });
 
 document.getElementById("btnExportarBackup").addEventListener("click", exportarBackup);
+document.getElementById("telefonoTaller")?.addEventListener("input", event => formatearTelefono(event.target));
+document.getElementById("whatsappTaller")?.addEventListener("input", event => formatearTelefono(event.target));
 
 inicializarDatos();
 cargarTaller();

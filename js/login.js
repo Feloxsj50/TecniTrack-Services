@@ -33,6 +33,7 @@ if (loginButton) {
         try {
             const respuesta = await fetch(`${API_BASE}/usuarios/login/`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ usuario: user, password: pass })
             });

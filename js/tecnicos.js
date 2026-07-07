@@ -12,8 +12,12 @@ const tecnicos = [
 let indiceEditando = -1;
 
 function telefonoValido(telefono) {
-    const soloDigitos = telefono.replace(/\D/g, "");
-    return soloDigitos.length >= 8;
+    return /^\d{4}-\d{4}$/.test(telefono);
+}
+
+function formatearTelefono(input) {
+    const digitos = input.value.replace(/\D/g, "").slice(0, 8);
+    input.value = digitos.length > 4 ? `${digitos.slice(0, 4)}-${digitos.slice(4)}` : digitos;
 }
 
 function actualizarResumen() {
@@ -127,7 +131,7 @@ btnGuardarTecnico.addEventListener("click", () => {
     }
 
     if (!telefonoValido(telefono)) {
-        mostrarNotificacion("Ingresa un teléfono válido de al menos 8 dígitos.");
+        mostrarNotificacion("Ingresa un teléfono válido con formato 7777-8888.");
         return;
     }
 
@@ -151,6 +155,10 @@ document.getElementById("buscarTecnico").addEventListener("keyup", (e) => {
         t.telefono.toLowerCase().includes(filtro)
     );
     renderizarTabla(filtrados);
+});
+
+document.getElementById("telefonoTecnico")?.addEventListener("input", (event) => {
+    formatearTelefono(event.target);
 });
 
 // Arrancar

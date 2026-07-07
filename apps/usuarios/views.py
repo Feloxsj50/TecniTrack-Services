@@ -1,7 +1,10 @@
 import json
+import re
 
 from django.contrib.auth import authenticate, login, logout
+from django.middleware.csrf import get_token
 from django.http import JsonResponse
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
@@ -17,6 +20,12 @@ def serializar_usuario(usuario):
         "email": usuario.email,
         "rol": usuario.rol,
     }
+
+
+@ensure_csrf_cookie
+@require_GET
+def csrf_token(request):
+    return JsonResponse({"ok": True, "csrfToken": get_token(request)})
 
 
 def obtener_datos_request(request):
@@ -60,19 +69,29 @@ def registrar_cliente(request):
 
     nombres = datos.get("nombres", "").strip()
     apellidos = datos.get("apellidos", "").strip()
+    username = datos.get("username", "").strip()
     email = datos.get("email", "").strip().lower()
     telefono = datos.get("telefono", "").strip()
     password = datos.get("password", "")
     confirmacion = datos.get("confirmPassword", "")
 
-    if not all([nombres, apellidos, email, telefono, password, confirmacion]):
+    if not all([nombres, apellidos, username, email, telefono, password, confirmacion]):
         return JsonResponse({"ok": False, "error": "Completa todos los campos."}, status=400)
 
     if len(nombres) < 2 or len(apellidos) < 2:
         return JsonResponse({"ok": False, "error": "Nombre y apellido deben tener al menos 2 letras."}, status=400)
 
+    if not re.fullmatch(r"[A-Za-z0-9._-]{4,30}", username):
+        return JsonResponse(
+            {"ok": False, "error": "El nombre de usuario debe tener 4 a 30 caracteres validos."},
+            status=400,
+        )
+
     if "@" not in email or "." not in email:
         return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+
+    if not re.fullmatch(r"\d{4}-\d{4}", telefono):
+        return JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
 
     if len(password) < 8:
         return JsonResponse({"ok": False, "error": "La contrasena debe tener al menos 8 caracteres."}, status=400)
@@ -83,12 +102,8 @@ def registrar_cliente(request):
     if Usuario.objects.filter(email=email).exists():
         return JsonResponse({"ok": False, "error": "Este correo ya esta registrado."}, status=409)
 
-    username_base = email.split("@")[0]
-    username = username_base
-    contador = 1
-    while Usuario.objects.filter(username=username).exists():
-        contador += 1
-        username = f"{username_base}{contador}"
+    if Usuario.objects.filter(username__iexact=username).exists():
+        return JsonResponse({"ok": False, "error": "Este nombre de usuario ya esta en uso."}, status=409)
 
     usuario = Usuario.objects.create_user(
         username=username,

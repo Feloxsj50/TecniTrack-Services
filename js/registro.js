@@ -1,6 +1,7 @@
 ﻿const campos = {
     nombres: document.getElementById("nombres"),
     apellidos: document.getElementById("apellidos"),
+    username: document.getElementById("username"),
     email: document.getElementById("email"),
     telefono: document.getElementById("telefono"),
     password: document.getElementById("password"),
@@ -10,6 +11,7 @@
 const ayudas = {
     nombres: document.getElementById("nombresHelp"),
     apellidos: document.getElementById("apellidosHelp"),
+    username: document.getElementById("usernameHelp"),
     email: document.getElementById("emailHelp"),
     telefono: document.getElementById("telefonoHelp"),
     password: document.getElementById("passwordHelp"),
@@ -91,12 +93,29 @@ function validarCorreo() {
     return valido;
 }
 
+function validarUsername() {
+    const valor = campos.username.value.trim();
+    const valido = /^[a-zA-Z0-9._-]{4,30}$/.test(valor);
+    marcarCampo(campos.username, valido);
+    mostrarMensaje(
+        ayudas.username,
+        valor && !valido ? "Usa 4 a 30 caracteres: letras, números, punto, guion o guion bajo" : "",
+        valido ? "success" : "error"
+    );
+    return valido;
+}
+
 function validarTelefono() {
     const valor = campos.telefono.value.trim();
-    const valido = /^[0-9+\-\s()]{8,}$/.test(valor);
+    const valido = /^\d{4}-\d{4}$/.test(valor);
     marcarCampo(campos.telefono, valido);
-    mostrarMensaje(ayudas.telefono, valor && !valido ? "Ingresa un tel\u00e9fono v\u00e1lido" : "", valido ? "success" : "error");
+    mostrarMensaje(ayudas.telefono, valor && !valido ? "Usa el formato 7777-8888" : "", valido ? "success" : "error");
     return valido;
+}
+
+function formatearTelefono(input) {
+    const digitos = input.value.replace(/\D/g, "").slice(0, 8);
+    input.value = digitos.length > 4 ? `${digitos.slice(0, 4)}-${digitos.slice(4)}` : digitos;
 }
 
 function validarConfirmacion() {
@@ -114,6 +133,7 @@ async function registrarCliente() {
         body: JSON.stringify({
             nombres: campos.nombres.value.trim(),
             apellidos: campos.apellidos.value.trim(),
+            username: campos.username.value.trim(),
             email: campos.email.value.trim().toLowerCase(),
             telefono: campos.telefono.value.trim(),
             password: campos.password.value,
@@ -143,8 +163,12 @@ if (toggle && campos.password) {
 
 campos.nombres?.addEventListener("input", () => validarNombre(campos.nombres, ayudas.nombres, "Nombres"));
 campos.apellidos?.addEventListener("input", () => validarNombre(campos.apellidos, ayudas.apellidos, "Apellidos"));
+campos.username?.addEventListener("input", validarUsername);
 campos.email?.addEventListener("input", validarCorreo);
-campos.telefono?.addEventListener("input", validarTelefono);
+campos.telefono?.addEventListener("input", () => {
+    formatearTelefono(campos.telefono);
+    validarTelefono();
+});
 campos.password?.addEventListener("input", actualizarFortaleza);
 campos.confirmPassword?.addEventListener("input", validarConfirmacion);
 
@@ -155,6 +179,7 @@ if (registerButton) {
         const formularioValido = [
             validarNombre(campos.nombres, ayudas.nombres, "Nombres"),
             validarNombre(campos.apellidos, ayudas.apellidos, "Apellidos"),
+            validarUsername(),
             validarCorreo(),
             validarTelefono(),
             campos.password.value.length >= 8,

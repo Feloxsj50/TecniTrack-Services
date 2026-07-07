@@ -1,21 +1,21 @@
-const perfiles = {
+﻿const perfiles = {
     admin: {
         nombre: "Administrador TecniTrack",
         rol: "Administrador",
         usuario: "admin",
         correo: "admin@tecnitrack.com",
         telefono: "8888-0000",
-        area: "Administración",
+        area: "AdministraciÃ³n",
         panel: "Dashboard",
         permisos: "Completos"
     },
     tecnico: {
-        nombre: "Técnico TecniTrack",
-        rol: "Técnico",
+        nombre: "TÃ©cnico TecniTrack",
+        rol: "TÃ©cnico",
         usuario: "tecnico",
         correo: "tecnico@tecnitrack.com",
         telefono: "8888-1234",
-        area: "Soporte técnico",
+        area: "Soporte tÃ©cnico",
         panel: "Mi Panel",
         permisos: "Servicios e inventario"
     },
@@ -27,7 +27,7 @@ const perfiles = {
         telefono: "7777-7777",
         area: "Cliente",
         panel: "Mi Panel",
-        permisos: "Servicios y facturación"
+        permisos: "Servicios y facturaciÃ³n"
     }
 };
 
@@ -69,7 +69,12 @@ function correoValido(correo) {
 }
 
 function telefonoValido(telefono) {
-    return telefono.replace(/\D/g, "").length >= 8;
+    return /^\d{4}-\d{4}$/.test(telefono);
+}
+
+function formatearTelefono(input) {
+    const digitos = input.value.replace(/\D/g, "").slice(0, 8);
+    input.value = digitos.length > 4 ? `${digitos.slice(0, 4)}-${digitos.slice(4)}` : digitos;
 }
 
 document.getElementById("btnGuardarPerfil").addEventListener("click", () => {
@@ -89,12 +94,12 @@ document.getElementById("btnGuardarPerfil").addEventListener("click", () => {
     }
 
     if (!correoValido(correo)) {
-        mostrarNotificacion("Ingresa un correo válido.");
+        mostrarNotificacion("Ingresa un correo vÃ¡lido.");
         return;
     }
 
     if (!telefonoValido(telefono)) {
-        mostrarNotificacion("Ingresa un teléfono válido de al menos 8 dígitos.");
+        mostrarNotificacion("Ingresa un teléfono válido con formato 7777-8888.");
         return;
     }
 
@@ -111,4 +116,9 @@ document.getElementById("btnGuardarPerfil").addEventListener("click", () => {
     mostrarNotificacion("Perfil actualizado correctamente.", "success");
 });
 
+document.getElementById("telefonoPerfil")?.addEventListener("input", (event) => {
+    formatearTelefono(event.target);
+});
+
 cargarPerfil();
+
