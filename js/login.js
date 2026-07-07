@@ -31,7 +31,12 @@ if (loginButton) {
             return;
         }
 
-        if (user === "admin" && pass === "admin123") {
+        const usuarioRegistrado = buscarUsuarioRegistrado(user, pass);
+
+        if (usuarioRegistrado) {
+            TecniAuth.iniciarSesion(usuarioRegistrado.rol, usuarioRegistrado.usuario);
+            window.location.replace(TecniAuth.paginaInicio(usuarioRegistrado.rol));
+        } else if (user === "admin" && pass === "admin123") {
             TecniAuth.iniciarSesion("admin", user);
             window.location.replace(TecniAuth.paginaInicio("admin"));
         } else if (user === "tecnico" && pass === "tec123") {
@@ -49,11 +54,22 @@ if (loginButton) {
 function usuarioActivo(usuario) {
     try {
         const usuarios = JSON.parse(localStorage.getItem("tecnitrackUsuarios")) || [];
-        const encontrado = usuarios.find(item => item.usuario === usuario);
+        const encontrado = usuarios.find(item => item.usuario === usuario || item.correo === usuario);
         return encontrado ? encontrado.activo !== false : true;
     } catch {
         return true;
     }
 }
 
+function buscarUsuarioRegistrado(usuario, password) {
+    try {
+        const usuarios = JSON.parse(localStorage.getItem("tecnitrackUsuarios")) || [];
+        return usuarios.find(item => {
+            const mismoUsuario = item.usuario === usuario || item.correo === usuario;
+            return mismoUsuario && item.password === password && item.activo !== false;
+        });
+    } catch {
+        return null;
+    }
+}
 
