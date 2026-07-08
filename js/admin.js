@@ -1,18 +1,7 @@
-﻿const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
-const API_BASE = window.location.origin;
+﻿const API_BASE = window.location.origin;
 let tecnicosDisponibles = [];
-
-function obtenerSolicitudes() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY_SOLICITUDES)) || [];
-    } catch {
-        return [];
-    }
-}
-
-function guardarSolicitudes(solicitudes) {
-    localStorage.setItem(STORAGE_KEY_SOLICITUDES, JSON.stringify(solicitudes));
-}
+let solicitudes = [];
+let csrfToken = "";
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -32,9 +21,23 @@ async function leerRespuestaJson(respuesta) {
     }
 }
 
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo preparar la seguridad de Django.");
+    csrfToken = datos.csrfToken;
+    return csrfToken;
+}
+
+function estadoNormalizado(estado) {
+    return estado === "En proceso" ? "En Proceso" : estado;
+}
+
 function claseEstado(estado) {
-    if (estado === "Completado") return "completado";
-    if (estado === "En Proceso") return "en-proceso";
+    const normalizado = estadoNormalizado(estado);
+    if (normalizado === "Completado") return "completado";
+    if (normalizado === "En Proceso") return "en-proceso";
     return "pendiente";
 }
 
@@ -44,15 +47,11 @@ function clasePrioridad(prioridad) {
     return "prioridad media";
 }
 
-function crearIdSolicitud(solicitudes) {
-    return `SOL-${String(solicitudes.length + 1).padStart(3, "0")}`;
-}
-
 function pintarSelectTecnicos(valorSeleccionado = "") {
     const select = document.getElementById("tecnicoServicio");
     if (!select) return;
 
-    select.innerHTML = `<option value="">Asignar tecnico</option>`;
+    select.innerHTML = `<option value="">Asignar técnico</option>`;
 
     tecnicosDisponibles.forEach(tecnico => {
         const option = document.createElement("option");
@@ -73,30 +72,26 @@ function pintarSelectTecnicos(valorSeleccionado = "") {
 
 async function cargarTecnicosDisponibles() {
     const select = document.getElementById("tecnicoServicio");
-    if (select) select.innerHTML = `<option value="">Cargando tecnicos...</option>`;
+    if (select) select.innerHTML = `<option value="">Cargando técnicos...</option>`;
 
     try {
         const respuesta = await fetch(`${API_BASE}/tecnicos/`, { credentials: "include" });
         const datos = await leerRespuestaJson(respuesta);
-
-        if (!respuesta.ok || !datos.ok) {
-            throw new Error(datos.error || "No se pudieron cargar los tecnicos.");
-        }
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los técnicos.");
 
         tecnicosDisponibles = datos.tecnicos.filter(tecnico => tecnico.estado === "Activo");
         pintarSelectTecnicos();
     } catch (error) {
         tecnicosDisponibles = [];
-        if (select) select.innerHTML = `<option value="">Sin tecnicos disponibles</option>`;
-        mostrarNotificacion(error.message || "No se pudieron cargar los tecnicos.", "error");
+        if (select) select.innerHTML = `<option value="">Sin técnicos disponibles</option>`;
+        mostrarNotificacion(error.message || "No se pudieron cargar los técnicos.", "error");
     }
 }
 
 function actualizarCards() {
-    const solicitudes = obtenerSolicitudes();
-    const pendientes = solicitudes.filter(s => s.estado === "Pendiente");
-    const proceso = solicitudes.filter(s => s.estado === "En Proceso");
-    const completados = solicitudes.filter(s => s.estado === "Completado");
+    const pendientes = solicitudes.filter(s => estadoNormalizado(s.estado) === "Pendiente");
+    const proceso = solicitudes.filter(s => estadoNormalizado(s.estado) === "En Proceso");
+    const completados = solicitudes.filter(s => estadoNormalizado(s.estado) === "Completado");
 
     document.getElementById("totalServicios").textContent = solicitudes.length;
     document.getElementById("serviciosPendientes").textContent = pendientes.length;
@@ -113,7 +108,6 @@ function cargarServicios() {
     const tabla = document.querySelector("#tablaServicios tbody");
     if (!tabla) return;
 
-    const solicitudes = obtenerSolicitudes();
     tabla.innerHTML = "";
 
     if (!solicitudes.length) {
@@ -122,8 +116,8 @@ function cargarServicios() {
                 <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
-                        <strong>Sin ordenes registradas</strong>
-                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecera aqui.</span>
+                        <strong>Sin órdenes registradas</strong>
+                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecerá aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -141,10 +135,10 @@ function cargarServicios() {
             <td>${escaparHtml(solicitud.servicio)}</td>
             <td>${escaparHtml(solicitud.tecnico ? nombreTecnico(solicitud.tecnico) : "Sin asignar")}</td>
             <td><span class="${clasePrioridad(solicitud.prioridad)}">${escaparHtml(solicitud.prioridad || "Media")}</span></td>
-            <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(solicitud.estado)}</span></td>
+            <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(estadoNormalizado(solicitud.estado))}</span></td>
             <td>
                 <div class="table-actions">
-                    <button class="btn-editar-historial" type="button" data-editar="${solicitud.id}">
+                    <button class="btn-editar-historial" type="button" data-editar="${solicitud.dbId}">
                         <i class="fa-solid fa-pen"></i> Editar
                     </button>
                 </div>
@@ -154,8 +148,17 @@ function cargarServicios() {
     });
 
     tabla.querySelectorAll("[data-editar]").forEach(boton => {
-        boton.addEventListener("click", () => editarServicio(boton.dataset.editar));
+        boton.addEventListener("click", () => editarServicio(Number(boton.dataset.editar)));
     });
+}
+
+async function obtenerSolicitudes() {
+    const respuesta = await fetch(`${API_BASE}/servicios/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar las solicitudes.");
+    solicitudes = datos.solicitudes;
+    cargarServicios();
+    actualizarCards();
 }
 
 function limpiarFormulario() {
@@ -171,85 +174,67 @@ function limpiarFormulario() {
     document.getElementById("btnGuardar").textContent = "Guardar Orden";
 }
 
-function editarServicio(id) {
-    const solicitud = obtenerSolicitudes().find(item => item.id === id);
+function editarServicio(dbId) {
+    const solicitud = solicitudes.find(item => item.dbId === dbId);
     if (!solicitud) return;
 
-    document.getElementById("idEditar").value = solicitud.id;
-    document.getElementById("cliente").value = solicitud.cliente;
+    document.getElementById("idEditar").value = solicitud.dbId;
+    document.getElementById("cliente").value = solicitud.usuarioCliente;
     document.getElementById("dispositivo").value = solicitud.dispositivo;
     document.getElementById("servicio").value = solicitud.servicio;
     document.getElementById("fecha").value = solicitud.fecha;
     pintarSelectTecnicos(solicitud.tecnico || "");
     document.getElementById("prioridadServicio").value = solicitud.prioridad || "Media";
-    document.getElementById("estadoServicio").value = solicitud.estado;
+    document.getElementById("estadoServicio").value = estadoNormalizado(solicitud.estado);
     document.getElementById("tituloFormulario").textContent = "Asignar o Actualizar Orden";
     document.getElementById("btnGuardar").textContent = "Actualizar Orden";
 
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-document.getElementById("btnGuardar")?.addEventListener("click", () => {
+document.getElementById("btnGuardar")?.addEventListener("click", async () => {
     const idEditar = document.getElementById("idEditar").value;
-    const cliente = document.getElementById("cliente").value.trim();
-    const dispositivo = document.getElementById("dispositivo").value.trim();
-    const servicio = document.getElementById("servicio").value.trim();
-    const fecha = document.getElementById("fecha").value;
-    const tecnico = document.getElementById("tecnicoServicio").value;
-    const prioridad = document.getElementById("prioridadServicio").value;
-    const estadoManual = document.getElementById("estadoServicio").value;
+    const payload = {
+        cliente: document.getElementById("cliente").value.trim(),
+        dispositivo: document.getElementById("dispositivo").value.trim(),
+        servicio: document.getElementById("servicio").value.trim(),
+        fecha: document.getElementById("fecha").value,
+        tecnico: document.getElementById("tecnicoServicio").value,
+        prioridad: document.getElementById("prioridadServicio").value,
+        estado: document.getElementById("estadoServicio").value,
+    };
 
-    if (!cliente || !dispositivo || !servicio || !fecha) {
+    if (!payload.cliente || !payload.dispositivo || !payload.servicio || !payload.fecha) {
         mostrarNotificacion("Completa cliente, dispositivo, servicio y fecha.", "error");
         return;
     }
 
-    let solicitudes = obtenerSolicitudes();
-
-    if (idEditar) {
-        solicitudes = solicitudes.map(solicitud => {
-            if (solicitud.id !== idEditar) return solicitud;
-
-            return {
-                ...solicitud,
-                cliente,
-                dispositivo,
-                servicio,
-                fecha,
-                tecnico,
-                prioridad,
-                estado: tecnico && estadoManual === "Pendiente" ? "En Proceso" : estadoManual
-            };
+    try {
+        const token = await obtenerCsrfToken();
+        const url = idEditar ? `${API_BASE}/servicios/${idEditar}/actualizar/` : `${API_BASE}/servicios/crear/`;
+        const respuesta = await fetch(url, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": token
+            },
+            body: JSON.stringify(payload)
         });
-        mostrarNotificacion("Orden actualizada correctamente.", "success");
-    } else {
-        solicitudes.unshift({
-            id: crearIdSolicitud(solicitudes),
-            cliente,
-            dispositivo,
-            servicio,
-            fecha,
-            tecnico,
-            diagnostico: "",
-            repuesto: "",
-            prioridad,
-            estado: tecnico ? "En Proceso" : "Pendiente",
-            creadoEn: new Date().toISOString()
-        });
-        mostrarNotificacion("Orden creada correctamente. Facturacion se realiza al completar el servicio.", "success");
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo guardar la orden.");
+
+        mostrarNotificacion(idEditar ? "Orden actualizada correctamente." : "Orden creada correctamente.", "success");
+        limpiarFormulario();
+        await obtenerSolicitudes();
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo guardar la orden.", "error");
     }
-
-    guardarSolicitudes(solicitudes);
-    limpiarFormulario();
-    cargarServicios();
-    actualizarCards();
 });
 
 async function iniciarDashboardAdmin() {
     await cargarTecnicosDisponibles();
-    cargarServicios();
-    actualizarCards();
+    await obtenerSolicitudes();
 }
 
 iniciarDashboardAdmin();
-

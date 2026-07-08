@@ -1,20 +1,9 @@
-const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
+﻿const API_BASE = window.location.origin;
 
 const formSolicitud = document.getElementById("formSolicitud");
 const tablaServiciosCliente = document.querySelector("#tablaServicios tbody");
-const usuarioCliente = TecniAuth.obtenerSesion()?.usuario || "cliente";
-
-function obtenerSolicitudes() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY_SOLICITUDES)) || [];
-    } catch {
-        return [];
-    }
-}
-
-function guardarSolicitudes(solicitudes) {
-    localStorage.setItem(STORAGE_KEY_SOLICITUDES, JSON.stringify(solicitudes));
-}
+let solicitudesCliente = [];
+let csrfToken = "";
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -25,15 +14,35 @@ function escaparHtml(valor) {
         .replaceAll("'", "&#039;");
 }
 
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvio una respuesta no valida." };
+    }
+}
+
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo preparar la seguridad de Django.");
+
+    csrfToken = datos.csrfToken;
+    return csrfToken;
+}
+
 function claseEstadoServicio(estado) {
     if (estado === "Completado") return "completado";
-    if (estado === "En Proceso") return "en-proceso";
+    if (estado === "En proceso" || estado === "En Proceso") return "en-proceso";
     return "pendiente";
 }
 
 function actualizarContadores(solicitudes) {
     const pendientes = solicitudes.filter(solicitud => solicitud.estado === "Pendiente").length;
-    const enProceso = solicitudes.filter(solicitud => solicitud.estado === "En Proceso").length;
+    const enProceso = solicitudes.filter(solicitud => solicitud.estado === "En proceso" || solicitud.estado === "En Proceso").length;
     const completados = solicitudes.filter(solicitud => solicitud.estado === "Completado").length;
 
     document.getElementById("totalServicios").textContent = solicitudes.length;
@@ -43,18 +52,17 @@ function actualizarContadores(solicitudes) {
 }
 
 function renderizarSolicitudesCliente() {
-    const solicitudes = obtenerSolicitudes().filter(solicitud => solicitud.usuarioCliente === usuarioCliente);
-    actualizarContadores(solicitudes);
+    actualizarContadores(solicitudesCliente);
     tablaServiciosCliente.innerHTML = "";
 
-    if (!solicitudes.length) {
+    if (!solicitudesCliente.length) {
         tablaServiciosCliente.innerHTML = `
             <tr class="empty-row">
                 <td colspan="6">
                     <div class="empty-state">
                         <i class="fa-solid fa-clipboard-list"></i>
                         <strong>Sin servicios registrados</strong>
-                        <span>Cuando el cliente solicite o reciba un servicio, aparecerá aquí su historial.</span>
+                        <span>Cuando solicites o recibas un servicio, aparecerá aquí tu historial.</span>
                     </div>
                 </td>
             </tr>
@@ -62,7 +70,7 @@ function renderizarSolicitudesCliente() {
         return;
     }
 
-    solicitudes.forEach(solicitud => {
+    solicitudesCliente.forEach(solicitud => {
         const fila = document.createElement("tr");
         fila.innerHTML = `
             <td>${escaparHtml(solicitud.fecha)}</td>
@@ -76,39 +84,71 @@ function renderizarSolicitudesCliente() {
     });
 }
 
-function crearIdSolicitud(solicitudes) {
-    return `SOL-${String(solicitudes.length + 1).padStart(3, "0")}`;
+async function cargarSolicitudesCliente() {
+    try {
+        const respuesta = await fetch(`${API_BASE}/servicios/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar tus servicios.");
+
+        solicitudesCliente = datos.solicitudes;
+        renderizarSolicitudesCliente();
+    } catch (error) {
+        solicitudesCliente = [];
+        renderizarSolicitudesCliente();
+        mostrarNotificacion(error.message || "No se pudieron cargar tus servicios.", "error");
+    }
 }
 
-formSolicitud.addEventListener("submit", event => {
+async function cargarDatosCliente() {
+    try {
+        const respuesta = await fetch(`${API_BASE}/usuarios/me/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+        if (respuesta.ok && datos.ok) {
+            const nombre = document.getElementById("nombreCliente");
+            nombre.value = datos.usuario.nombre;
+            nombre.readOnly = true;
+        }
+    } catch {
+        // El formulario sigue usable si no se puede precargar el nombre.
+    }
+}
+
+formSolicitud.addEventListener("submit", async event => {
     event.preventDefault();
 
-    const solicitudes = obtenerSolicitudes();
-    const nuevaSolicitud = {
-        id: crearIdSolicitud(solicitudes),
-        fecha: document.getElementById("fechaSolicitud").value,
-        cliente: document.getElementById("nombreCliente").value.trim(),
+    const payload = {
         dispositivo: document.getElementById("dispositivoCliente").value.trim(),
         servicio: document.getElementById("problemaCliente").value.trim(),
-        tecnico: "",
-        diagnostico: "",
-        repuesto: "",
-        usuarioCliente,
-        prioridad: "Media",
-        estado: "Pendiente",
-        creadoEn: new Date().toISOString()
+        fecha: document.getElementById("fechaSolicitud").value,
     };
 
-    if (!nuevaSolicitud.cliente || !nuevaSolicitud.dispositivo || !nuevaSolicitud.servicio || !nuevaSolicitud.fecha) {
-        mostrarNotificacion("Completa todos los campos antes de enviar la solicitud.", "error");
+    if (!payload.dispositivo || !payload.servicio || !payload.fecha) {
+        mostrarNotificacion("Completa dispositivo, problema y fecha antes de enviar la solicitud.", "error");
         return;
     }
 
-    solicitudes.unshift(nuevaSolicitud);
-    guardarSolicitudes(solicitudes);
-    renderizarSolicitudesCliente();
-    formSolicitud.reset();
-    mostrarNotificacion("Solicitud enviada. El admin la revisara y asignara un tecnico.", "success");
+    try {
+        const token = await obtenerCsrfToken();
+        const respuesta = await fetch(`${API_BASE}/servicios/crear/`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": token
+            },
+            body: JSON.stringify(payload)
+        });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo enviar la solicitud.");
+
+        formSolicitud.reset();
+        await cargarDatosCliente();
+        await cargarSolicitudesCliente();
+        mostrarNotificacion("Solicitud enviada. El admin la revisará y asignará un técnico.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo enviar la solicitud.", "error");
+    }
 });
 
-renderizarSolicitudesCliente();
+cargarDatosCliente();
+cargarSolicitudesCliente();

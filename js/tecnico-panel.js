@@ -1,22 +1,11 @@
-﻿const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
+﻿const API_BASE = window.location.origin;
 
 const formTecnico = document.getElementById("formTecnico");
 const tablaTecnico = document.querySelector("#tablaServicios tbody");
-const tecnicoActual = TecniAuth.obtenerSesion()?.usuario || "tecnico";
 const panelTrabajo = document.getElementById("panelTrabajo");
 const panelBackdrop = document.getElementById("panelTrabajoBackdrop");
-
-function obtenerSolicitudes() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY_SOLICITUDES)) || [];
-    } catch {
-        return [];
-    }
-}
-
-function guardarSolicitudes(solicitudes) {
-    localStorage.setItem(STORAGE_KEY_SOLICITUDES, JSON.stringify(solicitudes));
-}
+let solicitudesAsignadasLista = [];
+let csrfToken = "";
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -27,9 +16,32 @@ function escaparHtml(valor) {
         .replaceAll("'", "&#039;");
 }
 
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvio una respuesta no valida." };
+    }
+}
+
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo preparar la seguridad de Django.");
+    csrfToken = datos.csrfToken;
+    return csrfToken;
+}
+
+function estadoNormalizado(estado) {
+    return estado === "En proceso" ? "En Proceso" : estado;
+}
+
 function claseEstado(estado) {
-    if (estado === "Completado") return "completado";
-    if (estado === "En Proceso") return "en-proceso";
+    const normalizado = estadoNormalizado(estado);
+    if (normalizado === "Completado") return "completado";
+    if (normalizado === "En Proceso") return "en-proceso";
     return "pendiente";
 }
 
@@ -37,10 +49,6 @@ function clasePrioridad(prioridad) {
     if (prioridad === "Alta") return "prioridad alta";
     if (prioridad === "Baja") return "prioridad baja";
     return "prioridad media";
-}
-
-function solicitudesAsignadas() {
-    return obtenerSolicitudes().filter(solicitud => solicitud.tecnico === tecnicoActual);
 }
 
 function diasAbierto(solicitud) {
@@ -53,19 +61,18 @@ function diasAbierto(solicitud) {
 }
 
 function actualizarCards() {
-    const asignadas = solicitudesAsignadas();
-    document.getElementById("totalAsignados").textContent = asignadas.length;
+    document.getElementById("totalAsignados").textContent = solicitudesAsignadasLista.length;
     document.getElementById("totalProceso").textContent =
-        asignadas.filter(solicitud => solicitud.estado === "En Proceso").length;
+        solicitudesAsignadasLista.filter(solicitud => estadoNormalizado(solicitud.estado) === "En Proceso").length;
     document.getElementById("totalCompletados").textContent =
-        asignadas.filter(solicitud => solicitud.estado === "Completado").length;
+        solicitudesAsignadasLista.filter(solicitud => estadoNormalizado(solicitud.estado) === "Completado").length;
     document.getElementById("totalPendientes").textContent =
-        asignadas.filter(solicitud => solicitud.estado === "Pendiente").length;
+        solicitudesAsignadasLista.filter(solicitud => estadoNormalizado(solicitud.estado) === "Pendiente").length;
 }
 
-function renderizarNotificaciones(asignadas) {
+function renderizarNotificaciones() {
     const contenedor = document.getElementById("notificacionesTecnico");
-    const activos = asignadas.filter(solicitud => solicitud.estado !== "Completado");
+    const activos = solicitudesAsignadasLista.filter(solicitud => estadoNormalizado(solicitud.estado) !== "Completado");
     const urgentes = activos.filter(solicitud => solicitud.prioridad === "Alta");
 
     if (!activos.length) {
@@ -93,12 +100,11 @@ function renderizarNotificaciones(asignadas) {
 }
 
 function renderizarAsignadas() {
-    const asignadas = solicitudesAsignadas();
     tablaTecnico.innerHTML = "";
     actualizarCards();
-    renderizarNotificaciones(asignadas);
+    renderizarNotificaciones();
 
-    if (!asignadas.length) {
+    if (!solicitudesAsignadasLista.length) {
         tablaTecnico.innerHTML = `
             <tr class="empty-row">
                 <td colspan="9">
@@ -113,7 +119,7 @@ function renderizarAsignadas() {
         return;
     }
 
-    asignadas.forEach(solicitud => {
+    solicitudesAsignadasLista.forEach(solicitud => {
         const dias = diasAbierto(solicitud);
         const fila = document.createElement("tr");
         fila.innerHTML = `
@@ -124,9 +130,9 @@ function renderizarAsignadas() {
             <td>${escaparHtml(solicitud.servicio)}</td>
             <td><span class="${clasePrioridad(solicitud.prioridad)}">${escaparHtml(solicitud.prioridad || "Media")}</span></td>
             <td>${dias} ${dias === 1 ? "día" : "días"}</td>
-            <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(solicitud.estado)}</span></td>
+            <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(estadoNormalizado(solicitud.estado))}</span></td>
             <td>
-                <button type="button" class="btn-editar-historial" data-trabajo="${solicitud.id}">
+                <button type="button" class="btn-editar-historial" data-trabajo="${solicitud.dbId}">
                     <i class="fa-solid fa-eye"></i> Ver / Actualizar
                 </button>
             </td>
@@ -135,19 +141,34 @@ function renderizarAsignadas() {
     });
 
     tablaTecnico.querySelectorAll("[data-trabajo]").forEach(boton => {
-        boton.addEventListener("click", () => abrirPanelTrabajo(boton.dataset.trabajo));
+        boton.addEventListener("click", () => abrirPanelTrabajo(Number(boton.dataset.trabajo)));
     });
 }
 
-function abrirPanelTrabajo(id) {
-    const solicitud = obtenerSolicitudes().find(item => item.id === id);
+async function cargarSolicitudesAsignadas() {
+    try {
+        const respuesta = await fetch(`${API_BASE}/servicios/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar tus trabajos.");
+
+        solicitudesAsignadasLista = datos.solicitudes;
+        renderizarAsignadas();
+    } catch (error) {
+        solicitudesAsignadasLista = [];
+        renderizarAsignadas();
+        mostrarNotificacion(error.message || "No se pudieron cargar tus trabajos.", "error");
+    }
+}
+
+function abrirPanelTrabajo(dbId) {
+    const solicitud = solicitudesAsignadasLista.find(item => item.dbId === dbId);
     if (!solicitud) return;
 
-    document.getElementById("idServicioTecnico").value = solicitud.id;
+    document.getElementById("idServicioTecnico").value = solicitud.dbId;
     document.getElementById("diagnosticoTecnico").value = solicitud.diagnostico || "";
     document.getElementById("repuestoTecnico").value = solicitud.repuesto || "";
     document.getElementById("estadoTecnico").value =
-        solicitud.estado === "Completado" ? "Completado" : "En Proceso";
+        estadoNormalizado(solicitud.estado) === "Completado" ? "Completado" : "En Proceso";
     document.getElementById("panelTrabajoId").textContent = solicitud.id;
     document.getElementById("panelTrabajoTitulo").textContent =
         `${solicitud.cliente} - ${solicitud.dispositivo}`;
@@ -165,29 +186,36 @@ function cerrarPanelTrabajo() {
     formTecnico.reset();
 }
 
-formTecnico.addEventListener("submit", event => {
+formTecnico.addEventListener("submit", async event => {
     event.preventDefault();
 
     const id = document.getElementById("idServicioTecnico").value;
-    const diagnostico = document.getElementById("diagnosticoTecnico").value.trim();
-    const repuesto = document.getElementById("repuestoTecnico").value.trim();
-    const estado = document.getElementById("estadoTecnico").value;
+    const payload = {
+        diagnostico: document.getElementById("diagnosticoTecnico").value.trim(),
+        repuesto: document.getElementById("repuestoTecnico").value.trim(),
+        estado: document.getElementById("estadoTecnico").value,
+    };
 
-    const solicitudes = obtenerSolicitudes().map(solicitud => {
-        if (solicitud.id !== id) return solicitud;
-        return {
-            ...solicitud,
-            diagnostico,
-            repuesto,
-            estado,
-            actualizadoEn: new Date().toISOString()
-        };
-    });
+    try {
+        const token = await obtenerCsrfToken();
+        const respuesta = await fetch(`${API_BASE}/servicios/${id}/actualizar/`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": token
+            },
+            body: JSON.stringify(payload)
+        });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo actualizar el trabajo.");
 
-    guardarSolicitudes(solicitudes);
-    cerrarPanelTrabajo();
-    renderizarAsignadas();
-    mostrarNotificacion("Trabajo actualizado correctamente.", "success");
+        cerrarPanelTrabajo();
+        await cargarSolicitudesAsignadas();
+        mostrarNotificacion("Trabajo actualizado correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo actualizar el trabajo.", "error");
+    }
 });
 
 document.getElementById("cerrarPanelTrabajo").addEventListener("click", cerrarPanelTrabajo);
@@ -196,5 +224,4 @@ document.addEventListener("keydown", event => {
     if (event.key === "Escape" && !panelTrabajo.hidden) cerrarPanelTrabajo();
 });
 
-renderizarAsignadas();
-
+cargarSolicitudesAsignadas();

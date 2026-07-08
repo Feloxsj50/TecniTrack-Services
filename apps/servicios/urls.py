@@ -1,5 +1,11 @@
-from django.urls import path
+﻿from django.urls import path
+
+from . import views
 
 app_name = "servicios"
 
-urlpatterns = []
+urlpatterns = [
+    path("", views.listar_solicitudes, name="lista"),
+    path("crear/", views.crear_solicitud, name="crear"),
+    path("<int:solicitud_id>/actualizar/", views.actualizar_solicitud, name="actualizar"),
+]
