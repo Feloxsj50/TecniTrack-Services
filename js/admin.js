@@ -1,5 +1,6 @@
 ﻿const API_BASE = window.location.origin;
 let tecnicosDisponibles = [];
+let clientesDisponibles = [];
 let solicitudes = [];
 let csrfToken = "";
 
@@ -45,6 +46,69 @@ function clasePrioridad(prioridad) {
     if (prioridad === "Alta") return "prioridad alta";
     if (prioridad === "Baja") return "prioridad baja";
     return "prioridad media";
+}
+
+function pintarDatalistClientes(filtro = "") {
+    const contenedor = document.getElementById("clientesServicioList");
+    if (!contenedor) return;
+
+    const texto = filtro.trim().toLowerCase();
+    const clientesFiltrados = clientesDisponibles.filter(cliente =>
+        !texto ||
+        cliente.nombre.toLowerCase().includes(texto) ||
+        cliente.usuario.toLowerCase().includes(texto) ||
+        cliente.correo.toLowerCase().includes(texto)
+    ).slice(0, 6);
+
+    contenedor.innerHTML = "";
+
+    if (!clientesFiltrados.length) {
+        contenedor.hidden = true;
+        return;
+    }
+
+    clientesFiltrados.forEach(cliente => {
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "client-suggestion";
+        boton.innerHTML = `
+            <strong>${escaparHtml(cliente.nombre)}</strong>
+            <span>@${escaparHtml(cliente.usuario)} - ${escaparHtml(cliente.correo)}</span>
+        `;
+        boton.addEventListener("click", () => {
+            document.getElementById("cliente").value = cliente.nombre;
+            contenedor.hidden = true;
+        });
+        contenedor.appendChild(boton);
+    });
+
+    contenedor.hidden = false;
+}
+
+async function cargarClientesDisponibles() {
+    try {
+        const respuesta = await fetch(`${API_BASE}/clientes/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los clientes.");
+
+        clientesDisponibles = datos.clientes.filter(cliente => cliente.estado === "Activo");
+        pintarDatalistClientes();
+    } catch (error) {
+        clientesDisponibles = [];
+        pintarDatalistClientes();
+        mostrarNotificacion(error.message || "No se pudieron cargar los clientes.", "error");
+    }
+}
+
+function valorClienteParaBackend(valor) {
+    const texto = valor.trim().toLowerCase();
+    const cliente = clientesDisponibles.find(item =>
+        item.usuario.toLowerCase() === texto ||
+        item.nombre.toLowerCase() === texto ||
+        item.correo.toLowerCase() === texto
+    );
+
+    return cliente ? cliente.usuario : valor.trim();
 }
 
 function pintarSelectTecnicos(valorSeleccionado = "") {
@@ -195,7 +259,7 @@ function editarServicio(dbId) {
 document.getElementById("btnGuardar")?.addEventListener("click", async () => {
     const idEditar = document.getElementById("idEditar").value;
     const payload = {
-        cliente: document.getElementById("cliente").value.trim(),
+        cliente: valorClienteParaBackend(document.getElementById("cliente").value),
         dispositivo: document.getElementById("dispositivo").value.trim(),
         servicio: document.getElementById("servicio").value.trim(),
         fecha: document.getElementById("fecha").value,
@@ -232,9 +296,24 @@ document.getElementById("btnGuardar")?.addEventListener("click", async () => {
     }
 });
 
+const inputCliente = document.getElementById("cliente");
+const sugerenciasCliente = document.getElementById("clientesServicioList");
+
+inputCliente?.addEventListener("input", () => pintarDatalistClientes(inputCliente.value));
+inputCliente?.addEventListener("focus", () => pintarDatalistClientes(inputCliente.value));
+document.addEventListener("click", event => {
+    if (!event.target.closest(".client-picker")) {
+        if (sugerenciasCliente) sugerenciasCliente.hidden = true;
+    }
+});
+
 async function iniciarDashboardAdmin() {
-    await cargarTecnicosDisponibles();
+    await Promise.all([cargarClientesDisponibles(), cargarTecnicosDisponibles()]);
     await obtenerSolicitudes();
 }
 
 iniciarDashboardAdmin();
+
+
+
+

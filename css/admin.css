@@ -1352,3 +1352,62 @@ body {
 }
 
 
+
+.client-picker {
+    position: relative;
+    min-width: 0;
+}
+
+.client-picker input {
+    width: 100%;
+}
+
+.client-suggestions {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    display: grid;
+    gap: 8px;
+    max-height: 260px;
+    overflow: auto;
+    padding: 10px;
+    border: 1px solid rgba(139, 92, 246, 0.28);
+    border-radius: var(--radius-sm);
+    background: rgba(15, 23, 42, 0.98);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
+}
+
+.client-suggestions[hidden] {
+    display: none;
+}
+
+.client-suggestion {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: var(--radius-sm);
+    background: rgba(30, 41, 59, 0.72);
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.client-suggestion:hover,
+.client-suggestion:focus {
+    border-color: rgba(139, 92, 246, 0.55);
+    background: rgba(139, 92, 246, 0.18);
+    outline: none;
+}
+
+.client-suggestion strong {
+    font-size: 13px;
+}
+
+.client-suggestion span {
+    color: var(--text-secondary);
+    font-size: 12px;
+}

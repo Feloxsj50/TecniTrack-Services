@@ -59,17 +59,24 @@ def prioridad_db(valor):
     return PRIORIDADES_FRONT.get(valor, SolicitudServicio.Prioridad.MEDIA)
 
 
+def nombre_cliente_visible(solicitud):
+    if solicitud.cliente:
+        return solicitud.cliente.usuario.get_full_name() or solicitud.cliente.usuario.username
+    return solicitud.cliente_nombre or "Cliente sin cuenta"
+
+
 def serializar_solicitud(solicitud):
     tecnico = solicitud.tecnico
     tecnico_usuario = tecnico.usuario.username if tecnico else ""
     tecnico_nombre = tecnico.usuario.get_full_name() if tecnico else ""
+    usuario_cliente = solicitud.cliente.usuario.username if solicitud.cliente else ""
 
     return {
         "id": f"SOL-{solicitud.id:03d}",
         "dbId": solicitud.id,
         "fecha": fecha_iso(solicitud.fecha_preferida),
-        "cliente": solicitud.cliente.usuario.get_full_name() or solicitud.cliente.usuario.username,
-        "usuarioCliente": solicitud.cliente.usuario.username,
+        "cliente": nombre_cliente_visible(solicitud),
+        "usuarioCliente": usuario_cliente,
         "dispositivo": solicitud.dispositivo,
         "servicio": solicitud.problema,
         "tecnico": tecnico_usuario,
@@ -147,25 +154,25 @@ def crear_solicitud(request):
     prioridad = prioridad_db(datos.get("prioridad", "Media"))
     estado = estado_db(datos.get("estado", "Pendiente"))
     tecnico = buscar_tecnico(datos.get("tecnico", ""))
+    cliente_nombre = ""
 
     if request.user.rol == Usuario.Rol.CLIENTE and hasattr(request.user, "perfil_cliente"):
         cliente = request.user.perfil_cliente
+        cliente_nombre = request.user.get_full_name() or request.user.username
         estado = SolicitudServicio.Estado.PENDIENTE
         tecnico = None
     elif request.user.rol == Usuario.Rol.ADMIN:
-        cliente = buscar_cliente(datos.get("cliente", ""))
-        if not cliente:
-            return JsonResponse({"ok": False, "error": "Selecciona o escribe un cliente registrado."}, status=400)
-        if tecnico and estado == SolicitudServicio.Estado.PENDIENTE:
-            estado = SolicitudServicio.Estado.EN_PROCESO
+        cliente_nombre = datos.get("cliente", "").strip()
+        cliente = buscar_cliente(cliente_nombre)
     else:
         return JsonResponse({"ok": False, "error": "No tienes permiso para crear solicitudes."}, status=403)
 
-    if not all([dispositivo, problema, fecha]):
-        return JsonResponse({"ok": False, "error": "Completa dispositivo, servicio y fecha."}, status=400)
+    if not all([cliente_nombre, dispositivo, problema, fecha]):
+        return JsonResponse({"ok": False, "error": "Completa cliente, dispositivo, servicio y fecha."}, status=400)
 
     solicitud = SolicitudServicio.objects.create(
         cliente=cliente,
+        cliente_nombre="" if cliente else cliente_nombre,
         tecnico=tecnico,
         dispositivo=dispositivo,
         problema=problema,
@@ -193,21 +200,17 @@ def actualizar_solicitud(request, solicitud_id):
         return error
 
     if request.user.rol == Usuario.Rol.ADMIN:
-        cliente = buscar_cliente(datos.get("cliente", solicitud.cliente.usuario.username))
-        tecnico = buscar_tecnico(datos.get("tecnico", ""))
-
-        if not cliente:
-            return JsonResponse({"ok": False, "error": "Selecciona o escribe un cliente registrado."}, status=400)
+        cliente_nombre = datos.get("cliente", "").strip()
+        cliente = buscar_cliente(cliente_nombre)
 
         solicitud.cliente = cliente
+        solicitud.cliente_nombre = "" if cliente else cliente_nombre
         solicitud.dispositivo = datos.get("dispositivo", solicitud.dispositivo).strip()
         solicitud.problema = datos.get("servicio", solicitud.problema).strip()
         solicitud.fecha_preferida = fecha_db(datos.get("fecha", solicitud.fecha_preferida))
-        solicitud.tecnico = tecnico
+        solicitud.tecnico = buscar_tecnico(datos.get("tecnico", ""))
         solicitud.prioridad = prioridad_db(datos.get("prioridad", solicitud.get_prioridad_display()))
         solicitud.estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
-        if tecnico and solicitud.estado == SolicitudServicio.Estado.PENDIENTE:
-            solicitud.estado = SolicitudServicio.Estado.EN_PROCESO
     elif request.user.rol == Usuario.Rol.TECNICO and hasattr(request.user, "perfil_tecnico") and solicitud.tecnico_id == request.user.perfil_tecnico.id:
         solicitud.diagnostico = datos.get("diagnostico", "").strip()
         solicitud.repuesto_usado = datos.get("repuesto", "").strip()

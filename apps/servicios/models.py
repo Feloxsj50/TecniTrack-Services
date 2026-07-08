@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 
 from apps.clientes.models import Cliente
 from apps.tecnicos.models import Tecnico
@@ -16,7 +16,14 @@ class SolicitudServicio(models.Model):
         MEDIA = "media", "Media"
         ALTA = "alta", "Alta"
 
-    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name="solicitudes")
+    cliente = models.ForeignKey(
+        Cliente,
+        on_delete=models.SET_NULL,
+        related_name="solicitudes",
+        blank=True,
+        null=True,
+    )
+    cliente_nombre = models.CharField(max_length=140, blank=True)
     tecnico = models.ForeignKey(
         Tecnico,
         on_delete=models.SET_NULL,
@@ -39,4 +46,5 @@ class SolicitudServicio(models.Model):
         ordering = ["-creado_en"]
 
     def __str__(self):
-        return f"{self.cliente} - {self.dispositivo} ({self.get_estado_display()})"
+        cliente = self.cliente_nombre or self.cliente or "Cliente sin cuenta"
+        return f"{cliente} - {self.dispositivo} ({self.get_estado_display()})"

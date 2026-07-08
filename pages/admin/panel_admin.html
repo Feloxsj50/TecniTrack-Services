@@ -54,7 +54,10 @@
 
 <input type="hidden" id="idEditar">
 
-<input type="text" id="cliente" placeholder="Cliente">
+<div class="client-picker">
+    <input type="text" id="cliente" placeholder="Cliente registrado o nombre presencial" autocomplete="off">
+    <div class="client-suggestions" id="clientesServicioList" hidden></div>
+</div>
 <input type="text" id="dispositivo" placeholder="Dispositivo">
 <input type="text" id="servicio" placeholder="Problema o servicio solicitado">
 <input type="date" id="fecha">
@@ -140,6 +143,9 @@
 </body>
 
 </html>
+
+
+
 
 
 
