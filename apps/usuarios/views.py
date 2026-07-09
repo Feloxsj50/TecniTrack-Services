@@ -6,11 +6,10 @@ from django.contrib.auth import update_session_auth_hash
 from django.middleware.csrf import get_token
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.clientes.models import Cliente
-from apps.usuarios.models import Usuario
+from apps.usuarios.models import ConfiguracionTaller, Usuario
 
 
 def serializar_usuario(usuario):
@@ -30,6 +29,39 @@ def serializar_usuario(usuario):
     }
 
 
+
+def validar_admin(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+    if request.user.rol != Usuario.Rol.ADMIN:
+        return JsonResponse({"ok": False, "error": "Solo admin puede realizar esta accion."}, status=403)
+    return None
+
+
+def separar_nombre(nombre):
+    partes = nombre.strip().split()
+    if not partes:
+        return "", ""
+    if len(partes) == 1:
+        return partes[0], ""
+    return partes[0], " ".join(partes[1:])
+
+
+def taller_actual():
+    taller, _ = ConfiguracionTaller.objects.get_or_create(id=1)
+    return taller
+
+
+def serializar_taller(taller):
+    return {
+        "nombre": taller.nombre,
+        "correo": taller.correo,
+        "direccion": taller.direccion,
+        "telefono": taller.telefono,
+        "whatsapp": taller.whatsapp,
+        "horario": taller.horario,
+        "actualizadoEn": taller.actualizado_en.isoformat(),
+    }
 @ensure_csrf_cookie
 @require_GET
 def csrf_token(request):
@@ -46,7 +78,6 @@ def obtener_datos_request(request):
     return request.POST, None
 
 
-@csrf_exempt
 @require_POST
 def iniciar_sesion(request):
     datos, error = obtener_datos_request(request)
@@ -68,7 +99,6 @@ def iniciar_sesion(request):
     return JsonResponse({"ok": True, "usuario": serializar_usuario(usuario)})
 
 
-@csrf_exempt
 @require_POST
 def registrar_cliente(request):
     datos, error = obtener_datos_request(request)
@@ -210,3 +240,127 @@ def cambiar_password(request):
     update_session_auth_hash(request, request.user)
 
     return JsonResponse({"ok": True})
+@require_GET
+def listar_usuarios_admin(request):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
+    usuarios = Usuario.objects.all().order_by("rol", "username")
+    data = [serializar_usuario(usuario) for usuario in usuarios]
+    return JsonResponse({"ok": True, "usuarios": data, "total": len(data)})
+
+
+@require_POST
+def cambiar_estado_usuario(request, usuario_id):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
+    if request.user.id == usuario_id:
+        return JsonResponse({"ok": False, "error": "No puedes desactivar tu propia cuenta."}, status=400)
+
+    try:
+        usuario = Usuario.objects.get(id=usuario_id)
+    except Usuario.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Usuario no encontrado."}, status=404)
+
+    datos, error = obtener_datos_request(request)
+    if error:
+        return error
+
+    activo = datos.get("activo")
+    if not isinstance(activo, bool):
+        return JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+
+    usuario.activo = activo
+    usuario.save(update_fields=["activo", "actualizado_en"])
+    return JsonResponse({"ok": True, "usuario": serializar_usuario(usuario)})
+
+
+@require_POST
+def resetear_password_usuario(request, usuario_id):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
+    try:
+        usuario = Usuario.objects.get(id=usuario_id)
+    except Usuario.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Usuario no encontrado."}, status=404)
+
+    datos, error = obtener_datos_request(request)
+    if error:
+        return error
+
+    password = datos.get("password", "")
+    if len(password) < 8:
+        return JsonResponse({"ok": False, "error": "La contrasena temporal debe tener al menos 8 caracteres."}, status=400)
+
+    usuario.set_password(password)
+    usuario.save()
+    return JsonResponse({"ok": True})
+
+
+@require_GET
+def obtener_taller(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+
+    return JsonResponse({"ok": True, "taller": serializar_taller(taller_actual())})
+
+
+@require_POST
+def actualizar_taller(request):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
+    datos, error = obtener_datos_request(request)
+    if error:
+        return error
+
+    nombre = datos.get("nombre", "").strip()
+    correo = datos.get("correo", "").strip().lower()
+    direccion = datos.get("direccion", "").strip()
+    telefono = datos.get("telefono", "").strip()
+    whatsapp = datos.get("whatsapp", "").strip()
+    horario = datos.get("horario", "").strip()
+
+    if not all([nombre, correo, direccion, telefono, whatsapp, horario]):
+        return JsonResponse({"ok": False, "error": "Completa todos los datos del taller."}, status=400)
+    if "@" not in correo or "." not in correo:
+        return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+    if not re.fullmatch(r"\d{4}-\d{4}", telefono) or not re.fullmatch(r"\d{4}-\d{4}", whatsapp):
+        return JsonResponse({"ok": False, "error": "Telefono y WhatsApp deben tener formato 7777-8888."}, status=400)
+
+    taller = taller_actual()
+    taller.nombre = nombre
+    taller.correo = correo
+    taller.direccion = direccion
+    taller.telefono = telefono
+    taller.whatsapp = whatsapp
+    taller.horario = horario
+    taller.save()
+    return JsonResponse({"ok": True, "taller": serializar_taller(taller)})
+
+
+@require_GET
+def exportar_backup(request):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
+    from apps.facturacion.models import Factura
+    from apps.inventario.models import ProductoInventario
+    from apps.servicios.models import SolicitudServicio
+
+    backup = {
+        "taller": serializar_taller(taller_actual()),
+        "usuarios": [serializar_usuario(usuario) for usuario in Usuario.objects.all()],
+        "servicios": list(SolicitudServicio.objects.values()),
+        "inventario": list(ProductoInventario.objects.values()),
+        "facturas": list(Factura.objects.values()),
+        "tickets": [],
+    }
+    return JsonResponse({"ok": True, "backup": backup})

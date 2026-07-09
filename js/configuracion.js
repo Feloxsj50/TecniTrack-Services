@@ -1,39 +1,6 @@
-const STORAGE_TALLER = "tecnitrackTaller";
-const STORAGE_USUARIOS = "tecnitrackUsuarios";
-const STORAGE_TICKETS = "tecnitrackTicketsSoporte";
-const STORAGE_SOLICITUDES = "tecnitrackSolicitudes";
-
-const tallerDefault = {
-    nombre: "TecniTrack Services",
-    correo: "soporte@tecnitrack.com",
-    direccion: "Managua",
-    telefono: "8888-0000",
-    whatsapp: "8888-0000",
-    horario: "Lun-Sab"
-};
-
-const usuariosDefault = [
-    { usuario: "admin", nombre: "Administrador TecniTrack", rol: "admin", correo: "admin@tecnitrack.com", activo: true },
-    { usuario: "tecnico", nombre: "Tecnico TecniTrack", rol: "tecnico", correo: "tecnico@tecnitrack.com", activo: true },
-    { usuario: "cliente", nombre: "Cliente TecniTrack", rol: "cliente", correo: "cliente@email.com", activo: true }
-];
-
-function leerJson(clave, fallback) {
-    try {
-        return JSON.parse(localStorage.getItem(clave)) || fallback;
-    } catch {
-        return fallback;
-    }
-}
-
-function guardarJson(clave, valor) {
-    localStorage.setItem(clave, JSON.stringify(valor));
-}
-
-function inicializarDatos() {
-    if (!localStorage.getItem(STORAGE_TALLER)) guardarJson(STORAGE_TALLER, tallerDefault);
-    if (!localStorage.getItem(STORAGE_USUARIOS)) guardarJson(STORAGE_USUARIOS, usuariosDefault);
-}
+const API_BASE = window.location.origin;
+let csrfToken = "";
+let usuariosConfig = [];
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -42,6 +9,39 @@ function escaparHtml(valor) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvio una respuesta no valida." };
+    }
+}
+
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo preparar la seguridad de Django.");
+    csrfToken = datos.csrfToken;
+    return csrfToken;
+}
+
+async function apiJson(url, opciones = {}) {
+    const respuesta = await fetch(`${API_BASE}${url}`, {
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": await obtenerCsrfToken(),
+            ...(opciones.headers || {})
+        },
+        ...opciones
+    });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo completar la accion.");
+    return datos;
 }
 
 function telefonoValido(telefono) {
@@ -53,35 +53,57 @@ function formatearTelefono(input) {
     input.value = digitos.length > 4 ? `${digitos.slice(0, 4)}-${digitos.slice(4)}` : digitos;
 }
 
-function cargarTaller() {
-    const taller = leerJson(STORAGE_TALLER, tallerDefault);
-    document.getElementById("nombreTaller").value = taller.nombre;
-    document.getElementById("correoTaller").value = taller.correo;
-    document.getElementById("direccionTaller").value = taller.direccion;
-    document.getElementById("telefonoTaller").value = taller.telefono;
-    document.getElementById("whatsappTaller").value = taller.whatsapp;
-    document.getElementById("horarioTaller").value = taller.horario;
+function cargarFormularioTaller(taller) {
+    document.getElementById("nombreTaller").value = taller.nombre || "";
+    document.getElementById("correoTaller").value = taller.correo || "";
+    document.getElementById("direccionTaller").value = taller.direccion || "";
+    document.getElementById("telefonoTaller").value = taller.telefono || "";
+    document.getElementById("whatsappTaller").value = taller.whatsapp || "";
+    document.getElementById("horarioTaller").value = taller.horario || "";
+}
+
+async function cargarTaller() {
+    const datos = await apiJson("/usuarios/taller/");
+    cargarFormularioTaller(datos.taller);
+}
+
+function nombreRol(rol) {
+    return { admin: "Admin", tecnico: "Tecnico", cliente: "Cliente" }[rol] || rol;
 }
 
 function renderizarUsuarios() {
-    const usuarios = leerJson(STORAGE_USUARIOS, usuariosDefault);
     const tbody = document.querySelector("#tablaUsuariosConfig tbody");
+    document.getElementById("totalUsuarios").textContent = usuariosConfig.length;
 
-    document.getElementById("totalUsuarios").textContent = usuarios.length;
-    tbody.innerHTML = usuarios.map(usuario => `
+    if (!usuariosConfig.length) {
+        tbody.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="6">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-users"></i>
+                        <strong>Sin usuarios registrados</strong>
+                        <span>Cuando se registren clientes o admin cree tecnicos, apareceran aqui.</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = usuariosConfig.map(usuario => `
         <tr>
-            <td>${escaparHtml(usuario.usuario)}</td>
+            <td>${escaparHtml(usuario.username)}</td>
             <td>${escaparHtml(usuario.nombre)}</td>
-            <td>${escaparHtml(usuario.rol)}</td>
-            <td>${escaparHtml(usuario.correo)}</td>
+            <td>${escaparHtml(nombreRol(usuario.rol))}</td>
+            <td>${escaparHtml(usuario.email)}</td>
             <td><span class="estado ${usuario.activo ? "completado" : "pendiente"}">${usuario.activo ? "Activo" : "Inactivo"}</span></td>
             <td>
                 <div class="table-actions">
-                    <button type="button" class="btn-editar-historial" data-toggle="${usuario.usuario}">
+                    <button type="button" class="btn-editar-historial" data-toggle="${usuario.id}" ${usuario.rol === "admin" ? "disabled" : ""}>
                         <i class="fa-solid ${usuario.activo ? "fa-user-slash" : "fa-user-check"}"></i>
                         ${usuario.activo ? "Desactivar" : "Activar"}
                     </button>
-                    <button type="button" class="btn-editar-historial" data-reset="${usuario.usuario}">
+                    <button type="button" class="btn-editar-historial" data-reset="${usuario.id}">
                         <i class="fa-solid fa-key"></i> Reset
                     </button>
                 </div>
@@ -90,62 +112,65 @@ function renderizarUsuarios() {
     `).join("");
 
     tbody.querySelectorAll("[data-toggle]").forEach(boton => {
-        boton.addEventListener("click", () => cambiarEstadoUsuario(boton.dataset.toggle));
+        boton.addEventListener("click", () => cambiarEstadoUsuario(Number(boton.dataset.toggle)));
     });
 
     tbody.querySelectorAll("[data-reset]").forEach(boton => {
-        boton.addEventListener("click", () => resetearPassword(boton.dataset.reset));
+        boton.addEventListener("click", () => resetearPassword(Number(boton.dataset.reset)));
     });
+}
+
+async function cargarUsuarios() {
+    const datos = await apiJson("/usuarios/admin/usuarios/");
+    usuariosConfig = datos.usuarios || [];
+    renderizarUsuarios();
 }
 
 function actualizarResumen() {
-    const tickets = leerJson(STORAGE_TICKETS, []);
-    document.getElementById("totalTickets").textContent = tickets.length;
-    document.getElementById("estadoDatos").textContent = "Local";
+    document.getElementById("estadoDatos").textContent = "Django";
+    document.getElementById("totalTickets").textContent = "0";
 }
 
-function cambiarEstadoUsuario(usuarioId) {
-    const usuarios = leerJson(STORAGE_USUARIOS, usuariosDefault).map(usuario => {
-        if (usuario.usuario !== usuarioId) return usuario;
-        return { ...usuario, activo: !usuario.activo };
-    });
+async function cambiarEstadoUsuario(usuarioId) {
+    const usuario = usuariosConfig.find(item => item.id === usuarioId);
+    if (!usuario) return;
 
-    guardarJson(STORAGE_USUARIOS, usuarios);
-    renderizarUsuarios();
-    mostrarNotificacion("Estado del usuario actualizado.", "success");
+    try {
+        await apiJson(`/usuarios/admin/usuarios/${usuarioId}/estado/`, {
+            method: "POST",
+            body: JSON.stringify({ activo: !usuario.activo })
+        });
+        await cargarUsuarios();
+        mostrarNotificacion("Estado del usuario actualizado.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo actualizar el usuario.", "error");
+    }
 }
 
-function resetearPassword(usuarioId) {
-    const resets = leerJson("tecnitrackResetsPassword", []);
-    resets.unshift({
-        usuario: usuarioId,
-        fecha: new Date().toISOString()
-    });
-    guardarJson("tecnitrackResetsPassword", resets);
-    mostrarNotificacion(`Reset de contraseña registrado para ${usuarioId}.`, "success");
+async function resetearPassword(usuarioId) {
+    const usuario = usuariosConfig.find(item => item.id === usuarioId);
+    if (!usuario) return;
+
+    const password = window.prompt(`Nueva contrasena temporal para ${usuario.username}:`);
+    if (password === null) return;
+
+    if (password.length < 8) {
+        mostrarNotificacion("La contrasena temporal debe tener al menos 8 caracteres.", "error");
+        return;
+    }
+
+    try {
+        await apiJson(`/usuarios/admin/usuarios/${usuarioId}/password/`, {
+            method: "POST",
+            body: JSON.stringify({ password })
+        });
+        mostrarNotificacion("Contrasena temporal actualizada correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo resetear la contrasena.", "error");
+    }
 }
 
-function exportarBackup() {
-    const backup = {
-        generadoEn: new Date().toISOString(),
-        taller: leerJson(STORAGE_TALLER, tallerDefault),
-        usuarios: leerJson(STORAGE_USUARIOS, usuariosDefault),
-        solicitudes: leerJson(STORAGE_SOLICITUDES, []),
-        tickets: leerJson(STORAGE_TICKETS, []),
-        resetsPassword: leerJson("tecnitrackResetsPassword", [])
-    };
-
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const enlace = document.createElement("a");
-    enlace.href = url;
-    enlace.download = `tecnitrack-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    enlace.click();
-    URL.revokeObjectURL(url);
-    mostrarNotificacion("Respaldo JSON exportado correctamente.", "success");
-}
-
-document.getElementById("formTaller").addEventListener("submit", event => {
+async function guardarTaller(event) {
     event.preventDefault();
 
     const taller = {
@@ -167,15 +192,49 @@ document.getElementById("formTaller").addEventListener("submit", event => {
         return;
     }
 
-    guardarJson(STORAGE_TALLER, taller);
-    mostrarNotificacion("Datos del taller guardados correctamente.", "success");
-});
+    try {
+        const datos = await apiJson("/usuarios/taller/actualizar/", {
+            method: "POST",
+            body: JSON.stringify(taller)
+        });
+        cargarFormularioTaller(datos.taller);
+        mostrarNotificacion("Datos del taller guardados correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudieron guardar los datos del taller.", "error");
+    }
+}
 
-document.getElementById("btnExportarBackup").addEventListener("click", exportarBackup);
-document.getElementById("telefonoTaller")?.addEventListener("input", event => formatearTelefono(event.target));
-document.getElementById("whatsappTaller")?.addEventListener("input", event => formatearTelefono(event.target));
+async function exportarBackup() {
+    try {
+        const datos = await apiJson("/usuarios/backup/");
+        const blob = new Blob([JSON.stringify(datos.backup, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const enlace = document.createElement("a");
+        enlace.href = url;
+        enlace.download = `tecnitrack-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        enlace.click();
+        URL.revokeObjectURL(url);
+        mostrarNotificacion("Respaldo JSON exportado correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo exportar el backup.", "error");
+    }
+}
 
-inicializarDatos();
-cargarTaller();
-renderizarUsuarios();
-actualizarResumen();
+function conectarEventos() {
+    document.getElementById("formTaller").addEventListener("submit", guardarTaller);
+    document.getElementById("btnExportarBackup").addEventListener("click", exportarBackup);
+    document.getElementById("telefonoTaller")?.addEventListener("input", event => formatearTelefono(event.target));
+    document.getElementById("whatsappTaller")?.addEventListener("input", event => formatearTelefono(event.target));
+}
+
+async function iniciarConfiguracion() {
+    conectarEventos();
+    actualizarResumen();
+    try {
+        await Promise.all([cargarTaller(), cargarUsuarios()]);
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo cargar configuracion.", "error");
+    }
+}
+
+iniciarConfiguracion();

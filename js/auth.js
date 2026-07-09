@@ -59,7 +59,7 @@
     function logout() {
         sessionStorage.removeItem(SESSION_KEY);
         sessionStorage.removeItem(ROLE_KEY);
-        saveMessage("Sesión cerrada correctamente.", "success");
+        saveMessage("Sesion cerrada correctamente.", "success");
         window.location.replace(pageUrl("auth/index.html"));
     }
 
@@ -74,13 +74,13 @@
         document.documentElement.style.visibility = "hidden";
         const session = getSession();
         if (!session || !permissions[session.rol]) {
-            saveMessage("Iniciá sesión para acceder al sistema.", "error");
+            saveMessage("Inicia sesion para acceder al sistema.", "error");
             window.location.replace(pageUrl("auth/index.html"));
             return;
         }
 
         if (!canAccess(session.rol, route)) {
-            saveMessage("Tu rol no tiene permiso para acceder a esa página.", "error");
+            saveMessage("Tu rol no tiene permiso para acceder a esa pagina.", "error");
             window.location.replace(pageUrl(homePages[session.rol]));
             return;
         }

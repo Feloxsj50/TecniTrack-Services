@@ -1,4 +1,4 @@
-﻿import json
+import json
 import re
 
 from django.http import JsonResponse
@@ -114,6 +114,10 @@ def validar_campos_cliente(datos, requiere_usuario=False, requiere_password=Fals
 
 @require_GET
 def listar_clientes(request):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
     clientes = Cliente.objects.select_related("usuario").all().order_by("-creado_en")
     data = [serializar_cliente(cliente) for cliente in clientes]
 

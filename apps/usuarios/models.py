@@ -18,3 +18,19 @@ class Usuario(AbstractUser):
     def __str__(self):
         nombre = self.get_full_name()
         return nombre or self.username
+
+class ConfiguracionTaller(models.Model):
+    nombre = models.CharField(max_length=120, default="TecniTrack Services")
+    correo = models.EmailField(default="soporte@tecnitrack.com")
+    direccion = models.CharField(max_length=180, default="Managua")
+    telefono = models.CharField(max_length=25, default="8888-0000")
+    whatsapp = models.CharField(max_length=25, default="8888-0000")
+    horario = models.CharField(max_length=120, default="Lun-Sab")
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuracion del taller"
+        verbose_name_plural = "Configuracion del taller"
+
+    def __str__(self):
+        return self.nombre

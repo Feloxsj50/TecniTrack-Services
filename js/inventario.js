@@ -1,41 +1,54 @@
-﻿const productos = [
-    {
-        id: "PR-001",
-        nombre: "SSD 1TB Samsung",
-        categoria: "Almacenamiento",
-        stock: 25,
-        stockMinimo: 5,
-        compra: 40,
-        venta: 65,
-        ubicacion: "Estante A-1"
-    },
-    {
-        id: "PR-002",
-        nombre: "Batería HP",
-        categoria: "Baterías",
-        stock: 4,
-        stockMinimo: 5,
-        compra: 25,
-        venta: 45,
-        ubicacion: "Estante B-2"
-    },
-    {
-        id: "PR-003",
-        nombre: "Pantalla Dell",
-        categoria: "Pantallas",
-        stock: 0,
-        stockMinimo: 2,
-        compra: 80,
-        venta: 120,
-        ubicacion: "Estante C-1"
-    }
-];
+const API_BASE = window.location.origin;
+let productos = [];
+let productoEditandoId = null;
+let csrfToken = "";
 
 const tbody = document.querySelector("#tablaInventario tbody");
 const busqueda = document.getElementById("busquedaProducto");
 
-// Índice del producto que se está editando (-1 = modo agregar)
-let indiceEditando = -1;
+function escaparHtml(valor) {
+    return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvio una respuesta no valida." };
+    }
+}
+
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo preparar la seguridad de Django.");
+    csrfToken = datos.csrfToken;
+    return csrfToken;
+}
+
+async function apiJson(url, opciones = {}) {
+    const respuesta = await fetch(`${API_BASE}${url}`, {
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": await obtenerCsrfToken(),
+            ...(opciones.headers || {})
+        },
+        ...opciones
+    });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) {
+        throw new Error(datos.error || "No se pudo completar la accion.");
+    }
+    return datos;
+}
 
 function esEnteroNoNegativo(valor) {
     return Number.isInteger(valor) && valor >= 0;
@@ -43,15 +56,6 @@ function esEnteroNoNegativo(valor) {
 
 function esPrecioValido(valor) {
     return Number.isFinite(valor) && valor >= 0;
-}
-
-function generarIdProducto() {
-    const mayorId = productos.reduce((mayor, producto) => {
-        const numero = parseInt(producto.id.replace("PR-", ""), 10);
-        return Number.isNaN(numero) ? mayor : Math.max(mayor, numero);
-    }, 0);
-
-    return `PR-${String(mayorId + 1).padStart(3, "0")}`;
 }
 
 function limpiarValorCsv(valor) {
@@ -87,25 +91,39 @@ function claseEstado(estado) {
 function renderizarTabla(lista) {
     tbody.innerHTML = "";
 
-    lista.forEach((producto, index) => {
-        const estado = obtenerEstado(producto.stock, producto.stockMinimo);
+    if (!lista.length) {
+        tbody.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="9">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                        <strong>Sin productos registrados</strong>
+                        <span>Cuando agregues productos al inventario, apareceran aqui.</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
 
+    lista.forEach(producto => {
+        const estado = producto.estado || obtenerEstado(producto.stock, producto.stockMinimo);
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${producto.id}</td>
-            <td>${producto.nombre}</td>
-            <td>${producto.categoria}</td>
+            <td>${escaparHtml(producto.id)}</td>
+            <td>${escaparHtml(producto.nombre)}</td>
+            <td>${escaparHtml(producto.categoria)}</td>
             <td>${producto.stock}</td>
-            <td>$${producto.compra.toFixed(2)}</td>
-            <td>$${producto.venta.toFixed(2)}</td>
-            <td>${producto.ubicacion}</td>
-            <td><span class="${claseEstado(estado)}">${estado}</span></td>
+            <td>$${Number(producto.compra).toFixed(2)}</td>
+            <td>$${Number(producto.venta).toFixed(2)}</td>
+            <td>${escaparHtml(producto.ubicacion)}</td>
+            <td><span class="${claseEstado(estado)}">${escaparHtml(estado)}</span></td>
             <td>
                 <div class="table-actions">
-                    <button class="btn-editar-historial" data-index="${productos.indexOf(producto)}">
+                    <button class="btn-editar-historial" type="button" data-editar="${producto.dbId}">
                         <i class="fa fa-pen"></i> Editar
                     </button>
-                    <button class="btn-eliminar-tabla" data-index="${productos.indexOf(producto)}">
+                    <button class="btn-eliminar-tabla" type="button" data-eliminar="${producto.dbId}">
                         <i class="fa fa-trash"></i> Eliminar
                     </button>
                 </div>
@@ -114,62 +132,37 @@ function renderizarTabla(lista) {
         tbody.appendChild(tr);
     });
 
-    // Eventos de editar
-    tbody.querySelectorAll(".btn-editar-historial").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const i = parseInt(btn.getAttribute("data-index"));
-            cargarProductoEnFormulario(i);
-        });
+    tbody.querySelectorAll("[data-editar]").forEach(btn => {
+        btn.addEventListener("click", () => cargarProductoEnFormulario(Number(btn.dataset.editar)));
     });
 
-    tbody.querySelectorAll(".btn-eliminar-tabla").forEach(btn => {
-        btn.addEventListener("click", async () => {
-            const index = parseInt(btn.getAttribute("data-index"), 10);
-            const producto = productos[index];
-            const confirmado = await confirmarAccion({
-                titulo: "Eliminar producto",
-                mensaje: `¿Seguro que querés eliminar ${producto.nombre} del inventario?`
-            });
-
-            if (!confirmado) return;
-
-            productos.splice(index, 1);
-            if (indiceEditando === index) {
-                limpiarFormulario();
-            } else if (indiceEditando > index) {
-                indiceEditando--;
-            }
-
-            renderizarTabla(productos);
-            actualizarCards();
-            mostrarNotificacion("Producto eliminado correctamente.", "success");
-        });
+    tbody.querySelectorAll("[data-eliminar]").forEach(btn => {
+        btn.addEventListener("click", () => eliminarProducto(Number(btn.dataset.eliminar)));
     });
 }
 
-function cargarProductoEnFormulario(index) {
-    const p = productos[index];
-    indiceEditando = index;
+function cargarProductoEnFormulario(productoId) {
+    const p = productos.find(producto => producto.dbId === productoId);
+    if (!p) return;
 
-    document.getElementById("nombreProducto").value      = p.nombre;
-    document.getElementById("categoriaProducto").value   = p.categoria;
-    document.getElementById("proveedorProducto").value   = p.proveedor || "";
-    document.getElementById("serieProducto").value       = p.serie || "";
-    document.getElementById("stockProducto").value       = p.stock;
+    productoEditandoId = p.dbId;
+    document.getElementById("nombreProducto").value = p.nombre;
+    document.getElementById("categoriaProducto").value = p.categoria;
+    document.getElementById("proveedorProducto").value = p.proveedor || "";
+    document.getElementById("serieProducto").value = p.serie || "";
+    document.getElementById("stockProducto").value = p.stock;
     document.getElementById("stockMinimoProducto").value = p.stockMinimo;
     document.getElementById("precioCompraProducto").value = p.compra;
-    document.getElementById("precioVentaProducto").value  = p.venta;
-    document.getElementById("ubicacionProducto").value   = p.ubicacion;
-    document.getElementById("notaProducto").value        = p.nota || "";
+    document.getElementById("precioVentaProducto").value = p.venta;
+    document.getElementById("ubicacionProducto").value = p.ubicacion;
+    document.getElementById("notaProducto").value = p.nota || "";
 
-    // Cambiar el botón a modo edición
     const btnGuardar = document.getElementById("btnAgregarProducto");
     btnGuardar.textContent = "Guardar cambios";
     btnGuardar.style.background = "rgba(34, 211, 238, 0.15)";
     btnGuardar.style.color = "#22d3ee";
     btnGuardar.style.borderColor = "rgba(34, 211, 238, 0.35)";
 
-    // Scroll suave al formulario
     document.querySelector(".form-container").scrollIntoView({ behavior: "smooth" });
 }
 
@@ -177,11 +170,11 @@ function actualizarCards() {
     let disponibles = 0, bajos = 0, agotados = 0, valorTotal = 0;
 
     productos.forEach(producto => {
-        const estado = obtenerEstado(producto.stock, producto.stockMinimo);
+        const estado = producto.estado || obtenerEstado(producto.stock, producto.stockMinimo);
         if (estado === "Disponible") disponibles++;
         else if (estado === "Bajo") bajos++;
         else agotados++;
-        valorTotal += producto.stock * producto.compra;
+        valorTotal += Number(producto.stock) * Number(producto.compra);
     });
 
     document.getElementById("productosDisponibles").textContent = disponibles;
@@ -191,133 +184,179 @@ function actualizarCards() {
 }
 
 function limpiarFormulario() {
-    document.getElementById("nombreProducto").value       = "";
-    document.getElementById("categoriaProducto").value    = "";
-    document.getElementById("proveedorProducto").value    = "";
-    document.getElementById("serieProducto").value        = "";
-    document.getElementById("stockProducto").value        = "";
-    document.getElementById("stockMinimoProducto").value  = "";
+    document.getElementById("nombreProducto").value = "";
+    document.getElementById("categoriaProducto").value = "";
+    document.getElementById("proveedorProducto").value = "";
+    document.getElementById("serieProducto").value = "";
+    document.getElementById("stockProducto").value = "";
+    document.getElementById("stockMinimoProducto").value = "";
     document.getElementById("precioCompraProducto").value = "";
-    document.getElementById("precioVentaProducto").value  = "";
-    document.getElementById("ubicacionProducto").value    = "";
-    document.getElementById("notaProducto").value         = "";
+    document.getElementById("precioVentaProducto").value = "";
+    document.getElementById("ubicacionProducto").value = "";
+    document.getElementById("notaProducto").value = "";
 
-    // Restaurar botón a modo agregar
-    indiceEditando = -1;
+    productoEditandoId = null;
     const btnGuardar = document.getElementById("btnAgregarProducto");
-    btnGuardar.textContent = "Añadir";
+    btnGuardar.textContent = "Anadir";
     btnGuardar.style.background = "";
     btnGuardar.style.color = "";
     btnGuardar.style.borderColor = "";
 }
 
-document.getElementById("btnAgregarProducto").addEventListener("click", () => {
-    const nombre     = document.getElementById("nombreProducto").value.trim();
-    const categoria  = document.getElementById("categoriaProducto").value;
-    const proveedor  = document.getElementById("proveedorProducto").value.trim();
-    const serie      = document.getElementById("serieProducto").value.trim();
-    const stock      = parseInt(document.getElementById("stockProducto").value);
-    const stockMinimo = parseInt(document.getElementById("stockMinimoProducto").value);
-    const compra     = parseFloat(document.getElementById("precioCompraProducto").value);
-    const venta      = parseFloat(document.getElementById("precioVentaProducto").value);
-    const ubicacion  = document.getElementById("ubicacionProducto").value.trim();
-    const nota       = document.getElementById("notaProducto").value.trim();
+function datosFormulario() {
+    return {
+        nombre: document.getElementById("nombreProducto").value.trim(),
+        categoria: document.getElementById("categoriaProducto").value,
+        proveedor: document.getElementById("proveedorProducto").value.trim(),
+        serie: document.getElementById("serieProducto").value.trim(),
+        stock: parseInt(document.getElementById("stockProducto").value, 10),
+        stockMinimo: parseInt(document.getElementById("stockMinimoProducto").value, 10),
+        compra: parseFloat(document.getElementById("precioCompraProducto").value),
+        venta: parseFloat(document.getElementById("precioVentaProducto").value),
+        ubicacion: document.getElementById("ubicacionProducto").value.trim(),
+        nota: document.getElementById("notaProducto").value.trim(),
+    };
+}
 
-    if (!nombre || !categoria || isNaN(stock) || isNaN(stockMinimo) || isNaN(compra) || isNaN(venta) || !ubicacion) {
-        mostrarNotificacion("Completa los campos obligatorios.");
-        return;
+function validarProducto(producto) {
+    if (!producto.nombre || !producto.categoria || Number.isNaN(producto.stock) || Number.isNaN(producto.stockMinimo) || Number.isNaN(producto.compra) || Number.isNaN(producto.venta) || !producto.ubicacion) {
+        mostrarNotificacion("Completa los campos obligatorios.", "error");
+        return false;
     }
 
-    if (nombre.length < 3) {
-        mostrarNotificacion("El nombre del producto debe tener al menos 3 caracteres.");
-        return;
+    if (producto.nombre.length < 3) {
+        mostrarNotificacion("El nombre del producto debe tener al menos 3 caracteres.", "error");
+        return false;
     }
 
-    if (!esEnteroNoNegativo(stock) || !esEnteroNoNegativo(stockMinimo)) {
-        mostrarNotificacion("El stock y el stock mínimo deben ser números enteros de 0 en adelante.");
-        return;
+    if (!esEnteroNoNegativo(producto.stock) || !esEnteroNoNegativo(producto.stockMinimo)) {
+        mostrarNotificacion("El stock y el stock minimo deben ser numeros enteros de 0 en adelante.", "error");
+        return false;
     }
 
-    if (!esPrecioValido(compra) || !esPrecioValido(venta)) {
-        mostrarNotificacion("Los precios deben ser números de 0 en adelante.");
-        return;
+    if (!esPrecioValido(producto.compra) || !esPrecioValido(producto.venta)) {
+        mostrarNotificacion("Los precios deben ser numeros de 0 en adelante.", "error");
+        return false;
     }
 
-    if (venta < compra) {
-        mostrarNotificacion("El precio de venta no puede ser menor que el precio de compra.");
-        return;
+    if (producto.venta < producto.compra) {
+        mostrarNotificacion("El precio de venta no puede ser menor que el precio de compra.", "error");
+        return false;
     }
 
-    if (indiceEditando >= 0) {
-        // Modo edición - actualizar producto existente
-        productos[indiceEditando] = {
-            ...productos[indiceEditando],
-            nombre, categoria, proveedor, serie,
-            stock, stockMinimo, compra, venta, ubicacion, nota
-        };
-    } else {
-        // Modo agregar - nuevo producto
-        productos.push({
-            id: generarIdProducto(),
-            nombre, categoria, proveedor, serie,
-            stock, stockMinimo, compra, venta, ubicacion, nota
+    return true;
+}
+
+async function guardarProducto() {
+    const payload = datosFormulario();
+    if (!validarProducto(payload)) return;
+
+    try {
+        const url = productoEditandoId
+            ? `/inventario/${productoEditandoId}/actualizar/`
+            : "/inventario/crear/";
+        await apiJson(url, {
+            method: "POST",
+            body: JSON.stringify(payload)
         });
+
+        await cargarInventario();
+        limpiarFormulario();
+        mostrarNotificacion("Producto guardado correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo guardar el producto.", "error");
     }
+}
 
-    renderizarTabla(productos);
-    actualizarCards();
-    limpiarFormulario();
-    mostrarNotificacion("Producto guardado correctamente.", "success");
-});
+async function eliminarProducto(productoId) {
+    const producto = productos.find(item => item.dbId === productoId);
+    if (!producto) return;
 
-document.getElementById("btnCancelarProducto").addEventListener("click", limpiarFormulario);
+    const confirmado = await confirmarAccion({
+        titulo: "Eliminar producto",
+        mensaje: `Seguro que queres eliminar ${producto.nombre} del inventario?`
+    });
 
-busqueda.addEventListener("input", () => {
+    if (!confirmado) return;
+
+    try {
+        await apiJson(`/inventario/${productoId}/eliminar/`, { method: "POST" });
+        if (productoEditandoId === productoId) limpiarFormulario();
+        await cargarInventario();
+        mostrarNotificacion("Producto eliminado correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo eliminar el producto.", "error");
+    }
+}
+
+function filtrarProductos() {
     const texto = busqueda.value.toLowerCase();
     const filtrados = productos.filter(p =>
         p.nombre.toLowerCase().includes(texto) ||
         p.categoria.toLowerCase().includes(texto) ||
-        p.id.toLowerCase().includes(texto)
+        p.id.toLowerCase().includes(texto) ||
+        String(p.ubicacion || "").toLowerCase().includes(texto)
     );
     renderizarTabla(filtrados);
-});
+}
 
-document.getElementById("btnHistorial").addEventListener("click", () => {
-    const resumen = productos
-        .map(producto => {
-            const estado = obtenerEstado(producto.stock, producto.stockMinimo);
-            return `${producto.id} - ${producto.nombre}: ${producto.stock} unidades (${estado})`;
-        })
-        .join("\n");
+async function cargarInventario() {
+    try {
+        const respuesta = await fetch(`${API_BASE}/inventario/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo cargar el inventario.");
 
-    mostrarNotificacion(`Historial actual de inventario:\n\n${resumen}`, "info");
-});
+        productos = datos.productos || [];
+        actualizarCards();
+        filtrarProductos();
+    } catch (error) {
+        productos = [];
+        actualizarCards();
+        renderizarTabla([]);
+        mostrarNotificacion(error.message || "No se pudo cargar el inventario.", "error");
+    }
+}
 
-document.getElementById("btnExportar").addEventListener("click", () => {
-    const filas = productos.map(producto => {
-        const estado = obtenerEstado(producto.stock, producto.stockMinimo);
-        return [
-            producto.id,
-            producto.nombre,
-            producto.categoria,
-            producto.stock,
-            producto.stockMinimo,
-            producto.compra.toFixed(2),
-            producto.venta.toFixed(2),
-            producto.ubicacion,
-            estado
-        ];
-    });
+function mostrarHistorialInventario() {
+    const resumen = productos.length
+        ? productos.map(producto => `${producto.id} - ${producto.nombre}: ${producto.stock} unidades (${producto.estado})`).join("\n")
+        : "Todavia no hay productos registrados.";
+
+    mostrarNotificacion(`Inventario actual:\n\n${resumen}`, "info");
+}
+
+function exportarInventario() {
+    const filas = productos.map(producto => [
+        producto.id,
+        producto.nombre,
+        producto.categoria,
+        producto.stock,
+        producto.stockMinimo,
+        Number(producto.compra).toFixed(2),
+        Number(producto.venta).toFixed(2),
+        producto.ubicacion,
+        producto.estado
+    ]);
 
     descargarCsv(
         "reporte_inventario.csv",
-        ["ID", "Producto", "Categoría", "Stock", "Stock mínimo", "Precio compra", "Precio venta", "Ubicación", "Estado"],
+        ["ID", "Producto", "Categoria", "Stock", "Stock minimo", "Precio compra", "Precio venta", "Ubicacion", "Estado"],
         filas
     );
     mostrarNotificacion("Reporte de inventario exportado correctamente.", "success");
-});
+}
 
-renderizarTabla(productos);
-actualizarCards();
+function conectarEventos() {
+    document.getElementById("btnAgregarProducto").addEventListener("click", guardarProducto);
+    document.getElementById("btnCancelarProducto").addEventListener("click", limpiarFormulario);
+    document.getElementById("btnHistorial").addEventListener("click", mostrarHistorialInventario);
+    document.getElementById("btnExportar").addEventListener("click", exportarInventario);
+    busqueda.addEventListener("input", filtrarProductos);
+}
 
+function iniciarInventario() {
+    conectarEventos();
+    cargarInventario();
+}
 
+iniciarInventario();

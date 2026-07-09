@@ -2,7 +2,6 @@ import json
 import re
 
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.usuarios.models import Usuario
@@ -59,6 +58,10 @@ def serializar_tecnico(tecnico):
 
 @require_GET
 def listar_tecnicos(request):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
     tecnicos = Tecnico.objects.select_related("usuario").all()
     data = [serializar_tecnico(tecnico) for tecnico in tecnicos]
     return JsonResponse(
@@ -70,7 +73,6 @@ def listar_tecnicos(request):
     )
 
 
-@csrf_exempt
 @require_POST
 def crear_tecnico(request):
     permiso = validar_admin(request)
@@ -141,7 +143,6 @@ def crear_tecnico(request):
     return JsonResponse({"ok": True, "tecnico": serializar_tecnico(tecnico)}, status=201)
 
 
-@csrf_exempt
 @require_POST
 def actualizar_tecnico(request, tecnico_id):
     permiso = validar_admin(request)
@@ -206,7 +207,6 @@ def actualizar_tecnico(request, tecnico_id):
     return JsonResponse({"ok": True, "tecnico": serializar_tecnico(tecnico)})
 
 
-@csrf_exempt
 @require_POST
 def eliminar_tecnico(request, tecnico_id):
     permiso = validar_admin(request)

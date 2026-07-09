@@ -1,4 +1,4 @@
-﻿const campos = {
+const campos = {
     nombres: document.getElementById("nombres"),
     apellidos: document.getElementById("apellidos"),
     username: document.getElementById("username"),

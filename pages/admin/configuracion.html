@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuración - TecniTrack</title>
+    <title>Configuracion - TecniTrack</title>
     <link rel="icon" type="image/svg+xml" href="../../img/favicon.svg">
     <link rel="stylesheet" href="../../css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -16,7 +16,7 @@
 
     <div class="content">
         <section class="panel-section active-section">
-            <h1>Configuración</h1>
+            <h1>Configuracion</h1>
 
             <div class="cards">
                 <div class="card">
@@ -26,11 +26,11 @@
 
                 <div class="card">
                     <h3>v1.0</h3>
-                    <p>Versión del Sistema</p>
+                    <p>Version del Sistema</p>
                 </div>
 
                 <div class="card">
-                    <h3 id="estadoDatos">Local</h3>
+                    <h3 id="estadoDatos">Django</h3>
                     <p>Estado de Datos</p>
                 </div>
 
@@ -45,16 +45,16 @@
 
                 <input type="text" id="nombreTaller" placeholder="Nombre del negocio" required>
                 <input type="email" id="correoTaller" placeholder="Correo de soporte" required>
-                <input type="text" id="direccionTaller" placeholder="Dirección del taller" required>
-                <input type="text" id="telefonoTaller" placeholder="Teléfono directo 7777-8888" maxlength="9" required>
+                <input type="text" id="direccionTaller" placeholder="Direccion del taller" required>
+                <input type="text" id="telefonoTaller" placeholder="Telefono directo 7777-8888" maxlength="9" required>
                 <input type="text" id="whatsappTaller" placeholder="WhatsApp 7777-8888" maxlength="9" required>
-                <input type="text" id="horarioTaller" placeholder="Horario de atención" required>
+                <input type="text" id="horarioTaller" placeholder="Horario de atencion" required>
 
                 <button type="submit">Guardar Datos del Taller</button>
             </form>
 
             <div class="historial">
-                <h2>Gestión de Usuarios</h2>
+                <h2>Gestion de Usuarios</h2>
 
                 <table id="tablaUsuariosConfig">
                     <thead>
@@ -74,7 +74,7 @@
             <div class="backup-panel">
                 <div>
                     <h2>Respaldo de Datos</h2>
-                    <p>Exporta solicitudes, tickets, datos del taller y usuarios guardados en localStorage.</p>
+                    <p>Exporta usuarios, servicios, inventario, facturas y datos del taller guardados en Django.</p>
                 </div>
                 <button type="button" id="btnExportarBackup">
                     <i class="fa-solid fa-download"></i> Exportar JSON

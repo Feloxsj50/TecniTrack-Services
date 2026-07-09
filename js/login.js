@@ -1,4 +1,4 @@
-﻿const usuario = document.getElementById("usuario");
+const usuario = document.getElementById("usuario");
 const password = document.getElementById("password");
 const toggle = document.querySelector(".toggle");
 const loginButton = document.querySelector(".btn-login");
@@ -34,7 +34,7 @@ if (loginButton) {
             const respuesta = await fetch(`${API_BASE}/usuarios/login/`, {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
                 body: JSON.stringify({ usuario: user, password: pass })
             });
 
