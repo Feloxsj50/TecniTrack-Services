@@ -1,8 +1,45 @@
-const pagosCliente = [];
+const API_BASE = window.location.origin;
+let pagosCliente = [];
 
 const tablaPagos = document.querySelector("#tablaPagosCliente tbody");
 const modalRecibo = document.getElementById("reciboModal");
 let reciboActual = null;
+
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvio una respuesta no valida." };
+    }
+}
+
+async function cargarRecibosCliente() {
+    const respuesta = await fetch(`${API_BASE}/facturacion/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+
+    if (!respuesta.ok || !datos.ok) {
+        throw new Error(datos.error || "No se pudieron cargar tus recibos.");
+    }
+
+    pagosCliente = (datos.facturas || []).map(factura => ({
+        recibo: factura.numero,
+        fecha: factura.fecha,
+        cliente: factura.cliente,
+        dispositivo: factura.dispositivo,
+        servicio: factura.servicio,
+        tecnico: factura.tecnico,
+        metodo: factura.metodoPago,
+        garantia: factura.garantia,
+        estado: factura.estado,
+        montoServicio: Number(factura.montoServicio || 0),
+        total: Number(factura.total || 0),
+        repuestos: (factura.productos || []).map(item => ({
+            nombre: item.producto || item.nombre || "Repuesto",
+            monto: Number(item.subtotal || (Number(item.cantidad || 0) * Number(item.precio || 0)))
+        }))
+    }));
+}
 
 function moneda(valor) {
     return new Intl.NumberFormat("es-NI", {
@@ -20,7 +57,7 @@ function fechaLegible(fecha) {
 }
 
 function escaparHtml(valor) {
-    return String(valor)
+    return String(valor ?? "")
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
@@ -50,6 +87,7 @@ function cargarPagoPendiente() {
         return;
     }
 
+    panel.classList.remove("sin-pendiente");
     const totalRepuestos = pendiente.repuestos.reduce((total, item) => total + item.monto, 0);
     document.getElementById("pendienteServicio").textContent = pendiente.servicio;
     document.getElementById("pendienteDispositivo").textContent = pendiente.dispositivo;
@@ -57,7 +95,7 @@ function cargarPagoPendiente() {
     document.getElementById("pendienteServicioMonto").textContent = moneda(pendiente.montoServicio);
     document.getElementById("pendienteRepuestos").textContent = moneda(totalRepuestos);
     document.getElementById("pendienteTotal").textContent = moneda(pendiente.total);
-    document.getElementById("btnVerPendiente").addEventListener("click", () => abrirRecibo(pendiente));
+    document.getElementById("btnVerPendiente").onclick = () => abrirRecibo(pendiente);
 }
 
 function renderizarHistorial(lista) {
@@ -89,7 +127,7 @@ function renderizarHistorial(lista) {
             <td>${moneda(pago.total)}</td>
             <td><span class="estado-factura pagado">Pagado</span></td>
             <td>
-                <button type="button" class="btn-ver-recibo" data-recibo="${pago.recibo}">
+                <button type="button" class="btn-ver-recibo" data-recibo="${escaparHtml(pago.recibo)}">
                     <i class="fa-solid fa-receipt"></i> Ver
                 </button>
             </td>
@@ -121,7 +159,7 @@ function contenidoRecibo(pago) {
     return `
         <div class="recibo-cabecera">
             <h2 id="reciboTitulo">TecniTrack Services</h2>
-            <p>${escaparHtml(pago.recibo)} - ${pago.estado}</p>
+            <p>${escaparHtml(pago.recibo)} - ${escaparHtml(pago.estado)}</p>
         </div>
         <div class="recibo-meta">
             <div><span>Cliente</span><strong>${escaparHtml(pago.cliente)}</strong></div>
@@ -187,26 +225,40 @@ function imprimirRecibo() {
     ventana.document.close();
 }
 
-document.getElementById("buscarPago").addEventListener("input", event => {
-    const texto = event.target.value.trim().toLowerCase();
-    const filtrados = pagosCliente.filter(pago =>
-        pago.recibo.toLowerCase().includes(texto) ||
-        pago.servicio.toLowerCase().includes(texto) ||
-        pago.tecnico.toLowerCase().includes(texto)
-    );
-    renderizarHistorial(filtrados);
-});
+function conectarEventos() {
+    document.getElementById("buscarPago").addEventListener("input", event => {
+        const texto = event.target.value.trim().toLowerCase();
+        const filtrados = pagosCliente.filter(pago =>
+            pago.recibo.toLowerCase().includes(texto) ||
+            pago.servicio.toLowerCase().includes(texto) ||
+            pago.tecnico.toLowerCase().includes(texto)
+        );
+        renderizarHistorial(filtrados);
+    });
 
-document.querySelectorAll("[data-cerrar-recibo]").forEach(elemento => {
-    elemento.addEventListener("click", cerrarRecibo);
-});
+    document.querySelectorAll("[data-cerrar-recibo]").forEach(elemento => {
+        elemento.addEventListener("click", cerrarRecibo);
+    });
 
-document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !modalRecibo.hidden) cerrarRecibo();
-});
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !modalRecibo.hidden) cerrarRecibo();
+    });
 
-document.getElementById("btnImprimirRecibo").addEventListener("click", imprimirRecibo);
+    document.getElementById("btnImprimirRecibo").addEventListener("click", imprimirRecibo);
+}
 
-actualizarResumen();
-cargarPagoPendiente();
-renderizarHistorial(pagosCliente);
+async function iniciarRecibos() {
+    conectarEventos();
+    try {
+        await cargarRecibosCliente();
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudieron cargar tus recibos.", "error");
+        pagosCliente = [];
+    }
+
+    actualizarResumen();
+    cargarPagoPendiente();
+    renderizarHistorial(pagosCliente);
+}
+
+iniciarRecibos();

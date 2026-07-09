@@ -1,4 +1,4 @@
-﻿/* =============================================
+/* =============================================
    TecniTrack - Facturación
    Igualado al sistema de admin.css
    ============================================= */
@@ -94,6 +94,10 @@
 .productos-linea input:focus {
     border-color: rgba(139, 92, 246, 0.60);
     background: rgba(139, 92, 246, 0.05);
+}
+
+.form-grid-full {
+    grid-column: 1 / -1;
 }
 
 .form-grid select option,
@@ -289,4 +293,3 @@
     .form-grid { grid-template-columns: 1fr; }
     .productos-linea { grid-template-columns: 1fr; }
 }
-
