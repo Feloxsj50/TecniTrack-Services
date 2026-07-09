@@ -30,7 +30,7 @@ def obtener_datos_request(request):
         try:
             return json.loads(request.body.decode("utf-8")), None
         except json.JSONDecodeError:
-            return None, JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
+            return None, JsonResponse({"ok": False, "error": "Datos invalidos."}, status=400)
 
     return request.POST, None
 
@@ -134,7 +134,7 @@ def buscar_tecnico(username):
 @require_GET
 def listar_solicitudes(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
 
     solicitudes = [serializar_solicitud(solicitud) for solicitud in queryset_por_rol(request.user)]
     return JsonResponse({"ok": True, "solicitudes": solicitudes, "total": len(solicitudes)})
@@ -143,7 +143,7 @@ def listar_solicitudes(request):
 @require_POST
 def crear_solicitud(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
 
     datos, error = obtener_datos_request(request)
     if error:
@@ -189,7 +189,7 @@ def crear_solicitud(request):
 @require_POST
 def actualizar_solicitud(request, solicitud_id):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
 
     try:
         solicitud = SolicitudServicio.objects.select_related("cliente__usuario", "tecnico__usuario").get(id=solicitud_id)
@@ -213,9 +213,15 @@ def actualizar_solicitud(request, solicitud_id):
         solicitud.prioridad = prioridad_db(datos.get("prioridad", solicitud.get_prioridad_display()))
         solicitud.estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
     elif request.user.rol == Usuario.Rol.TECNICO and hasattr(request.user, "perfil_tecnico") and solicitud.tecnico_id == request.user.perfil_tecnico.id:
-        solicitud.diagnostico = datos.get("diagnostico", "").strip()
+        diagnostico = datos.get("diagnostico", "").strip()
+        estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
+
+        if estado == SolicitudServicio.Estado.COMPLETADO and len(diagnostico) < 10:
+            return JsonResponse({"ok": False, "error": "Para completar el trabajo, agrega un diagnostico claro."}, status=400)
+
+        solicitud.diagnostico = diagnostico
         solicitud.repuesto_usado = datos.get("repuesto", "").strip()
-        solicitud.estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
+        solicitud.estado = estado
     else:
         return JsonResponse({"ok": False, "error": "No tienes permiso para actualizar esta solicitud."}, status=403)
 

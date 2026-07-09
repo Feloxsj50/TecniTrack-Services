@@ -1,10 +1,12 @@
-﻿const API_BASE = window.location.origin;
+const API_BASE = window.location.origin;
 
 const formTecnico = document.getElementById("formTecnico");
 const tablaTecnico = document.querySelector("#tablaServicios tbody");
 const panelTrabajo = document.getElementById("panelTrabajo");
 const panelBackdrop = document.getElementById("panelTrabajoBackdrop");
+const filtrosTrabajo = { estado: "Todos", prioridad: "Todas", busqueda: "" };
 let solicitudesAsignadasLista = [];
+let trabajoActivoPanel = null;
 let csrfToken = "";
 
 function escaparHtml(valor) {
@@ -51,6 +53,19 @@ function clasePrioridad(prioridad) {
     return "prioridad media";
 }
 
+function pesoPrioridad(prioridad) {
+    if (prioridad === "Alta") return 3;
+    if (prioridad === "Media") return 2;
+    return 1;
+}
+
+function pesoEstado(estado) {
+    const normalizado = estadoNormalizado(estado);
+    if (normalizado === "En Proceso") return 3;
+    if (normalizado === "Pendiente") return 2;
+    return 1;
+}
+
 function diasAbierto(solicitud) {
     const base = solicitud.creadoEn || solicitud.fecha;
     const inicio = new Date(base);
@@ -58,6 +73,39 @@ function diasAbierto(solicitud) {
     const hoy = new Date();
     const diferencia = hoy.setHours(0, 0, 0, 0) - inicio.setHours(0, 0, 0, 0);
     return Math.max(0, Math.floor(diferencia / 86400000));
+}
+
+function ordenarTrabajos(lista) {
+    return lista.slice().sort((a, b) => {
+        const estado = pesoEstado(b.estado) - pesoEstado(a.estado);
+        if (estado) return estado;
+        const prioridad = pesoPrioridad(b.prioridad) - pesoPrioridad(a.prioridad);
+        if (prioridad) return prioridad;
+        return diasAbierto(b) - diasAbierto(a);
+    });
+}
+
+function trabajosActivos() {
+    return solicitudesAsignadasLista.filter(solicitud => estadoNormalizado(solicitud.estado) !== "Completado");
+}
+
+function trabajosFiltrados() {
+    const texto = filtrosTrabajo.busqueda.trim().toLowerCase();
+
+    return ordenarTrabajos(solicitudesAsignadasLista).filter(solicitud => {
+        const estado = estadoNormalizado(solicitud.estado);
+        const prioridad = solicitud.prioridad || "Media";
+        const coincideEstado = filtrosTrabajo.estado === "Todos" || estado === filtrosTrabajo.estado;
+        const coincidePrioridad = filtrosTrabajo.prioridad === "Todas" || prioridad === filtrosTrabajo.prioridad;
+        const coincideBusqueda = !texto || [
+            solicitud.id,
+            solicitud.cliente,
+            solicitud.dispositivo,
+            solicitud.servicio
+        ].some(valor => String(valor || "").toLowerCase().includes(texto));
+
+        return coincideEstado && coincidePrioridad && coincideBusqueda;
+    });
 }
 
 function actualizarCards() {
@@ -70,10 +118,38 @@ function actualizarCards() {
         solicitudesAsignadasLista.filter(solicitud => estadoNormalizado(solicitud.estado) === "Pendiente").length;
 }
 
+function actualizarContadorTrabajos(totalVisible) {
+    const contador = document.getElementById("contadorTrabajos");
+    if (!contador) return;
+    contador.textContent = `${totalVisible} ${totalVisible === 1 ? "trabajo" : "trabajos"}`;
+}
+
+function renderizarProximoTrabajo() {
+    const proximo = ordenarTrabajos(trabajosActivos())[0];
+    const titulo = document.getElementById("proximoTrabajoTitulo");
+    const detalle = document.getElementById("proximoTrabajoDetalle");
+    const boton = document.getElementById("btnProximoTrabajo");
+
+    if (!proximo) {
+        titulo.textContent = "Sin trabajos activos";
+        detalle.textContent = "Cuando el admin asigne una orden, aparecera aqui la mas urgente.";
+        boton.disabled = true;
+        boton.onclick = null;
+        return;
+    }
+
+    const dias = diasAbierto(proximo);
+    titulo.textContent = `${proximo.cliente} - ${proximo.dispositivo}`;
+    detalle.textContent = `${proximo.id} · ${proximo.servicio} · ${proximo.prioridad || "Media"} · ${dias} ${dias === 1 ? "dia" : "dias"} abierto`;
+    boton.disabled = false;
+    boton.onclick = () => abrirPanelTrabajo(proximo.dbId);
+}
+
 function renderizarNotificaciones() {
     const contenedor = document.getElementById("notificacionesTecnico");
-    const activos = solicitudesAsignadasLista.filter(solicitud => estadoNormalizado(solicitud.estado) !== "Completado");
+    const activos = trabajosActivos();
     const urgentes = activos.filter(solicitud => solicitud.prioridad === "Alta");
+    const atrasados = activos.filter(solicitud => diasAbierto(solicitud) >= 3);
 
     if (!activos.length) {
         contenedor.innerHTML = `
@@ -96,22 +172,39 @@ function renderizarNotificaciones() {
                 <span>${urgentes.length} con prioridad alta.</span>
             </div>
         ` : ""}
+        ${atrasados.length ? `
+            <div class="tech-alert urgent">
+                <i class="fa-solid fa-clock"></i>
+                <span>${atrasados.length} lleva${atrasados.length === 1 ? "" : "n"} 3 dias o mas abierto${atrasados.length === 1 ? "" : "s"}.</span>
+            </div>
+        ` : ""}
     `;
+}
+
+function textoAccion(solicitud) {
+    const estado = estadoNormalizado(solicitud.estado);
+    if (estado === "Pendiente") return "Iniciar";
+    if (estado === "Completado") return "Ver";
+    return "Actualizar";
 }
 
 function renderizarAsignadas() {
     tablaTecnico.innerHTML = "";
     actualizarCards();
     renderizarNotificaciones();
+    renderizarProximoTrabajo();
 
-    if (!solicitudesAsignadasLista.length) {
+    const visibles = trabajosFiltrados();
+    actualizarContadorTrabajos(visibles.length);
+
+    if (!visibles.length) {
         tablaTecnico.innerHTML = `
             <tr class="empty-row">
                 <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
-                        <strong>Sin trabajos asignados</strong>
-                        <span>Cuando el admin asigne una solicitud a este técnico, aparecerá aquí.</span>
+                        <strong>Sin trabajos para mostrar</strong>
+                        <span>Ajusta los filtros o espera una nueva asignacion del admin.</span>
                     </div>
                 </td>
             </tr>
@@ -119,8 +212,9 @@ function renderizarAsignadas() {
         return;
     }
 
-    solicitudesAsignadasLista.forEach(solicitud => {
+    visibles.forEach(solicitud => {
         const dias = diasAbierto(solicitud);
+        const accion = textoAccion(solicitud);
         const fila = document.createElement("tr");
         fila.innerHTML = `
             <td>${escaparHtml(solicitud.fecha)}</td>
@@ -129,12 +223,19 @@ function renderizarAsignadas() {
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
             <td><span class="${clasePrioridad(solicitud.prioridad)}">${escaparHtml(solicitud.prioridad || "Media")}</span></td>
-            <td>${dias} ${dias === 1 ? "día" : "días"}</td>
+            <td>${dias} ${dias === 1 ? "dia" : "dias"}</td>
             <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(estadoNormalizado(solicitud.estado))}</span></td>
             <td>
-                <button type="button" class="btn-editar-historial" data-trabajo="${solicitud.dbId}">
-                    <i class="fa-solid fa-eye"></i> Ver / Actualizar
-                </button>
+                <div class="table-actions">
+                    ${estadoNormalizado(solicitud.estado) === "Pendiente" ? `
+                        <button type="button" class="btn-iniciar-trabajo" data-iniciar="${solicitud.dbId}">
+                            <i class="fa-solid fa-play"></i> Iniciar
+                        </button>
+                    ` : ""}
+                    <button type="button" class="btn-editar-historial" data-trabajo="${solicitud.dbId}">
+                        <i class="fa-solid fa-eye"></i> ${accion}
+                    </button>
+                </div>
             </td>
         `;
         tablaTecnico.appendChild(fila);
@@ -142,6 +243,10 @@ function renderizarAsignadas() {
 
     tablaTecnico.querySelectorAll("[data-trabajo]").forEach(boton => {
         boton.addEventListener("click", () => abrirPanelTrabajo(Number(boton.dataset.trabajo)));
+    });
+
+    tablaTecnico.querySelectorAll("[data-iniciar]").forEach(boton => {
+        boton.addEventListener("click", () => iniciarTrabajoRapido(Number(boton.dataset.iniciar)));
     });
 }
 
@@ -160,18 +265,37 @@ async function cargarSolicitudesAsignadas() {
     }
 }
 
+function renderizarMetaPanel(solicitud) {
+    const dias = diasAbierto(solicitud);
+    document.getElementById("panelTrabajoMeta").innerHTML = `
+        <div><span>Cliente</span><strong>${escaparHtml(solicitud.cliente)}</strong></div>
+        <div><span>Equipo</span><strong>${escaparHtml(solicitud.dispositivo)}</strong></div>
+        <div><span>Servicio</span><strong>${escaparHtml(solicitud.servicio)}</strong></div>
+        <div><span>Prioridad</span><strong>${escaparHtml(solicitud.prioridad || "Media")}</strong></div>
+        <div><span>Tiempo abierto</span><strong>${dias} ${dias === 1 ? "dia" : "dias"}</strong></div>
+    `;
+}
+
 function abrirPanelTrabajo(dbId) {
     const solicitud = solicitudesAsignadasLista.find(item => item.dbId === dbId);
     if (!solicitud) return;
 
+    trabajoActivoPanel = solicitud;
+    const completado = estadoNormalizado(solicitud.estado) === "Completado";
+
     document.getElementById("idServicioTecnico").value = solicitud.dbId;
     document.getElementById("diagnosticoTecnico").value = solicitud.diagnostico || "";
     document.getElementById("repuestoTecnico").value = solicitud.repuesto || "";
-    document.getElementById("estadoTecnico").value =
-        estadoNormalizado(solicitud.estado) === "Completado" ? "Completado" : "En Proceso";
+    document.getElementById("estadoTecnico").value = completado ? "Completado" : "En Proceso";
     document.getElementById("panelTrabajoId").textContent = solicitud.id;
-    document.getElementById("panelTrabajoTitulo").textContent =
-        `${solicitud.cliente} - ${solicitud.dispositivo}`;
+    document.getElementById("panelTrabajoTitulo").textContent = `${solicitud.cliente} - ${solicitud.dispositivo}`;
+    renderizarMetaPanel(solicitud);
+
+    formTecnico.classList.toggle("is-readonly", completado);
+    document.getElementById("diagnosticoTecnico").readOnly = completado;
+    document.getElementById("repuestoTecnico").readOnly = completado;
+    document.getElementById("estadoTecnico").disabled = completado;
+    document.getElementById("btnGuardarTrabajo").hidden = completado;
 
     panelTrabajo.hidden = false;
     panelBackdrop.hidden = false;
@@ -182,46 +306,99 @@ function abrirPanelTrabajo(dbId) {
 function cerrarPanelTrabajo() {
     panelTrabajo.hidden = true;
     panelBackdrop.hidden = true;
+    trabajoActivoPanel = null;
     document.body.classList.remove("modal-open");
+    formTecnico.classList.remove("is-readonly");
+    document.getElementById("diagnosticoTecnico").readOnly = false;
+    document.getElementById("repuestoTecnico").readOnly = false;
+    document.getElementById("estadoTecnico").disabled = false;
+    document.getElementById("btnGuardarTrabajo").hidden = false;
     formTecnico.reset();
+}
+
+async function actualizarTrabajo(id, payload, mensajeExito) {
+    const token = await obtenerCsrfToken();
+    const respuesta = await fetch(`${API_BASE}/servicios/${id}/actualizar/`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": token
+        },
+        body: JSON.stringify(payload)
+    });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo actualizar el trabajo.");
+
+    await cargarSolicitudesAsignadas();
+    mostrarNotificacion(mensajeExito, "success");
+}
+
+async function iniciarTrabajoRapido(dbId) {
+    const solicitud = solicitudesAsignadasLista.find(item => item.dbId === dbId);
+    if (!solicitud) return;
+
+    try {
+        await actualizarTrabajo(dbId, {
+            diagnostico: solicitud.diagnostico || "",
+            repuesto: solicitud.repuesto || "",
+            estado: "En Proceso"
+        }, "Trabajo iniciado correctamente.");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo iniciar el trabajo.", "error");
+    }
 }
 
 formTecnico.addEventListener("submit", async event => {
     event.preventDefault();
 
     const id = document.getElementById("idServicioTecnico").value;
-    const payload = {
-        diagnostico: document.getElementById("diagnosticoTecnico").value.trim(),
-        repuesto: document.getElementById("repuestoTecnico").value.trim(),
-        estado: document.getElementById("estadoTecnico").value,
-    };
+    const diagnostico = document.getElementById("diagnosticoTecnico").value.trim();
+    const repuesto = document.getElementById("repuestoTecnico").value.trim();
+    const estado = document.getElementById("estadoTecnico").value;
+
+    if (estado === "Completado" && diagnostico.length < 10) {
+        mostrarNotificacion("Para completar el trabajo, escribe un diagnostico claro de al menos 10 caracteres.", "error");
+        return;
+    }
 
     try {
-        const token = await obtenerCsrfToken();
-        const respuesta = await fetch(`${API_BASE}/servicios/${id}/actualizar/`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": token
-            },
-            body: JSON.stringify(payload)
-        });
-        const datos = await leerRespuestaJson(respuesta);
-        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo actualizar el trabajo.");
-
+        await actualizarTrabajo(id, { diagnostico, repuesto, estado }, "Trabajo actualizado correctamente.");
         cerrarPanelTrabajo();
-        await cargarSolicitudesAsignadas();
-        mostrarNotificacion("Trabajo actualizado correctamente.", "success");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo actualizar el trabajo.", "error");
     }
 });
 
-document.getElementById("cerrarPanelTrabajo").addEventListener("click", cerrarPanelTrabajo);
-panelBackdrop.addEventListener("click", cerrarPanelTrabajo);
-document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !panelTrabajo.hidden) cerrarPanelTrabajo();
-});
+function conectarFiltrosTrabajo() {
+    const filtroEstado = document.getElementById("filtroEstadoTrabajo");
+    const filtroPrioridad = document.getElementById("filtroPrioridadTrabajo");
+    const buscarTrabajo = document.getElementById("buscarTrabajo");
 
-cargarSolicitudesAsignadas();
+    filtroEstado?.addEventListener("change", () => {
+        filtrosTrabajo.estado = filtroEstado.value;
+        renderizarAsignadas();
+    });
+
+    filtroPrioridad?.addEventListener("change", () => {
+        filtrosTrabajo.prioridad = filtroPrioridad.value;
+        renderizarAsignadas();
+    });
+
+    buscarTrabajo?.addEventListener("input", () => {
+        filtrosTrabajo.busqueda = buscarTrabajo.value;
+        renderizarAsignadas();
+    });
+}
+
+function iniciarPanelTecnico() {
+    conectarFiltrosTrabajo();
+    document.getElementById("cerrarPanelTrabajo").addEventListener("click", cerrarPanelTrabajo);
+    panelBackdrop.addEventListener("click", cerrarPanelTrabajo);
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !panelTrabajo.hidden) cerrarPanelTrabajo();
+    });
+    cargarSolicitudesAsignadas();
+}
+
+iniciarPanelTecnico();

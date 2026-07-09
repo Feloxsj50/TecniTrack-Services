@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Técnico - TecniTrack</title>
+    <title>Panel Tecnico - TecniTrack</title>
     <link rel="icon" type="image/svg+xml" href="../../img/favicon.svg">
     <link rel="stylesheet" href="../../css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -16,9 +16,20 @@
 
     <div class="content">
         <section class="panel-section active-section">
-            <h1>Panel Técnico</h1>
+            <h1>Panel Tecnico</h1>
 
             <div class="tech-alerts" id="notificacionesTecnico"></div>
+
+            <section class="tech-focus" id="proximoTrabajo">
+                <div>
+                    <span class="tech-focus-label">Proximo trabajo</span>
+                    <h2 id="proximoTrabajoTitulo">Sin trabajos activos</h2>
+                    <p id="proximoTrabajoDetalle">Cuando el admin asigne una orden, aparecera aqui la mas urgente.</p>
+                </div>
+                <button type="button" id="btnProximoTrabajo" disabled>
+                    <i class="fa-solid fa-arrow-right"></i> Ver trabajo
+                </button>
+            </section>
 
             <div class="cards">
                 <div class="card">
@@ -43,7 +54,35 @@
             </div>
 
             <div class="historial">
-                <h2>Trabajos Asignados</h2>
+                <div class="orders-heading">
+                    <h2>Trabajos Asignados</h2>
+                    <span id="contadorTrabajos">0 trabajos</span>
+                </div>
+
+                <div class="orders-toolbar" aria-label="Filtros de trabajos">
+                    <label>
+                        Estado
+                        <select id="filtroEstadoTrabajo">
+                            <option value="Todos">Todos</option>
+                            <option value="Pendiente">Pendientes</option>
+                            <option value="En Proceso">En proceso</option>
+                            <option value="Completado">Completados</option>
+                        </select>
+                    </label>
+                    <label>
+                        Prioridad
+                        <select id="filtroPrioridadTrabajo">
+                            <option value="Todas">Todas</option>
+                            <option value="Alta">Alta</option>
+                            <option value="Media">Media</option>
+                            <option value="Baja">Baja</option>
+                        </select>
+                    </label>
+                    <label>
+                        Buscar
+                        <input type="search" id="buscarTrabajo" placeholder="Cliente, equipo o ID">
+                    </label>
+                </div>
 
                 <table id="tablaServicios">
                     <thead>
@@ -64,9 +103,9 @@
             </div>
 
             <div class="quick-inventory">
-                <h2>Consulta rápida de inventario</h2>
+                <h2>Consulta rapida de inventario</h2>
                 <div class="quick-inventory-grid">
-                    <div><span>Pasta térmica</span><strong>12 disponibles</strong></div>
+                    <div><span>Pasta termica</span><strong>12 disponibles</strong></div>
                     <div><span>SSD 480GB</span><strong>5 disponibles</strong></div>
                     <div><span>Cargadores universales</span><strong>3 disponibles</strong></div>
                 </div>
@@ -85,17 +124,19 @@
             </button>
         </div>
 
+        <div class="work-panel-meta" id="panelTrabajoMeta"></div>
+
         <form id="formTecnico" class="work-panel-form">
             <input type="hidden" id="idServicioTecnico">
 
             <label>
-                Diagnóstico
-                <textarea id="diagnosticoTecnico" rows="4" placeholder="Describe el diagnóstico del equipo"></textarea>
+                Diagnostico
+                <textarea id="diagnosticoTecnico" rows="4" placeholder="Describe el diagnostico del equipo"></textarea>
             </label>
 
             <label>
                 Repuesto utilizado
-                <input type="text" id="repuestoTecnico" placeholder="Ej. SSD, pantalla, pasta térmica">
+                <input type="text" id="repuestoTecnico" placeholder="Ej. SSD, pantalla, pasta termica">
             </label>
 
             <label>
@@ -106,7 +147,8 @@
                 </select>
             </label>
 
-            <button type="submit">Guardar Actualización</button>
+            <p class="work-panel-hint">Para cerrar un trabajo como completado, deja un diagnostico claro para que admin pueda generar el recibo.</p>
+            <button type="submit" id="btnGuardarTrabajo">Guardar Actualizacion</button>
         </form>
     </aside>
 
