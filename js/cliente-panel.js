@@ -1,7 +1,10 @@
-﻿const API_BASE = window.location.origin;
+const API_BASE = window.location.origin;
 
 const formSolicitud = document.getElementById("formSolicitud");
 const tablaServiciosCliente = document.querySelector("#tablaServicios tbody");
+const panelServicio = document.getElementById("panelServicioCliente");
+const panelBackdrop = document.getElementById("panelServicioBackdrop");
+const filtrosCliente = { estado: "Todos", busqueda: "" };
 let solicitudesCliente = [];
 let csrfToken = "";
 
@@ -34,16 +37,61 @@ async function obtenerCsrfToken() {
     return csrfToken;
 }
 
+function estadoNormalizado(estado) {
+    return estado === "En proceso" ? "En Proceso" : estado;
+}
+
 function claseEstadoServicio(estado) {
-    if (estado === "Completado") return "completado";
-    if (estado === "En proceso" || estado === "En Proceso") return "en-proceso";
+    const normalizado = estadoNormalizado(estado);
+    if (normalizado === "Completado") return "completado";
+    if (normalizado === "En Proceso") return "en-proceso";
     return "pendiente";
 }
 
+function pesoEstadoCliente(estado) {
+    const normalizado = estadoNormalizado(estado);
+    if (normalizado === "En Proceso") return 3;
+    if (normalizado === "Pendiente") return 2;
+    return 1;
+}
+
+function fechaOrdenable(solicitud) {
+    return new Date(solicitud.creadoEn || solicitud.fecha || 0).getTime() || 0;
+}
+
+function ordenarSolicitudes(lista) {
+    return lista.slice().sort((a, b) => {
+        const estado = pesoEstadoCliente(b.estado) - pesoEstadoCliente(a.estado);
+        if (estado) return estado;
+        return fechaOrdenable(b) - fechaOrdenable(a);
+    });
+}
+
+function solicitudesActivas() {
+    return solicitudesCliente.filter(solicitud => estadoNormalizado(solicitud.estado) !== "Completado");
+}
+
+function solicitudesFiltradas() {
+    const texto = filtrosCliente.busqueda.trim().toLowerCase();
+
+    return ordenarSolicitudes(solicitudesCliente).filter(solicitud => {
+        const estado = estadoNormalizado(solicitud.estado);
+        const coincideEstado = filtrosCliente.estado === "Todos" || estado === filtrosCliente.estado;
+        const coincideBusqueda = !texto || [
+            solicitud.id,
+            solicitud.dispositivo,
+            solicitud.servicio,
+            solicitud.tecnicoNombre
+        ].some(valor => String(valor || "").toLowerCase().includes(texto));
+
+        return coincideEstado && coincideBusqueda;
+    });
+}
+
 function actualizarContadores(solicitudes) {
-    const pendientes = solicitudes.filter(solicitud => solicitud.estado === "Pendiente").length;
-    const enProceso = solicitudes.filter(solicitud => solicitud.estado === "En proceso" || solicitud.estado === "En Proceso").length;
-    const completados = solicitudes.filter(solicitud => solicitud.estado === "Completado").length;
+    const pendientes = solicitudes.filter(solicitud => estadoNormalizado(solicitud.estado) === "Pendiente").length;
+    const enProceso = solicitudes.filter(solicitud => estadoNormalizado(solicitud.estado) === "En Proceso").length;
+    const completados = solicitudes.filter(solicitud => estadoNormalizado(solicitud.estado) === "Completado").length;
 
     document.getElementById("totalServicios").textContent = solicitudes.length;
     document.getElementById("serviciosPendientes").textContent = pendientes;
@@ -51,18 +99,48 @@ function actualizarContadores(solicitudes) {
     document.getElementById("serviciosCompletados").textContent = completados;
 }
 
+function actualizarContadorServicios(total) {
+    const contador = document.getElementById("contadorServiciosCliente");
+    if (!contador) return;
+    contador.textContent = `${total} ${total === 1 ? "servicio" : "servicios"}`;
+}
+
+function renderizarServicioActual() {
+    const actual = ordenarSolicitudes(solicitudesActivas())[0];
+    const titulo = document.getElementById("servicioActualTitulo");
+    const detalle = document.getElementById("servicioActualDetalle");
+    const boton = document.getElementById("btnServicioActual");
+
+    if (!actual) {
+        titulo.textContent = "Sin solicitudes activas";
+        detalle.textContent = "Cuando envies una solicitud, podras seguir aqui el estado de tu equipo.";
+        boton.disabled = true;
+        boton.onclick = null;
+        return;
+    }
+
+    titulo.textContent = `${actual.dispositivo} - ${actual.servicio}`;
+    detalle.textContent = `${actual.id} · ${estadoNormalizado(actual.estado)} · Tecnico: ${actual.tecnicoNombre || "Por asignar"}`;
+    boton.disabled = false;
+    boton.onclick = () => abrirDetalleServicio(actual.dbId);
+}
+
 function renderizarSolicitudesCliente() {
     actualizarContadores(solicitudesCliente);
+    renderizarServicioActual();
     tablaServiciosCliente.innerHTML = "";
 
-    if (!solicitudesCliente.length) {
+    const visibles = solicitudesFiltradas();
+    actualizarContadorServicios(visibles.length);
+
+    if (!visibles.length) {
         tablaServiciosCliente.innerHTML = `
             <tr class="empty-row">
-                <td colspan="6">
+                <td colspan="7">
                     <div class="empty-state">
                         <i class="fa-solid fa-clipboard-list"></i>
-                        <strong>Sin servicios registrados</strong>
-                        <span>Cuando solicites o recibas un servicio, aparecerá aquí tu historial.</span>
+                        <strong>Sin servicios para mostrar</strong>
+                        <span>Cuando solicites o recibas un servicio, aparecera aqui tu historial.</span>
                     </div>
                 </td>
             </tr>
@@ -70,17 +148,41 @@ function renderizarSolicitudesCliente() {
         return;
     }
 
-    solicitudesCliente.forEach(solicitud => {
+    visibles.forEach(solicitud => {
+        const estado = estadoNormalizado(solicitud.estado);
+        const puedeVerRecibo = estado === "Completado" && solicitud.facturada;
         const fila = document.createElement("tr");
         fila.innerHTML = `
-            <td>${escaparHtml(solicitud.fecha)}</td>
+            <td>${escaparHtml(solicitud.fecha || "-")}</td>
             <td>${escaparHtml(solicitud.id)}</td>
-            <td>${escaparHtml(solicitud.cliente)}</td>
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
-            <td><span class="estado ${claseEstadoServicio(solicitud.estado)}">${escaparHtml(solicitud.estado)}</span></td>
+            <td>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</td>
+            <td><span class="estado ${claseEstadoServicio(solicitud.estado)}">${escaparHtml(estado)}</span></td>
+            <td>
+                <div class="table-actions">
+                    <button type="button" class="btn-editar-historial" data-servicio="${solicitud.dbId}">
+                        <i class="fa-solid fa-eye"></i> Ver detalle
+                    </button>
+                    ${puedeVerRecibo ? `
+                        <button type="button" class="btn-facturar-orden" data-recibos>
+                            <i class="fa-solid fa-receipt"></i> Recibo
+                        </button>
+                    ` : ""}
+                </div>
+            </td>
         `;
         tablaServiciosCliente.appendChild(fila);
+    });
+
+    tablaServiciosCliente.querySelectorAll("[data-servicio]").forEach(boton => {
+        boton.addEventListener("click", () => abrirDetalleServicio(Number(boton.dataset.servicio)));
+    });
+
+    tablaServiciosCliente.querySelectorAll("[data-recibos]").forEach(boton => {
+        boton.addEventListener("click", () => {
+            window.location.href = "mis-pagos.html";
+        });
     });
 }
 
@@ -113,6 +215,80 @@ async function cargarDatosCliente() {
     }
 }
 
+function renderizarPasosEstado(solicitud) {
+    const estado = estadoNormalizado(solicitud.estado);
+    const pasos = [
+        { estado: "Pendiente", texto: "Solicitud recibida" },
+        { estado: "En Proceso", texto: "En revision" },
+        { estado: "Completado", texto: "Servicio completado" }
+    ];
+    const indiceActual = pasos.findIndex(paso => paso.estado === estado);
+
+    document.getElementById("estadoServicioPasos").innerHTML = pasos.map((paso, index) => `
+        <div class="client-step ${index <= indiceActual ? "active" : ""}">
+            <span>${index + 1}</span>
+            <strong>${escaparHtml(paso.texto)}</strong>
+        </div>
+    `).join("");
+}
+
+function abrirDetalleServicio(dbId) {
+    const solicitud = solicitudesCliente.find(item => item.dbId === dbId);
+    if (!solicitud) return;
+
+    const estado = estadoNormalizado(solicitud.estado);
+    document.getElementById("panelServicioId").textContent = solicitud.id;
+    document.getElementById("panelServicioTitulo").textContent = `${solicitud.dispositivo} - ${solicitud.servicio}`;
+    renderizarPasosEstado(solicitud);
+
+    document.getElementById("panelServicioMeta").innerHTML = `
+        <div><span>Fecha preferida</span><strong>${escaparHtml(solicitud.fecha || "-")}</strong></div>
+        <div><span>Tecnico</span><strong>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</strong></div>
+        <div><span>Estado</span><strong>${escaparHtml(estado)}</strong></div>
+        <div><span>Recibo</span><strong>${solicitud.facturada ? "Disponible" : "Aun no emitido"}</strong></div>
+    `;
+
+    const diagnostico = solicitud.diagnostico
+        ? `<p><span>Diagnostico</span><strong>${escaparHtml(solicitud.diagnostico)}</strong></p>`
+        : `<p><span>Diagnostico</span><strong>El tecnico aun no ha registrado un diagnostico.</strong></p>`;
+    const repuesto = solicitud.repuesto
+        ? `<p><span>Repuesto</span><strong>${escaparHtml(solicitud.repuesto)}</strong></p>`
+        : `<p><span>Repuesto</span><strong>Sin repuesto registrado.</strong></p>`;
+    const recibo = solicitud.facturada
+        ? `<button type="button" class="btn-facturar-orden" id="btnVerReciboDetalle"><i class="fa-solid fa-receipt"></i> Ver recibo</button>`
+        : "";
+
+    document.getElementById("panelServicioDiagnostico").innerHTML = `${diagnostico}${repuesto}${recibo}`;
+    document.getElementById("btnVerReciboDetalle")?.addEventListener("click", () => {
+        window.location.href = "mis-pagos.html";
+    });
+
+    panelServicio.hidden = false;
+    panelBackdrop.hidden = false;
+    document.body.classList.add("modal-open");
+}
+
+function cerrarDetalleServicio() {
+    panelServicio.hidden = true;
+    panelBackdrop.hidden = true;
+    document.body.classList.remove("modal-open");
+}
+
+function conectarFiltrosCliente() {
+    const filtroEstado = document.getElementById("filtroEstadoCliente");
+    const buscar = document.getElementById("buscarServicioCliente");
+
+    filtroEstado?.addEventListener("change", () => {
+        filtrosCliente.estado = filtroEstado.value;
+        renderizarSolicitudesCliente();
+    });
+
+    buscar?.addEventListener("input", () => {
+        filtrosCliente.busqueda = buscar.value;
+        renderizarSolicitudesCliente();
+    });
+}
+
 formSolicitud.addEventListener("submit", async event => {
     event.preventDefault();
 
@@ -124,6 +300,11 @@ formSolicitud.addEventListener("submit", async event => {
 
     if (!payload.dispositivo || !payload.servicio || !payload.fecha) {
         mostrarNotificacion("Completa dispositivo, problema y fecha antes de enviar la solicitud.", "error");
+        return;
+    }
+
+    if (payload.dispositivo.length < 2 || payload.servicio.length < 4) {
+        mostrarNotificacion("Describe mejor el dispositivo y el problema para que el taller pueda revisarlo.", "error");
         return;
     }
 
@@ -144,11 +325,21 @@ formSolicitud.addEventListener("submit", async event => {
         formSolicitud.reset();
         await cargarDatosCliente();
         await cargarSolicitudesCliente();
-        mostrarNotificacion("Solicitud enviada. El admin la revisará y asignará un técnico.", "success");
+        mostrarNotificacion("Solicitud enviada. El admin la revisara y asignara un tecnico.", "success");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo enviar la solicitud.", "error");
     }
 });
 
-cargarDatosCliente();
-cargarSolicitudesCliente();
+function iniciarPanelCliente() {
+    conectarFiltrosCliente();
+    document.getElementById("cerrarPanelServicio").addEventListener("click", cerrarDetalleServicio);
+    panelBackdrop.addEventListener("click", cerrarDetalleServicio);
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !panelServicio.hidden) cerrarDetalleServicio();
+    });
+    cargarDatosCliente();
+    cargarSolicitudesCliente();
+}
+
+iniciarPanelCliente();

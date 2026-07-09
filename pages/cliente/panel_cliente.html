@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -17,6 +17,17 @@
     <div class="content">
         <section class="panel-section active-section">
             <h1>Panel Cliente</h1>
+
+            <section class="tech-focus client-focus" id="servicioActualCliente">
+                <div>
+                    <span class="tech-focus-label">Seguimiento actual</span>
+                    <h2 id="servicioActualTitulo">Sin solicitudes activas</h2>
+                    <p id="servicioActualDetalle">Cuando envies una solicitud, podras seguir aqui el estado de tu equipo.</p>
+                </div>
+                <button type="button" id="btnServicioActual" disabled>
+                    <i class="fa-solid fa-arrow-right"></i> Ver detalle
+                </button>
+            </section>
 
             <div class="cards">
                 <div class="card">
@@ -42,44 +53,73 @@
 
             <form class="form-container" id="formSolicitud">
                 <h2>Solicitar Servicio</h2>
+                <p class="form-helper">Describe el equipo y el problema. El admin revisara la solicitud y asignara un tecnico.</p>
 
                 <input type="text" id="nombreCliente" placeholder="Nombre del cliente" required>
-                <input type="text" id="dispositivoCliente" placeholder="Dispositivo" required>
-                <input type="text" id="problemaCliente" placeholder="Tipo de problema" required>
+                <input type="text" id="dispositivoCliente" placeholder="Dispositivo o modelo" required>
+                <input type="text" id="problemaCliente" placeholder="Problema o servicio requerido" required>
                 <input type="date" id="fechaSolicitud" required>
 
                 <button type="submit">Enviar Solicitud</button>
             </form>
 
             <div class="historial">
-                <h2>Mis Servicios</h2>
+                <div class="orders-heading">
+                    <h2>Mis Servicios</h2>
+                    <span id="contadorServiciosCliente">0 servicios</span>
+                </div>
+
+                <div class="orders-toolbar" aria-label="Filtros de servicios">
+                    <label>
+                        Estado
+                        <select id="filtroEstadoCliente">
+                            <option value="Todos">Todos</option>
+                            <option value="Pendiente">Pendientes</option>
+                            <option value="En Proceso">En proceso</option>
+                            <option value="Completado">Completados</option>
+                        </select>
+                    </label>
+                    <label>
+                        Buscar
+                        <input type="search" id="buscarServicioCliente" placeholder="Equipo, servicio o ID">
+                    </label>
+                </div>
 
                 <table id="tablaServicios">
                     <thead>
                         <tr>
                             <th>Fecha</th>
                             <th>ID</th>
-                            <th>Cliente</th>
                             <th>Dispositivo</th>
                             <th>Servicio</th>
+                            <th>Tecnico</th>
                             <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr class="empty-row">
-                            <td colspan="6">
-                                <div class="empty-state">
-                                    <i class="fa-solid fa-clipboard-list"></i>
-                                    <strong>Sin servicios registrados</strong>
-                                    <span>Cuando el cliente solicite o reciba un servicio, aparecerá aquí su historial.</span>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </section>
     </div>
+
+    <aside class="work-panel" id="panelServicioCliente" hidden>
+        <div class="work-panel-header">
+            <div>
+                <span id="panelServicioId">Servicio</span>
+                <h2 id="panelServicioTitulo">Detalle del servicio</h2>
+            </div>
+            <button type="button" id="cerrarPanelServicio" aria-label="Cerrar panel">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="client-status-steps" id="estadoServicioPasos"></div>
+        <div class="work-panel-meta" id="panelServicioMeta"></div>
+        <div class="client-diagnosis" id="panelServicioDiagnostico"></div>
+    </aside>
+
+    <div class="work-panel-backdrop" id="panelServicioBackdrop" hidden></div>
 
     <script src="../../js/notifications.js"></script>
     <script src="../../js/sidebar.js"></script>
@@ -87,14 +127,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-
-
