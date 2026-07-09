@@ -116,6 +116,24 @@ function pintarServiciosCompletados() {
     }
 }
 
+function solicitudDesdeUrl() {
+    return new URLSearchParams(window.location.search).get("solicitud");
+}
+
+function preseleccionarSolicitudUrl() {
+    const solicitudId = solicitudDesdeUrl();
+    if (!solicitudId) return;
+
+    const existe = serviciosCompletados.some(servicio => String(servicio.id) === String(solicitudId));
+    if (!existe) {
+        mostrarNotificacion("La orden seleccionada no esta completada o ya no esta disponible para facturar.", "error");
+        return;
+    }
+
+    document.getElementById("solicitudFactura").value = solicitudId;
+    seleccionarServicio(solicitudId);
+    document.querySelector(".factura-formulario")?.scrollIntoView({ behavior: "smooth" });
+}
 function pintarTecnico(nombre) {
     const select = document.getElementById("tecnicoFactura");
     select.innerHTML = `<option value="${escaparHtml(nombre || "")}">${escaparHtml(nombre || "Tecnico asignado")}</option>`;
@@ -438,6 +456,7 @@ async function cargarDatosFacturacion() {
     pintarServiciosCompletados();
     generarNumeroFactura();
     renderHistorialFacturas(facturas);
+    preseleccionarSolicitudUrl();
 }
 
 function conectarEventos() {

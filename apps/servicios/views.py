@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 from django.http import JsonResponse
 from django.utils.dateparse import parse_date
@@ -87,6 +87,7 @@ def serializar_solicitud(solicitud):
         "estado": solicitud.get_estado_display(),
         "creadoEn": solicitud.creado_en.isoformat(),
         "actualizadoEn": solicitud.actualizado_en.isoformat(),
+        "facturada": hasattr(solicitud, "factura"),
     }
 
 

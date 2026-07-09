@@ -1,8 +1,9 @@
-﻿const API_BASE = window.location.origin;
+const API_BASE = window.location.origin;
 let tecnicosDisponibles = [];
 let clientesDisponibles = [];
 let solicitudes = [];
 let csrfToken = "";
+const filtrosOrdenes = { estado: "Todos", prioridad: "Todas", busqueda: "" };
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -115,7 +116,7 @@ function pintarSelectTecnicos(valorSeleccionado = "") {
     const select = document.getElementById("tecnicoServicio");
     if (!select) return;
 
-    select.innerHTML = `<option value="">Asignar técnico</option>`;
+    select.innerHTML = `<option value="">Asignar tecnico</option>`;
 
     tecnicosDisponibles.forEach(tecnico => {
         const option = document.createElement("option");
@@ -136,19 +137,19 @@ function pintarSelectTecnicos(valorSeleccionado = "") {
 
 async function cargarTecnicosDisponibles() {
     const select = document.getElementById("tecnicoServicio");
-    if (select) select.innerHTML = `<option value="">Cargando técnicos...</option>`;
+    if (select) select.innerHTML = `<option value="">Cargando tecnicos...</option>`;
 
     try {
         const respuesta = await fetch(`${API_BASE}/tecnicos/`, { credentials: "include" });
         const datos = await leerRespuestaJson(respuesta);
-        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los técnicos.");
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los tecnicos.");
 
         tecnicosDisponibles = datos.tecnicos.filter(tecnico => tecnico.estado === "Activo");
         pintarSelectTecnicos();
     } catch (error) {
         tecnicosDisponibles = [];
-        if (select) select.innerHTML = `<option value="">Sin técnicos disponibles</option>`;
-        mostrarNotificacion(error.message || "No se pudieron cargar los técnicos.", "error");
+        if (select) select.innerHTML = `<option value="">Sin tecnicos disponibles</option>`;
+        mostrarNotificacion(error.message || "No se pudieron cargar los tecnicos.", "error");
     }
 }
 
@@ -163,6 +164,41 @@ function actualizarCards() {
     document.getElementById("serviciosCompletados").textContent = completados.length;
 }
 
+function ordenListaParaFacturar(solicitud) {
+    return estadoNormalizado(solicitud.estado) === "Completado" && !solicitud.facturada;
+}
+
+function ordenesFiltradas() {
+    const texto = filtrosOrdenes.busqueda.trim().toLowerCase();
+
+    return solicitudes.filter(solicitud => {
+        const estado = estadoNormalizado(solicitud.estado);
+        const prioridad = solicitud.prioridad || "Media";
+        const coincideEstado = filtrosOrdenes.estado === "Todos" || estado === filtrosOrdenes.estado;
+        const coincidePrioridad = filtrosOrdenes.prioridad === "Todas" || prioridad === filtrosOrdenes.prioridad;
+        const coincideBusqueda = !texto || [
+            solicitud.id,
+            solicitud.cliente,
+            solicitud.dispositivo,
+            solicitud.servicio,
+            solicitud.tecnicoNombre,
+            solicitud.usuarioCliente
+        ].some(valor => String(valor || "").toLowerCase().includes(texto));
+
+        return coincideEstado && coincidePrioridad && coincideBusqueda;
+    });
+}
+
+function actualizarContadorOrdenes(totalVisible) {
+    const contador = document.getElementById("contadorOrdenes");
+    if (!contador) return;
+    const total = totalVisible ?? ordenesFiltradas().length;
+    contador.textContent = `${total} ${total === 1 ? "orden" : "ordenes"}`;
+}
+
+function irAFacturacion(dbId) {
+    window.location.href = `facturacion.html?solicitud=${encodeURIComponent(dbId)}`;
+}
 function nombreTecnico(valor) {
     const tecnico = tecnicosDisponibles.find(item => item.username === valor);
     return tecnico ? tecnico.nombre : valor;
@@ -173,15 +209,17 @@ function cargarServicios() {
     if (!tabla) return;
 
     tabla.innerHTML = "";
+    const visibles = ordenesFiltradas();
+    actualizarContadorOrdenes(visibles.length);
 
-    if (!solicitudes.length) {
+    if (!visibles.length) {
         tabla.innerHTML = `
             <tr class="empty-row">
                 <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
-                        <strong>Sin órdenes registradas</strong>
-                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecerá aquí.</span>
+                        <strong>Sin ordenes registradas</strong>
+                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecera aqui.</span>
                     </div>
                 </td>
             </tr>
@@ -189,7 +227,9 @@ function cargarServicios() {
         return;
     }
 
-    solicitudes.forEach(solicitud => {
+    visibles.forEach(solicitud => {
+        const puedeFacturar = ordenListaParaFacturar(solicitud);
+        const textoFacturar = solicitud.facturada ? "Facturada" : "Facturar";
         const fila = document.createElement("tr");
         fila.innerHTML = `
             <td>${escaparHtml(solicitud.fecha)}</td>
@@ -205,6 +245,11 @@ function cargarServicios() {
                     <button class="btn-editar-historial" type="button" data-editar="${solicitud.dbId}">
                         <i class="fa-solid fa-pen"></i> Editar
                     </button>
+                    ${estadoNormalizado(solicitud.estado) === "Completado" ? `
+                        <button class="btn-facturar-orden" type="button" data-facturar="${solicitud.dbId}" ${puedeFacturar ? "" : "disabled"}>
+                            <i class="fa-solid fa-file-invoice-dollar"></i> ${textoFacturar}
+                        </button>
+                    ` : ""}
                 </div>
             </td>
         `;
@@ -214,8 +259,11 @@ function cargarServicios() {
     tabla.querySelectorAll("[data-editar]").forEach(boton => {
         boton.addEventListener("click", () => editarServicio(Number(boton.dataset.editar)));
     });
-}
 
+    tabla.querySelectorAll("[data-facturar]").forEach(boton => {
+        boton.addEventListener("click", () => irAFacturacion(Number(boton.dataset.facturar)));
+    });
+}
 async function obtenerSolicitudes() {
     const respuesta = await fetch(`${API_BASE}/servicios/`, { credentials: "include" });
     const datos = await leerRespuestaJson(respuesta);
@@ -307,13 +355,30 @@ document.addEventListener("click", event => {
     }
 });
 
+function conectarFiltrosOrdenes() {
+    const filtroEstado = document.getElementById("filtroEstadoOrden");
+    const filtroPrioridad = document.getElementById("filtroPrioridadOrden");
+    const buscarOrden = document.getElementById("buscarOrden");
+
+    filtroEstado?.addEventListener("change", () => {
+        filtrosOrdenes.estado = filtroEstado.value;
+        cargarServicios();
+    });
+
+    filtroPrioridad?.addEventListener("change", () => {
+        filtrosOrdenes.prioridad = filtroPrioridad.value;
+        cargarServicios();
+    });
+
+    buscarOrden?.addEventListener("input", () => {
+        filtrosOrdenes.busqueda = buscarOrden.value;
+        cargarServicios();
+    });
+}
 async function iniciarDashboardAdmin() {
+    conectarFiltrosOrdenes();
     await Promise.all([cargarClientesDisponibles(), cargarTecnicosDisponibles()]);
     await obtenerSolicitudes();
 }
 
 iniciarDashboardAdmin();
-
-
-
-

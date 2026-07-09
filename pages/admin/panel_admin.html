@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -12,19 +12,12 @@
 </head>
 
 <body>
-
-    <!-- Barra lateral -->
-
-      <div class="sidebar"></div>
+    <div class="sidebar"></div>
 
     <div class="content">
-
-        <!-- Dashboard -->
         <section id="dashboard" class="panel-section active-section">
-
             <h1>Dashboard</h1>
 
-            <!-- Cards -->
             <div class="cards">
                 <div class="card">
                     <h3 id="totalServicios">0</h3>
@@ -47,43 +40,69 @@
                 </div>
             </div>
 
-            <!-- Formulario -->
             <div class="form-container">
                 <h2 id="tituloFormulario">Registrar Servicio Presencial</h2>
                 <p class="form-helper">Crea una orden cuando el cliente llega al taller. La factura se genera despues, cuando el servicio este completado.</p>
 
-<input type="hidden" id="idEditar">
+                <input type="hidden" id="idEditar">
 
-<div class="client-picker">
-    <input type="text" id="cliente" placeholder="Cliente registrado o nombre presencial" autocomplete="off">
-    <div class="client-suggestions" id="clientesServicioList" hidden></div>
-</div>
-<input type="text" id="dispositivo" placeholder="Dispositivo">
-<input type="text" id="servicio" placeholder="Problema o servicio solicitado">
-<input type="date" id="fecha">
+                <div class="client-picker">
+                    <input type="text" id="cliente" placeholder="Cliente registrado o nombre presencial" autocomplete="off">
+                    <div class="client-suggestions" id="clientesServicioList" hidden></div>
+                </div>
+                <input type="text" id="dispositivo" placeholder="Dispositivo">
+                <input type="text" id="servicio" placeholder="Problema o servicio solicitado">
+                <input type="date" id="fecha">
 
-<select id="tecnicoServicio">
-    <option value="">Cargando tecnicos...</option>
-</select>
+                <select id="tecnicoServicio">
+                    <option value="">Cargando tecnicos...</option>
+                </select>
 
-<select id="prioridadServicio">
-    <option value="Media">Prioridad media</option>
-    <option value="Alta">Prioridad alta</option>
-    <option value="Baja">Prioridad baja</option>
-</select>
+                <select id="prioridadServicio">
+                    <option value="Media">Prioridad media</option>
+                    <option value="Alta">Prioridad alta</option>
+                    <option value="Baja">Prioridad baja</option>
+                </select>
 
-<select id="estadoServicio">
-    <option value="Pendiente">Pendiente</option>
-    <option value="En Proceso">En Proceso</option>
-    <option value="Completado">Completado</option>
-</select>
+                <select id="estadoServicio">
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="En Proceso">En Proceso</option>
+                    <option value="Completado">Completado</option>
+                </select>
 
-<button id="btnGuardar">Guardar Orden</button>
-</div>  <!-- <- cerrá el form-container aquí -->
+                <button id="btnGuardar">Guardar Orden</button>
+            </div>
 
-            <!-- Historial -->
             <div class="historial">
-                <h2>Ordenes y Solicitudes</h2>
+                <div class="orders-heading">
+                    <h2>Ordenes y Solicitudes</h2>
+                    <span id="contadorOrdenes">0 ordenes</span>
+                </div>
+
+                <div class="orders-toolbar" aria-label="Filtros de ordenes">
+                    <label>
+                        Estado
+                        <select id="filtroEstadoOrden">
+                            <option value="Todos">Todos</option>
+                            <option value="Pendiente">Pendientes</option>
+                            <option value="En Proceso">En proceso</option>
+                            <option value="Completado">Completadas</option>
+                        </select>
+                    </label>
+                    <label>
+                        Prioridad
+                        <select id="filtroPrioridadOrden">
+                            <option value="Todas">Todas</option>
+                            <option value="Alta">Alta</option>
+                            <option value="Media">Media</option>
+                            <option value="Baja">Baja</option>
+                        </select>
+                    </label>
+                    <label>
+                        Buscar
+                        <input type="search" id="buscarOrden" placeholder="Cliente, dispositivo o ID">
+                    </label>
+                </div>
 
                 <table id="tablaServicios">
                     <thead>
@@ -102,16 +121,14 @@
                     <tbody></tbody>
                 </table>
             </div>
-
         </section>
 
-        <!-- otras opciones -->
         <section id="clientes" class="panel-section">
             <h1>Clientes</h1>
         </section>
 
         <section id="tecnicos" class="panel-section">
-            <h1>Técnicos</h1>
+            <h1>Tecnicos</h1>
         </section>
 
         <section id="files" class="panel-section">
@@ -123,7 +140,7 @@
         </section>
 
         <section id="facturacion" class="panel-section">
-            <h1>Facturación</h1>
+            <h1>Facturacion</h1>
         </section>
 
         <section id="ayuda" class="panel-section">
@@ -131,29 +148,13 @@
         </section>
 
         <section id="configuracion" class="panel-section">
-            <h1>Configuración</h1>
+            <h1>Configuracion</h1>
         </section>
-
     </div>
 
     <script src="../../js/notifications.js"></script>
     <script src="../../js/sidebar.js"></script>
     <script src="../../js/admin.js"></script>
-
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
