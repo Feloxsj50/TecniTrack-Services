@@ -258,7 +258,7 @@ function abrirDetalleServicio(dbId) {
         ? `<button type="button" class="btn-facturar-orden" id="btnVerReciboDetalle"><i class="fa-solid fa-receipt"></i> Ver recibo</button>`
         : "";
 
-    document.getElementById("panelServicioDiagnóstico").innerHTML = `${diagnostico}${repuesto}${recibo}`;
+    document.getElementById("panelServicioDiagnostico").innerHTML = `${diagnostico}${repuesto}${recibo}`;
     document.getElementById("btnVerReciboDetalle")?.addEventListener("click", () => {
         window.location.href = "mis-pagos.html";
     });

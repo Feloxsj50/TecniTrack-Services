@@ -16,6 +16,7 @@ const estadoTecnico = document.getElementById("estadoTecnico");
 const API_BASE = window.location.origin;
 let tecnicos = [];
 let tecnicoEditandoId = null;
+let csrfToken = "";
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -52,6 +53,19 @@ async function leerRespuestaJson(respuesta) {
     }
 }
 
+
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) {
+        throw new Error("No se pudo preparar la seguridad de Django.");
+    }
+
+    csrfToken = datos.csrfToken;
+    return csrfToken;
+}
 function actualizarResumen(lista = tecnicos) {
     const activos = lista.filter(t => t.estado === "Activo").length;
     const inactivos = lista.filter(t => t.estado !== "Activo").length;
@@ -170,7 +184,7 @@ async function guardarTecnico() {
     const respuesta = await fetch(url, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRFToken": token },
         body: JSON.stringify({ nombre, username, correo, especialidad, telefono, password, estado })
     });
     const datos = await leerRespuestaJson(respuesta);
@@ -185,7 +199,12 @@ async function eliminarTecnico(tecnicoId) {
     if (!t) return;
     const confirmado = await confirmarAccion({ titulo: "Eliminar técnico", mensaje: `Seguro que quieres eliminar a ${t.nombre}? Esta acción borrará su usuario.` });
     if (!confirmado) return;
-    const respuesta = await fetch(`${API_BASE}/tecnicos/${tecnicoId}/eliminar/`, { method: "POST", credentials: "include" });
+    const token = await obtenerCsrfToken();
+    const respuesta = await fetch(`${API_BASE}/tecnicos/${tecnicoId}/eliminar/`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "X-CSRFToken": token }
+    });
     const datos = await leerRespuestaJson(respuesta);
     if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo eliminar el técnico.");
     if (tecnicoEditandoId === tecnicoId) limpiarFormulario();
