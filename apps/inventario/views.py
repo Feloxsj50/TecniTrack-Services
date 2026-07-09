@@ -119,6 +119,9 @@ def listar_productos(request):
     if not request.user.is_authenticated:
         return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
 
+    if request.user.rol not in [Usuario.Rol.ADMIN, Usuario.Rol.TECNICO]:
+        return JsonResponse({"ok": False, "error": "No tienes permiso para consultar inventario."}, status=403)
+
     productos = ProductoInventario.objects.filter(activo=True)
     data = [serializar_producto(producto) for producto in productos]
     return JsonResponse({"ok": True, "productos": data, "total": len(data)})

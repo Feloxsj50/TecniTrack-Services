@@ -391,6 +391,44 @@ function conectarFiltrosTrabajo() {
     });
 }
 
+
+function renderizarInventarioRapido(productos) {
+    const contenedor = document.getElementById("inventarioRapidoTecnico");
+    if (!contenedor) return;
+
+    const visibles = productos
+        .filter(producto => Number(producto.stock) > 0)
+        .sort((a, b) => Number(a.stock) - Number(b.stock))
+        .slice(0, 3);
+
+    if (!visibles.length) {
+        contenedor.innerHTML = `
+            <div>
+                <span>Inventario</span>
+                <strong>Sin productos disponibles</strong>
+            </div>
+        `;
+        return;
+    }
+
+    contenedor.innerHTML = visibles.map(producto => `
+        <div>
+            <span>${escaparHtml(producto.nombre)}</span>
+            <strong>${escaparHtml(producto.stock)} disponibles</strong>
+        </div>
+    `).join("");
+}
+
+async function cargarInventarioRapido() {
+    try {
+        const respuesta = await fetch(`${API_BASE}/inventario/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo cargar inventario.");
+        renderizarInventarioRapido(datos.productos || []);
+    } catch (error) {
+        renderizarInventarioRapido([]);
+    }
+}
 function iniciarPanelTecnico() {
     conectarFiltrosTrabajo();
     document.getElementById("cerrarPanelTrabajo").addEventListener("click", cerrarPanelTrabajo);

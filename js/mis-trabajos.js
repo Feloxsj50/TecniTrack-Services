@@ -1,14 +1,5 @@
-const STORAGE_KEY_SOLICITUDES = "tecnitrackSolicitudes";
-const tecnicoActual = TecniAuth.obtenerSesion()?.usuario || "tecnico";
+const API_BASE = window.location.origin;
 const tbodyTrabajos = document.querySelector("#tablaServicios tbody");
-
-function obtenerSolicitudes() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY_SOLICITUDES)) || [];
-    } catch {
-        return [];
-    }
-}
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -19,16 +10,23 @@ function escaparHtml(valor) {
         .replaceAll("'", "&#039;");
 }
 
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
+    }
+}
+
 function clasePrioridad(prioridad) {
     if (prioridad === "Alta") return "prioridad alta";
     if (prioridad === "Baja") return "prioridad baja";
     return "prioridad media";
 }
 
-function trabajosCompletados() {
-    return obtenerSolicitudes().filter(solicitud =>
-        solicitud.tecnico === tecnicoActual && solicitud.estado === "Completado"
-    );
+function trabajosCompletados(solicitudes) {
+    return solicitudes.filter(solicitud => solicitud.estado === "Completado");
 }
 
 function actualizarResumen(trabajos) {
@@ -42,8 +40,7 @@ function actualizarResumen(trabajos) {
         trabajos.filter(trabajo => trabajo.repuesto).length;
 }
 
-function renderizarTrabajos() {
-    const trabajos = trabajosCompletados();
+function renderizarTrabajos(trabajos) {
     actualizarResumen(trabajos);
 
     if (!trabajos.length) {
@@ -53,7 +50,7 @@ function renderizarTrabajos() {
                     <div class="empty-state">
                         <i class="fa-solid fa-clipboard-check"></i>
                         <strong>Sin trabajos completados</strong>
-                        <span>Cuando marques un servicio como completado, aparecera aqui.</span>
+                        <span>Cuando marques un servicio como completado, aparecerá aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -75,4 +72,26 @@ function renderizarTrabajos() {
     `).join("");
 }
 
-renderizarTrabajos();
+async function cargarMisTrabajos() {
+    try {
+        const respuesta = await fetch(`${API_BASE}/servicios/`, { credentials: "include" });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar tus trabajos.");
+        renderizarTrabajos(trabajosCompletados(datos.solicitudes || []));
+    } catch (error) {
+        actualizarResumen([]);
+        tbodyTrabajos.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="8">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <strong>No se pudieron cargar tus trabajos</strong>
+                        <span>${escaparHtml(error.message || "Verifica que Django esté activo.")}</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+cargarMisTrabajos();

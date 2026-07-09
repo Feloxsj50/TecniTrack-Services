@@ -1,25 +1,14 @@
-const STORAGE_KEY_TICKETS = "tecnitrackTicketsSoporte";
-const STORAGE_TALLER = "tecnitrackTaller";
-
+const API_BASE = window.location.origin;
 const sesionAyuda = TecniAuth.obtenerSesion();
 const rolAyuda = sesionAyuda?.rol || "cliente";
-const usuarioAyuda = sesionAyuda?.usuario || rolAyuda;
-
-const datosPerfil = {
-    admin: { nombre: "Administrador TecniTrack", correo: "admin@tecnitrack.com" },
-    tecnico: { nombre: "Técnico TecniTrack", correo: "tecnico@tecnitrack.com" },
-    cliente: { nombre: "Cliente TecniTrack", correo: "cliente@email.com" }
-};
+let usuarioActual = null;
+let tallerActual = null;
+let ticketsSoporte = [];
+let csrfToken = "";
 
 const configuracionAyuda = {
     admin: {
         titulo: "Centro de Soporte del Sistema",
-        cards: [
-            [null, "Tickets Respondidos"],
-            [null, "Sin Responder"],
-            [null, "Tickets Totales"],
-            [null, "Tiempo Resp."]
-        ],
         formTitulo: "Responder Ticket",
         boton: "Enviar Respuesta",
         areas: ["Sistema", "Usuarios", "Inventario", "Recibos", "Reportes"],
@@ -27,12 +16,6 @@ const configuracionAyuda = {
     },
     tecnico: {
         titulo: "Soporte Técnico",
-        cards: [
-            ["Tec", "Mesa Interna"],
-            ["Web", "Canal de Soporte"],
-            [null, "Mis Tickets"],
-            [null, "Sin Responder"]
-        ],
         formTitulo: "Pedir Apoyo al Admin",
         boton: "Enviar Consulta",
         areas: ["Trabajo asignado", "Diagnóstico", "Inventario", "Estado del servicio"],
@@ -40,12 +23,6 @@ const configuracionAyuda = {
     },
     cliente: {
         titulo: "Soporte al Cliente",
-        cards: [
-            ["Managua", "Direccion del Taller"],
-            ["8888-0000", "Telefono Directo"],
-            ["Lun-Sab", "Horario de Atencion"],
-            ["WhatsApp", "Contacto Rapido"]
-        ],
         formTitulo: "Contactar al Taller",
         boton: "Enviar Consulta",
         areas: ["Solicitud de servicio", "Estado del equipo", "Recibo", "Cuenta de usuario"],
@@ -60,26 +37,6 @@ const tallerDefault = {
     horario: "Lun-Sab"
 };
 
-function obtenerTaller() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_TALLER)) || tallerDefault;
-    } catch {
-        return tallerDefault;
-    }
-}
-
-function obtenerTickets() {
-    try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY_TICKETS)) || [];
-    } catch {
-        return [];
-    }
-}
-
-function guardarTickets(tickets) {
-    localStorage.setItem(STORAGE_KEY_TICKETS, JSON.stringify(tickets));
-}
-
 function escaparHtml(valor) {
     return String(valor ?? "")
         .replaceAll("&", "&amp;")
@@ -89,50 +46,47 @@ function escaparHtml(valor) {
         .replaceAll("'", "&#039;");
 }
 
-function fechaHoy() {
-    return new Date().toISOString().slice(0, 10);
+async function leerRespuestaJson(respuesta) {
+    const texto = await respuesta.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
+    }
+}
+
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error("No se pudo preparar la seguridad de Django.");
+    csrfToken = datos.csrfToken;
+    return csrfToken;
+}
+
+async function apiJson(url, opciones = {}) {
+    const necesitaCsrf = opciones.method && opciones.method !== "GET";
+    const respuesta = await fetch(`${API_BASE}${url}`, {
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            ...(necesitaCsrf ? { "X-CSRFToken": await obtenerCsrfToken() } : {}),
+            ...(opciones.headers || {})
+        },
+        ...opciones
+    });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo completar la acción.");
+    return datos;
 }
 
 function ticketsVisibles() {
-    const tickets = obtenerTickets();
-    if (rolAyuda === "admin") return tickets;
-    return tickets.filter(ticket => ticket.usuario === usuarioAyuda && ticket.rol === rolAyuda);
-}
-
-function configurarCards(config, totalTickets) {
-    const ids = [
-        ["statPrincipal", "statPrincipalTexto"],
-        ["statCanal", "statCanalTexto"],
-        ["statTickets", "statTicketsTexto"],
-        ["statTiempo", "statTiempoTexto"]
-    ];
-
-    if (rolAyuda === "admin") {
-        const metricas = metricasSoporteAdmin();
-        document.getElementById("statPrincipal").textContent = metricas.respondidos;
-        document.getElementById("statPrincipalTexto").textContent = "Tickets Respondidos";
-        document.getElementById("statCanal").textContent = metricas.pendientes;
-        document.getElementById("statCanalTexto").textContent = "Sin Responder";
-        document.getElementById("statTickets").textContent = metricas.total;
-        document.getElementById("statTicketsTexto").textContent = "Tickets Totales";
-        document.getElementById("statTiempo").textContent = metricas.tiempoPromedio;
-        document.getElementById("statTiempoTexto").textContent = "Tiempo Resp.";
-        return;
-    }
-
-    const pendientes = ticketsVisibles().filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido").length;
-
-    config.cards.forEach((card, index) => {
-        const [valorId, textoId] = ids[index];
-        document.getElementById(valorId).textContent = card[0] ?? (index === 3 ? pendientes : totalTickets);
-        document.getElementById(textoId).textContent = card[1];
-    });
+    return ticketsSoporte;
 }
 
 function metricasSoporteAdmin() {
-    const tickets = obtenerTickets();
-    const respondidos = tickets.filter(ticket => ticket.respuesta || ticket.estado === "Respondido");
-    const pendientes = tickets.filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido");
+    const respondidos = ticketsSoporte.filter(ticket => ticket.respuesta || ticket.estado === "Respondido");
+    const pendientes = ticketsSoporte.filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido");
     const tiempos = respondidos
         .map(ticket => {
             if (!ticket.creadoEn || !ticket.respondidoEn) return null;
@@ -141,7 +95,7 @@ function metricasSoporteAdmin() {
         .filter(tiempo => Number.isFinite(tiempo) && tiempo >= 0);
 
     return {
-        total: tickets.length,
+        total: ticketsSoporte.length,
         respondidos: respondidos.length,
         pendientes: pendientes.length,
         tiempoPromedio: formatearDuracion(tiempos)
@@ -158,28 +112,57 @@ function formatearDuracion(tiempos) {
     return `${Math.round(horas / 24)}d`;
 }
 
+function configurarCards(config) {
+    if (rolAyuda === "admin") {
+        const metricas = metricasSoporteAdmin();
+        document.getElementById("statPrincipal").textContent = metricas.respondidos;
+        document.getElementById("statPrincipalTexto").textContent = "Tickets Respondidos";
+        document.getElementById("statCanal").textContent = metricas.pendientes;
+        document.getElementById("statCanalTexto").textContent = "Sin Responder";
+        document.getElementById("statTickets").textContent = metricas.total;
+        document.getElementById("statTicketsTexto").textContent = "Tickets Totales";
+        document.getElementById("statTiempo").textContent = metricas.tiempoPromedio;
+        document.getElementById("statTiempoTexto").textContent = "Tiempo Resp.";
+        return;
+    }
+
+    const pendientes = ticketsVisibles().filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido").length;
+
+    if (rolAyuda === "cliente") {
+        const taller = tallerActual || tallerDefault;
+        document.getElementById("statPrincipal").textContent = taller.direccion || tallerDefault.direccion;
+        document.getElementById("statPrincipalTexto").textContent = "Dirección del Taller";
+        document.getElementById("statCanal").textContent = taller.telefono || tallerDefault.telefono;
+        document.getElementById("statCanalTexto").textContent = "Teléfono Directo";
+        document.getElementById("statTickets").textContent = taller.horario || tallerDefault.horario;
+        document.getElementById("statTicketsTexto").textContent = "Horario de Atención";
+        document.getElementById("statTiempo").textContent = taller.whatsapp || tallerDefault.whatsapp;
+        document.getElementById("statTiempoTexto").textContent = "WhatsApp";
+        return;
+    }
+
+    document.getElementById("statPrincipal").textContent = "Tec";
+    document.getElementById("statPrincipalTexto").textContent = "Mesa Interna";
+    document.getElementById("statCanal").textContent = "Web";
+    document.getElementById("statCanalTexto").textContent = "Canal de Soporte";
+    document.getElementById("statTickets").textContent = ticketsVisibles().length;
+    document.getElementById("statTicketsTexto").textContent = "Mis Tickets";
+    document.getElementById("statTiempo").textContent = pendientes;
+    document.getElementById("statTiempoTexto").textContent = "Sin Responder";
+}
+
 function autollenarDatos() {
-    const perfil = datosPerfil[rolAyuda] || datosPerfil.cliente;
-    document.getElementById("soporteNombre").value = perfil.nombre;
-    document.getElementById("soporteCorreo").value = perfil.correo;
+    const nombre = usuarioActual?.nombre || sesionAyuda?.usuario || "Usuario TecniTrack";
+    const correo = usuarioActual?.email || "";
+    document.getElementById("soporteNombre").value = nombre;
+    document.getElementById("soporteCorreo").value = correo;
 }
 
 function configurarVista() {
     const config = configuracionAyuda[rolAyuda] || configuracionAyuda.cliente;
-    const tickets = ticketsVisibles();
-
-    if (rolAyuda === "cliente") {
-        const taller = obtenerTaller();
-        config.cards = [
-            [taller.direccion || tallerDefault.direccion, "Direccion del Taller"],
-            [taller.telefono || tallerDefault.telefono, "Telefono Directo"],
-            [taller.horario || tallerDefault.horario, "Horario de Atencion"],
-            [taller.whatsapp || tallerDefault.whatsapp, "WhatsApp"]
-        ];
-    }
 
     document.getElementById("ayudaTitulo").textContent = config.titulo;
-    configurarCards(config, tickets.length);
+    configurarCards(config);
     document.getElementById("formTitulo").textContent = config.formTitulo;
     document.getElementById("btnSoporte").textContent = config.boton;
     document.getElementById("ticketsTitulo").textContent = config.ticketsTitulo;
@@ -195,12 +178,12 @@ function configurarVista() {
 }
 
 function cargarFiltrosAdmin() {
-    const areas = [...new Set(obtenerTickets().map(ticket => ticket.area).filter(Boolean))];
+    const areas = [...new Set(ticketsSoporte.map(ticket => ticket.area).filter(Boolean))];
     const select = document.getElementById("filtroAreaTicket");
     const valorActual = select.value || "todas";
 
     select.innerHTML = `
-        <option value="todas">Todas las areas</option>
+        <option value="todas">Todas las áreas</option>
         ${areas.map(area => `<option value="${escaparHtml(area)}">${escaparHtml(area)}</option>`).join("")}
     `;
 
@@ -209,14 +192,29 @@ function cargarFiltrosAdmin() {
 
 function renderizarEncabezadoTickets() {
     const columnas = rolAyuda === "cliente"
-        ? ["Fecha", "ID", "Area", "Asunto", "Respuesta", "Estado", "Acciones"]
-        : rolAyuda === "admin"
-            ? ["Fecha", "ID", "Usuario", "Area", "Asunto", "Respuesta", "Estado", "Acciones"]
-            : ["Fecha", "ID", "Usuario", "Area", "Asunto", "Respuesta", "Estado", "Acciones"];
+        ? ["Fecha", "ID", "Área", "Asunto", "Respuesta", "Estado", "Acciones"]
+        : ["Fecha", "ID", "Usuario", "Área", "Asunto", "Respuesta", "Estado", "Acciones"];
 
     document.getElementById("ticketsHead").innerHTML = columnas
         .map(columna => `<th>${columna}</th>`)
         .join("");
+}
+
+function ticketsFiltrados() {
+    let tickets = ticketsVisibles();
+    if (rolAyuda !== "admin") return tickets;
+
+    const estado = document.getElementById("filtroEstadoTicket")?.value || "todos";
+    const area = document.getElementById("filtroAreaTicket")?.value || "todas";
+
+    if (estado === "sin-responder") {
+        tickets = tickets.filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido");
+    } else if (estado !== "todos") {
+        tickets = tickets.filter(ticket => ticket.estado === estado);
+    }
+
+    if (area !== "todas") tickets = tickets.filter(ticket => ticket.area === area);
+    return tickets;
 }
 
 function renderizarTickets() {
@@ -231,7 +229,7 @@ function renderizarTickets() {
                     <div class="empty-state">
                         <i class="fa-solid fa-headset"></i>
                         <strong>Sin consultas registradas</strong>
-                        <span>Cuando envies una consulta de soporte, aparecera aqui.</span>
+                        <span>Cuando envíes una consulta de soporte, aparecerá aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -252,43 +250,23 @@ function renderizarTickets() {
                 <td>${escaparHtml(ticket.area)}</td>
                 <td>${escaparHtml(ticket.asunto)}</td>
                 <td>${escaparHtml(respuesta)}</td>
-                <td><span class="estado en-proceso">${escaparHtml(ticket.estado)}</span></td>
+                <td><span class="estado ${ticket.estado === "Respondido" ? "completado" : "en-proceso"}">${escaparHtml(ticket.estado)}</span></td>
                 ${acciones}
             </tr>
         `;
     }).join("");
 
     tbody.querySelectorAll("[data-responder]").forEach(boton => {
-        boton.addEventListener("click", () => responderTicket(boton.dataset.responder));
+        boton.addEventListener("click", () => responderTicket(Number(boton.dataset.responder)));
     });
 
     tbody.querySelectorAll("[data-ver-mensaje]").forEach(boton => {
-        boton.addEventListener("click", () => verMensaje(boton.dataset.verMensaje));
+        boton.addEventListener("click", () => verMensaje(Number(boton.dataset.verMensaje)));
     });
 
     tbody.querySelectorAll("[data-ver-respuesta]").forEach(boton => {
-        boton.addEventListener("click", () => verRespuesta(boton.dataset.verRespuesta));
+        boton.addEventListener("click", () => verRespuesta(Number(boton.dataset.verRespuesta)));
     });
-}
-
-function ticketsFiltrados() {
-    let tickets = ticketsVisibles();
-    if (rolAyuda !== "admin") return tickets;
-
-    const estado = document.getElementById("filtroEstadoTicket")?.value || "todos";
-    const area = document.getElementById("filtroAreaTicket")?.value || "todas";
-
-    if (estado === "sin-responder") {
-        tickets = tickets.filter(ticket => !ticket.respuesta && ticket.estado !== "Respondido");
-    } else if (estado !== "todos") {
-        tickets = tickets.filter(ticket => ticket.estado === estado);
-    }
-
-    if (area !== "todas") {
-        tickets = tickets.filter(ticket => ticket.area === area);
-    }
-
-    return tickets;
 }
 
 function accionesTicket(ticket) {
@@ -296,10 +274,10 @@ function accionesTicket(ticket) {
         return `
             <td>
                 <div class="table-actions">
-                    <button type="button" class="btn-editar-historial" data-ver-mensaje="${ticket.id}">
+                    <button type="button" class="btn-editar-historial" data-ver-mensaje="${ticket.dbId}">
                         <i class="fa-solid fa-envelope-open-text"></i> Ver mensaje
                     </button>
-                    <button type="button" class="btn-editar-historial" data-responder="${ticket.id}">
+                    <button type="button" class="btn-editar-historial" data-responder="${ticket.dbId}">
                         <i class="fa-solid fa-reply"></i> ${ticket.respuesta ? "Editar respuesta" : "Responder"}
                     </button>
                 </div>
@@ -310,7 +288,7 @@ function accionesTicket(ticket) {
     if (ticket.respuesta) {
         return `
             <td>
-                <button type="button" class="btn-editar-historial" data-ver-respuesta="${ticket.id}">
+                <button type="button" class="btn-editar-historial" data-ver-respuesta="${ticket.dbId}">
                     <i class="fa-solid fa-eye"></i> Ver respuesta
                 </button>
             </td>
@@ -320,16 +298,16 @@ function accionesTicket(ticket) {
     return `<td><span class="estado pendiente">Sin respuesta</span></td>`;
 }
 
-function crearIdTicket(tickets) {
-    return `TK-${String(tickets.length + 1).padStart(3, "0")}`;
+function buscarTicket(dbId) {
+    return ticketsSoporte.find(item => item.dbId === Number(dbId));
 }
 
-function responderTicket(id) {
-    const ticket = obtenerTickets().find(item => item.id === id);
+function responderTicket(dbId) {
+    const ticket = buscarTicket(dbId);
     if (!ticket) return;
 
     prepararModalRespuesta("editar");
-    document.getElementById("respuestaId").value = ticket.id;
+    document.getElementById("respuestaId").value = ticket.dbId;
     document.getElementById("respuestaTicketId").textContent = ticket.id;
     document.getElementById("respuestaTitulo").textContent = `Responder a ${ticket.nombre}`;
     document.getElementById("respuestaResumen").textContent = `${ticket.area} - ${ticket.asunto}`;
@@ -340,13 +318,13 @@ function responderTicket(id) {
     document.getElementById("respuestaTexto").focus();
 }
 
-function verRespuesta(id) {
-    const ticket = obtenerTickets().find(item => item.id === id);
+function verRespuesta(dbId) {
+    const ticket = buscarTicket(dbId);
     if (!ticket || !ticket.respuesta) return;
 
     prepararModalRespuesta("lectura");
     document.getElementById("respuestaTicketId").textContent = ticket.id;
-    document.getElementById("respuestaTitulo").textContent = `Respuesta de soporte`;
+    document.getElementById("respuestaTitulo").textContent = "Respuesta de soporte";
     document.getElementById("respuestaResumen").textContent = `${ticket.area} - ${ticket.asunto}`;
     document.getElementById("respuestaCompleta").textContent = ticket.respuesta;
 
@@ -354,8 +332,8 @@ function verRespuesta(id) {
     document.body.classList.add("modal-open");
 }
 
-function verMensaje(id) {
-    const ticket = obtenerTickets().find(item => item.id === id);
+function verMensaje(dbId) {
+    const ticket = buscarTicket(dbId);
     if (!ticket) return;
 
     prepararModalRespuesta("lectura");
@@ -381,31 +359,38 @@ function cerrarModalRespuesta() {
     document.getElementById("respuestaCompleta").textContent = "";
 }
 
-document.getElementById("formRespuesta").addEventListener("submit", event => {
+async function cargarDatosBase() {
+    const [me, tickets, taller] = await Promise.all([
+        apiJson("/usuarios/me/"),
+        apiJson("/soporte/"),
+        apiJson("/usuarios/taller/").catch(() => ({ taller: tallerDefault }))
+    ]);
+
+    usuarioActual = me.usuario;
+    ticketsSoporte = tickets.tickets || [];
+    tallerActual = taller.taller || tallerDefault;
+}
+
+document.getElementById("formRespuesta").addEventListener("submit", async event => {
     event.preventDefault();
 
-    const id = document.getElementById("respuestaId").value;
+    const dbId = document.getElementById("respuestaId").value;
     const respuesta = document.getElementById("respuestaTexto").value.trim();
-    if (!respuesta) {
-        mostrarNotificacion("Escribi una respuesta antes de enviarla.", "error");
-        return;
+    if (!respuesta) return mostrarNotificacion("Escribe una respuesta antes de enviarla.", "error");
+
+    try {
+        await apiJson(`/soporte/${dbId}/responder/`, {
+            method: "POST",
+            body: JSON.stringify({ respuesta })
+        });
+        await cargarDatosBase();
+        cerrarModalRespuesta();
+        configurarVista();
+        renderizarTickets();
+        mostrarNotificacion("Respuesta guardada correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo guardar la respuesta.", "error");
     }
-
-    const tickets = obtenerTickets().map(ticket => {
-        if (ticket.id !== id) return ticket;
-        return {
-            ...ticket,
-            respuesta: respuesta.trim(),
-            estado: "Respondido",
-            respondidoEn: new Date().toISOString()
-        };
-    });
-
-    guardarTickets(tickets);
-    cerrarModalRespuesta();
-    configurarVista();
-    renderizarTickets();
-    mostrarNotificacion("Respuesta guardada correctamente.", "success");
 });
 
 document.querySelectorAll("[data-cerrar-respuesta]").forEach(elemento => {
@@ -417,45 +402,52 @@ document.addEventListener("keydown", event => {
     if (event.key === "Escape" && !modal.hidden) cerrarModalRespuesta();
 });
 
-document.getElementById("formSoporte").addEventListener("submit", event => {
+document.getElementById("formSoporte").addEventListener("submit", async event => {
     event.preventDefault();
 
-    const tickets = obtenerTickets();
-    const nuevoTicket = {
-        id: crearIdTicket(tickets),
-        fecha: fechaHoy(),
-        rol: rolAyuda,
-        usuario: usuarioAyuda,
+    const payload = {
         nombre: document.getElementById("soporteNombre").value.trim(),
         correo: document.getElementById("soporteCorreo").value.trim(),
         asunto: document.getElementById("soporteAsunto").value.trim(),
         area: document.getElementById("soporteArea").value,
-        detalle: document.getElementById("soporteDetalle").value.trim(),
-        respuesta: "",
-        estado: rolAyuda === "admin" ? "Nota interna" : "Abierto",
-        creadoEn: new Date().toISOString(),
-        respondidoEn: ""
+        detalle: document.getElementById("soporteDetalle").value.trim()
     };
 
-    if (!nuevoTicket.nombre || !nuevoTicket.correo || !nuevoTicket.asunto || !nuevoTicket.detalle) {
+    if (!payload.nombre || !payload.correo || !payload.asunto || !payload.detalle) {
         mostrarNotificacion("Completa todos los campos de soporte.", "error");
         return;
     }
 
-    tickets.unshift(nuevoTicket);
-    guardarTickets(tickets);
-    event.target.reset();
-    autollenarDatos();
-    configurarVista();
-    renderizarEncabezadoTickets();
-    renderizarTickets();
-    mostrarNotificacion("Consulta registrada correctamente.", "success");
+    try {
+        await apiJson("/soporte/crear/", {
+            method: "POST",
+            body: JSON.stringify(payload)
+        });
+        event.target.reset();
+        await cargarDatosBase();
+        autollenarDatos();
+        configurarVista();
+        renderizarEncabezadoTickets();
+        renderizarTickets();
+        mostrarNotificacion("Consulta registrada correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo registrar la consulta.", "error");
+    }
 });
 
 document.getElementById("filtroEstadoTicket")?.addEventListener("change", renderizarTickets);
 document.getElementById("filtroAreaTicket")?.addEventListener("change", renderizarTickets);
 
-configurarVista();
-autollenarDatos();
-renderizarEncabezadoTickets();
-renderizarTickets();
+async function iniciarAyuda() {
+    try {
+        await cargarDatosBase();
+        configurarVista();
+        autollenarDatos();
+        renderizarEncabezadoTickets();
+        renderizarTickets();
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo cargar soporte.", "error");
+    }
+}
+
+iniciarAyuda();

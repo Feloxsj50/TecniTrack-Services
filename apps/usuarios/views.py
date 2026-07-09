@@ -354,6 +354,7 @@ def exportar_backup(request):
     from apps.facturacion.models import Factura
     from apps.inventario.models import ProductoInventario
     from apps.servicios.models import SolicitudServicio
+    from apps.soporte.models import TicketSoporte
 
     backup = {
         "taller": serializar_taller(taller_actual()),
@@ -361,6 +362,6 @@ def exportar_backup(request):
         "servicios": list(SolicitudServicio.objects.values()),
         "inventario": list(ProductoInventario.objects.values()),
         "facturas": list(Factura.objects.values()),
-        "tickets": [],
+        "tickets": list(TicketSoporte.objects.values()),
     }
     return JsonResponse({"ok": True, "backup": backup})
