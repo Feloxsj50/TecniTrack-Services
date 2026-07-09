@@ -19,7 +19,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvio una respuesta no valida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -137,19 +137,19 @@ function pintarSelectTecnicos(valorSeleccionado = "") {
 
 async function cargarTecnicosDisponibles() {
     const select = document.getElementById("tecnicoServicio");
-    if (select) select.innerHTML = `<option value="">Cargando tecnicos...</option>`;
+    if (select) select.innerHTML = `<option value="">Cargando técnicos...</option>`;
 
     try {
         const respuesta = await fetch(`${API_BASE}/tecnicos/`, { credentials: "include" });
         const datos = await leerRespuestaJson(respuesta);
-        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los tecnicos.");
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los técnicos.");
 
         tecnicosDisponibles = datos.tecnicos.filter(tecnico => tecnico.estado === "Activo");
         pintarSelectTecnicos();
     } catch (error) {
         tecnicosDisponibles = [];
-        if (select) select.innerHTML = `<option value="">Sin tecnicos disponibles</option>`;
-        mostrarNotificacion(error.message || "No se pudieron cargar los tecnicos.", "error");
+        if (select) select.innerHTML = `<option value="">Sin técnicos disponibles</option>`;
+        mostrarNotificacion(error.message || "No se pudieron cargar los técnicos.", "error");
     }
 }
 

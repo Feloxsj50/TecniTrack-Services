@@ -10,7 +10,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvio una respuesta no valida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -75,7 +75,7 @@ function actualizarResumen() {
     document.getElementById("totalPagado").textContent = moneda(totalPagado);
     document.getElementById("saldoPendiente").textContent = moneda(saldoPendiente);
     document.getElementById("pagosRealizados").textContent = pagados.length;
-    document.getElementById("ultimaGarantia").textContent = ultimoPago?.garantia || "-";
+    document.getElementById("ultimaGarantía").textContent = ultimoPago?.garantia || "-";
 }
 
 function cargarPagoPendiente() {
@@ -165,9 +165,9 @@ function contenidoRecibo(pago) {
             <div><span>Cliente</span><strong>${escaparHtml(pago.cliente)}</strong></div>
             <div><span>Fecha</span><strong>${fechaLegible(pago.fecha)}</strong></div>
             <div><span>Dispositivo</span><strong>${escaparHtml(pago.dispositivo)}</strong></div>
-            <div><span>Tecnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
+            <div><span>Técnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
             <div><span>Metodo</span><strong>${escaparHtml(pago.metodo)}</strong></div>
-            <div><span>Garantia</span><strong>${escaparHtml(pago.garantia)}</strong></div>
+            <div><span>Garantía</span><strong>${escaparHtml(pago.garantia)}</strong></div>
         </div>
         <div class="recibo-lineas">
             <div class="recibo-linea">

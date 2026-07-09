@@ -125,7 +125,7 @@ new Chart(document.getElementById("graficaIngresosDia"), {
 new Chart(document.getElementById("graficaServicios"), {
     type: "bar",
     data: {
-        labels: ["Pantalla", "Bateria", "Limpieza", "Diagnostico"],
+        labels: ["Pantalla", "Batería", "Limpieza", "Diagnóstico"],
         datasets: [{
             label: "Servicios",
             data: [35, 22, 18, 15],
@@ -200,9 +200,9 @@ if (btnExcel) {
         csv += "\n";
         csv += "Servicio,Cantidad\n";
         csv += "Cambio de Pantalla,35\n";
-        csv += "Cambio de Bateria,22\n";
+        csv += "Cambio de Batería,22\n";
         csv += "Limpieza Interna,18\n";
-        csv += "Diagnostico,15\n";
+        csv += "Diagnóstico,15\n";
 
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const enlace = document.createElement("a");

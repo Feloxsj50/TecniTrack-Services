@@ -22,7 +22,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvio una respuesta no valida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -120,7 +120,7 @@ function renderizarServicioActual() {
     }
 
     titulo.textContent = `${actual.dispositivo} - ${actual.servicio}`;
-    detalle.textContent = `${actual.id} · ${estadoNormalizado(actual.estado)} · Tecnico: ${actual.tecnicoNombre || "Por asignar"}`;
+    detalle.textContent = `${actual.id} · ${estadoNormalizado(actual.estado)} · Técnico: ${actual.tecnicoNombre || "Por asignar"}`;
     boton.disabled = false;
     boton.onclick = () => abrirDetalleServicio(actual.dbId);
 }
@@ -243,14 +243,14 @@ function abrirDetalleServicio(dbId) {
 
     document.getElementById("panelServicioMeta").innerHTML = `
         <div><span>Fecha preferida</span><strong>${escaparHtml(solicitud.fecha || "-")}</strong></div>
-        <div><span>Tecnico</span><strong>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</strong></div>
+        <div><span>Técnico</span><strong>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</strong></div>
         <div><span>Estado</span><strong>${escaparHtml(estado)}</strong></div>
         <div><span>Recibo</span><strong>${solicitud.facturada ? "Disponible" : "Aun no emitido"}</strong></div>
     `;
 
     const diagnostico = solicitud.diagnostico
-        ? `<p><span>Diagnostico</span><strong>${escaparHtml(solicitud.diagnostico)}</strong></p>`
-        : `<p><span>Diagnostico</span><strong>El tecnico aun no ha registrado un diagnostico.</strong></p>`;
+        ? `<p><span>Diagnóstico</span><strong>${escaparHtml(solicitud.diagnostico)}</strong></p>`
+        : `<p><span>Diagnóstico</span><strong>El técnico aún no ha registrado un diagnóstico.</strong></p>`;
     const repuesto = solicitud.repuesto
         ? `<p><span>Repuesto</span><strong>${escaparHtml(solicitud.repuesto)}</strong></p>`
         : `<p><span>Repuesto</span><strong>Sin repuesto registrado.</strong></p>`;
@@ -258,7 +258,7 @@ function abrirDetalleServicio(dbId) {
         ? `<button type="button" class="btn-facturar-orden" id="btnVerReciboDetalle"><i class="fa-solid fa-receipt"></i> Ver recibo</button>`
         : "";
 
-    document.getElementById("panelServicioDiagnostico").innerHTML = `${diagnostico}${repuesto}${recibo}`;
+    document.getElementById("panelServicioDiagnóstico").innerHTML = `${diagnostico}${repuesto}${recibo}`;
     document.getElementById("btnVerReciboDetalle")?.addEventListener("click", () => {
         window.location.href = "mis-pagos.html";
     });
@@ -325,7 +325,7 @@ formSolicitud.addEventListener("submit", async event => {
         formSolicitud.reset();
         await cargarDatosCliente();
         await cargarSolicitudesCliente();
-        mostrarNotificacion("Solicitud enviada. El admin la revisara y asignara un tecnico.", "success");
+        mostrarNotificacion("Solicitud enviada. El admin la revisará y asignará un técnico.", "success");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo enviar la solicitud.", "error");
     }

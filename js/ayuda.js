@@ -7,7 +7,7 @@ const usuarioAyuda = sesionAyuda?.usuario || rolAyuda;
 
 const datosPerfil = {
     admin: { nombre: "Administrador TecniTrack", correo: "admin@tecnitrack.com" },
-    tecnico: { nombre: "Tecnico TecniTrack", correo: "tecnico@tecnitrack.com" },
+    tecnico: { nombre: "Técnico TecniTrack", correo: "tecnico@tecnitrack.com" },
     cliente: { nombre: "Cliente TecniTrack", correo: "cliente@email.com" }
 };
 
@@ -26,7 +26,7 @@ const configuracionAyuda = {
         ticketsTitulo: "Tickets abiertos por usuarios"
     },
     tecnico: {
-        titulo: "Soporte Tecnico",
+        titulo: "Soporte Técnico",
         cards: [
             ["Tec", "Mesa Interna"],
             ["Web", "Canal de Soporte"],
@@ -35,7 +35,7 @@ const configuracionAyuda = {
         ],
         formTitulo: "Pedir Apoyo al Admin",
         boton: "Enviar Consulta",
-        areas: ["Trabajo asignado", "Diagnostico", "Inventario", "Estado del servicio"],
+        areas: ["Trabajo asignado", "Diagnóstico", "Inventario", "Estado del servicio"],
         ticketsTitulo: "Mis tickets de soporte"
     },
     cliente: {

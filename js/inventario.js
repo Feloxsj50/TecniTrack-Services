@@ -20,7 +20,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvio una respuesta no valida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -98,7 +98,7 @@ function renderizarTabla(lista) {
                     <div class="empty-state">
                         <i class="fa-solid fa-boxes-stacked"></i>
                         <strong>Sin productos registrados</strong>
-                        <span>Cuando agregues productos al inventario, apareceran aqui.</span>
+                        <span>Cuando agregues productos al inventario, aparecerán aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -197,7 +197,7 @@ function limpiarFormulario() {
 
     productoEditandoId = null;
     const btnGuardar = document.getElementById("btnAgregarProducto");
-    btnGuardar.textContent = "Anadir";
+    btnGuardar.textContent = "Añadir";
     btnGuardar.style.background = "";
     btnGuardar.style.color = "";
     btnGuardar.style.borderColor = "";
@@ -230,12 +230,12 @@ function validarProducto(producto) {
     }
 
     if (!esEnteroNoNegativo(producto.stock) || !esEnteroNoNegativo(producto.stockMinimo)) {
-        mostrarNotificacion("El stock y el stock minimo deben ser numeros enteros de 0 en adelante.", "error");
+        mostrarNotificacion("El stock y el stock mínimo deben ser números enteros de 0 en adelante.", "error");
         return false;
     }
 
     if (!esPrecioValido(producto.compra) || !esPrecioValido(producto.venta)) {
-        mostrarNotificacion("Los precios deben ser numeros de 0 en adelante.", "error");
+        mostrarNotificacion("Los precios deben ser números de 0 en adelante.", "error");
         return false;
     }
 
@@ -274,7 +274,7 @@ async function eliminarProducto(productoId) {
 
     const confirmado = await confirmarAccion({
         titulo: "Eliminar producto",
-        mensaje: `Seguro que queres eliminar ${producto.nombre} del inventario?`
+        mensaje: `Seguro que quieres eliminar ${producto.nombre} del inventario?`
     });
 
     if (!confirmado) return;
@@ -320,7 +320,7 @@ async function cargarInventario() {
 function mostrarHistorialInventario() {
     const resumen = productos.length
         ? productos.map(producto => `${producto.id} - ${producto.nombre}: ${producto.stock} unidades (${producto.estado})`).join("\n")
-        : "Todavia no hay productos registrados.";
+        : "Todavía no hay productos registrados.";
 
     mostrarNotificacion(`Inventario actual:\n\n${resumen}`, "info");
 }
@@ -340,7 +340,7 @@ function exportarInventario() {
 
     descargarCsv(
         "reporte_inventario.csv",
-        ["ID", "Producto", "Categoria", "Stock", "Stock minimo", "Precio compra", "Precio venta", "Ubicacion", "Estado"],
+        ["ID", "Producto", "Categoría", "Stock", "Stock mínimo", "Precio compra", "Precio venta", "Ubicación", "Estado"],
         filas
     );
     mostrarNotificacion("Reporte de inventario exportado correctamente.", "success");

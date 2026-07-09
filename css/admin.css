@@ -1700,3 +1700,185 @@ body {
     color: var(--text-secondary);
     font-size: 12px;
 }
+
+/* ===== UI POLISH ===== */
+.content {
+    max-width: 1720px;
+}
+
+.content h1 {
+    display: flex;
+    align-items: center;
+    min-height: 34px;
+}
+
+.card {
+    min-height: 116px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+}
+
+.card h3 {
+    line-height: 1.15;
+    word-break: break-word;
+}
+
+.card p {
+    line-height: 1.35;
+}
+
+.form-container {
+    width: min(640px, 100%);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-container input,
+.form-container select,
+.form-container textarea,
+.orders-toolbar input,
+.orders-toolbar select,
+.support-filters select,
+.work-panel-form input,
+.work-panel-form select,
+.work-panel-form textarea {
+    min-height: 42px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.form-container input:hover,
+.form-container select:hover,
+.orders-toolbar input:hover,
+.orders-toolbar select:hover,
+.support-filters select:hover,
+.work-panel-form input:hover,
+.work-panel-form select:hover,
+.work-panel-form textarea:hover {
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+.form-container input:focus,
+.form-container select:focus,
+.orders-toolbar input:focus,
+.orders-toolbar select:focus,
+.support-filters select:focus,
+.work-panel-form input:focus,
+.work-panel-form select:focus,
+.work-panel-form textarea:focus {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.10);
+}
+
+.form-container button,
+.backup-panel button,
+.support-response-form button,
+.support-response-view button,
+.btn-facturar-orden,
+.btn-iniciar-trabajo,
+.tech-focus button,
+.btn-editar-historial,
+.btn-eliminar-tabla {
+    min-height: 38px;
+    line-height: 1;
+}
+
+.form-container button:disabled,
+.backup-panel button:disabled,
+.support-response-form button:disabled,
+.support-response-view button:disabled,
+.btn-facturar-orden:disabled,
+.btn-iniciar-trabajo:disabled,
+.tech-focus button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.historial,
+.quick-inventory,
+.client-faq {
+    width: 100%;
+    max-width: 100%;
+}
+
+.historial {
+    margin-top: 28px;
+    padding: 22px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-card) !important;
+    box-shadow: var(--shadow-card);
+    overflow-x: auto;
+}
+
+.historial table {
+    min-width: 880px;
+}
+
+.orders-heading {
+    position: sticky;
+    left: 0;
+}
+
+.orders-heading span {
+    padding: 5px 10px;
+    border: 0.5px solid rgba(148, 163, 184, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.orders-toolbar {
+    grid-template-columns: minmax(150px, 190px) minmax(150px, 190px) minmax(220px, 1fr);
+    background: rgba(16, 22, 45, 0.72);
+}
+
+.estado,
+.prioridad,
+.estado-cliente {
+    min-height: 28px;
+}
+
+.table-actions,
+td .table-actions {
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.empty-state {
+    min-height: 126px;
+}
+
+.client-suggestions {
+    border-color: rgba(34, 211, 238, 0.22);
+    background: rgba(10, 16, 32, 0.98);
+}
+
+.client-suggestion {
+    transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.client-suggestion:hover,
+.client-suggestion:focus {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 900px) {
+    .orders-toolbar {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 580px) {
+    .cards {
+        grid-template-columns: 1fr;
+    }
+
+    .card {
+        min-height: 104px;
+    }
+
+    .historial {
+        padding: 16px;
+    }
+}

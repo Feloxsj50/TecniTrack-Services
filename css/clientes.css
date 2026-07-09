@@ -1,4 +1,4 @@
-﻿
+
 .clientes-cards {
     margin-bottom: 30px;
 }
@@ -247,3 +247,69 @@
     .form-grid-clientes { grid-template-columns: 1fr; }
 }
 
+
+/* ===== UI POLISH CLIENTES ===== */
+.cliente-formulario,
+.cliente-resumen .resumen-box,
+.historial {
+    backdrop-filter: blur(10px);
+}
+
+.form-grid-clientes input,
+.form-grid-clientes select,
+.topbar input,
+.clientes-topbar input {
+    min-height: 44px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.form-grid-clientes input:hover,
+.form-grid-clientes select:hover,
+.clientes-topbar input:hover {
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+.form-grid-clientes input:focus,
+.form-grid-clientes select:focus,
+.clientes-topbar input:focus {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.10);
+}
+
+.acciones-clientes button,
+.btn-editar,
+.btn-eliminar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 38px;
+    line-height: 1;
+}
+
+.historial {
+    overflow-x: auto;
+}
+
+#tablaClientes {
+    min-width: 900px;
+}
+
+#tablaClientes th:last-child,
+#tablaClientes td:last-child {
+    text-align: right;
+}
+
+#tablaClientes small {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+@media (max-width: 768px) {
+    .acciones-clientes {
+        flex-direction: column;
+    }
+
+    .acciones-clientes button {
+        width: 100%;
+    }
+}

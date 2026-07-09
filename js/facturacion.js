@@ -20,7 +20,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvio una respuesta no valida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -136,7 +136,7 @@ function preseleccionarSolicitudUrl() {
 }
 function pintarTecnico(nombre) {
     const select = document.getElementById("tecnicoFactura");
-    select.innerHTML = `<option value="${escaparHtml(nombre || "")}">${escaparHtml(nombre || "Tecnico asignado")}</option>`;
+    select.innerHTML = `<option value="${escaparHtml(nombre || "")}">${escaparHtml(nombre || "Técnico asignado")}</option>`;
 }
 
 function seleccionarServicio(id) {
@@ -369,7 +369,7 @@ function facturaDesdeFormulario() {
         numero: document.getElementById("numeroFactura").value || "Factura",
         fecha: document.getElementById("fechaFactura").value || hoyIso(),
         cliente: document.getElementById("clienteFactura").value || "Sin cliente",
-        tecnico: document.getElementById("tecnicoFactura").value || "Sin tecnico",
+        tecnico: document.getElementById("tecnicoFactura").value || "Sin técnico",
         servicio: document.getElementById("servicioFactura").value || "Servicio no seleccionado",
         dispositivo: servicioSeleccionado?.dispositivo || "Sin dispositivo",
         metodoPago: document.getElementById("metodoPagoFactura").value,
@@ -425,11 +425,11 @@ function imprimirFactura(factura = null) {
                 <div><strong>Fecha:</strong> ${escaparHtml(data.fecha)}</div>
                 <div><strong>Cliente:</strong> ${escaparHtml(data.cliente)}</div>
                 <div><strong>Dispositivo:</strong> ${escaparHtml(data.dispositivo)}</div>
-                <div><strong>Tecnico:</strong> ${escaparHtml(data.tecnico)}</div>
+                <div><strong>Técnico:</strong> ${escaparHtml(data.tecnico)}</div>
                 <div><strong>Servicio:</strong> ${escaparHtml(data.servicio)}</div>
-                <div><strong>Metodo de pago:</strong> ${escaparHtml(data.metodoPago)}</div>
+                <div><strong>Método de pago:</strong> ${escaparHtml(data.metodoPago)}</div>
                 <div><strong>Estado:</strong> ${escaparHtml(data.estado)}</div>
-                <div><strong>Garantia:</strong> ${escaparHtml(data.garantia)}</div>
+                <div><strong>Garantía:</strong> ${escaparHtml(data.garantia)}</div>
             </div>
             <table>
                 <thead>
@@ -502,7 +502,7 @@ function conectarEventos() {
     document.getElementById("btnHistorialFacturas").addEventListener("click", () => {
         const resumen = facturas.length
             ? facturas.map(factura => `${factura.numero} - ${factura.cliente}: ${moneda(factura.total)} (${factura.estado})`).join("\n")
-            : "Todavia no hay facturas registradas.";
+            : "Todavía no hay facturas registradas.";
         mostrarNotificacion(`Historial actual de facturacion:\n\n${resumen}`, "info");
     });
 
@@ -519,7 +519,7 @@ function conectarEventos() {
 
         descargarCsv(
             "reporte_facturas.csv",
-            ["Factura", "Fecha", "Cliente", "Tecnico", "Total", "Metodo de pago", "Estado"],
+            ["Factura", "Fecha", "Cliente", "Técnico", "Total", "Método de pago", "Estado"],
             filas
         );
         mostrarNotificacion("Reporte de facturacion exportado correctamente.", "success");
