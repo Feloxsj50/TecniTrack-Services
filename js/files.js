@@ -10,9 +10,19 @@ const coloresTecniTrack = {
 };
 
 let reporteActual = {
-    facturas: [],
-    servicios: [],
-    clientes: []
+    cards: {
+        ingresos: 0,
+        facturas: 0,
+        pendientes: 0,
+        clientes: 0
+    },
+    graficos: {
+        ventasSemanales: { labels: ["Semana 1", "Semana 2", "Semana 3", "Semana 4"], data: [0, 0, 0, 0] },
+        metodosPago: { labels: ["Sin datos"], data: [0] },
+        ingresosDia: { labels: ["0"], data: [0] },
+        servicios: { labels: ["Sin datos"], data: [0] }
+    },
+    exportacion: []
 };
 let charts = [];
 
@@ -41,45 +51,6 @@ function destruirCharts() {
     charts = [];
 }
 
-function agruparPorSemana(facturas) {
-    const semanas = [0, 0, 0, 0];
-    facturas.forEach(factura => {
-        const dia = Number((factura.fecha || "").slice(8, 10));
-        const indice = Math.min(3, Math.max(0, Math.ceil((dia || 1) / 7) - 1));
-        semanas[indice] += Number(factura.total || 0);
-    });
-    return semanas;
-}
-
-function agruparMetodos(facturas) {
-    const metodos = { Efectivo: 0, Transferencia: 0, Tarjeta: 0 };
-    facturas.forEach(factura => {
-        const metodo = factura.metodoPago || "Efectivo";
-        metodos[metodo] = (metodos[metodo] || 0) + Number(factura.total || 0);
-    });
-    return metodos;
-}
-
-function agruparIngresosDia(facturas) {
-    const dias = new Map();
-    facturas.forEach(factura => {
-        const dia = (factura.fecha || "").slice(8, 10) || "--";
-        dias.set(dia, (dias.get(dia) || 0) + Number(factura.total || 0));
-    });
-    const ordenados = [...dias.entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
-    return ordenados.length ? ordenados : [["0", 0]];
-}
-
-function serviciosMasSolicitados(servicios) {
-    const conteo = new Map();
-    servicios.forEach(servicio => {
-        const nombre = servicio.servicio || "Sin servicio";
-        conteo.set(nombre, (conteo.get(nombre) || 0) + 1);
-    });
-    const ordenados = [...conteo.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-    return ordenados.length ? ordenados : [["Sin datos", 0]];
-}
-
 function opcionesBase() {
     return {
         responsive: true,
@@ -93,33 +64,24 @@ function opcionesBase() {
 }
 
 function pintarCards() {
-    const facturas = reporteActual.facturas;
-    const pagadas = facturas.filter(factura => factura.estado === "Pagado");
-    const pendientes = facturas.filter(factura => factura.estado === "Pendiente");
-    const clientesAtendidos = new Set(facturas.map(factura => factura.cliente).filter(Boolean));
-
-    document.getElementById("reporteIngresos").textContent = moneda(pagadas.reduce((total, factura) => total + Number(factura.total || 0), 0));
-    document.getElementById("reporteFacturas").textContent = facturas.length;
-    document.getElementById("reportePendientes").textContent = moneda(pendientes.reduce((total, factura) => total + Number(factura.total || 0), 0));
-    document.getElementById("reporteClientes").textContent = clientesAtendidos.size || reporteActual.clientes.length;
+    const cards = reporteActual.cards;
+    document.getElementById("reporteIngresos").textContent = moneda(cards.ingresos);
+    document.getElementById("reporteFacturas").textContent = cards.facturas;
+    document.getElementById("reportePendientes").textContent = moneda(cards.pendientes);
+    document.getElementById("reporteClientes").textContent = cards.clientes;
 }
 
 function pintarGraficos() {
     destruirCharts();
-    const facturas = reporteActual.facturas;
-    const servicios = reporteActual.servicios;
-    const semanas = agruparPorSemana(facturas);
-    const metodos = agruparMetodos(facturas);
-    const ingresosDia = agruparIngresosDia(facturas);
-    const topServicios = serviciosMasSolicitados(servicios);
+    const graficos = reporteActual.graficos;
 
     charts.push(new Chart(document.getElementById("graficaVentas"), {
         type: "line",
         data: {
-            labels: ["Semana 1", "Semana 2", "Semana 3", "Semana 4"],
+            labels: graficos.ventasSemanales.labels,
             datasets: [{
                 label: "Ventas",
-                data: semanas,
+                data: graficos.ventasSemanales.data,
                 borderColor: coloresTecniTrack.cyan,
                 backgroundColor: "rgba(34,211,238,0.12)",
                 fill: true,
@@ -135,9 +97,9 @@ function pintarGraficos() {
     charts.push(new Chart(document.getElementById("graficaPagos"), {
         type: "doughnut",
         data: {
-            labels: Object.keys(metodos),
+            labels: graficos.metodosPago.labels,
             datasets: [{
-                data: Object.values(metodos),
+                data: graficos.metodosPago.data,
                 backgroundColor: ["rgba(139,92,246,0.88)", "rgba(34,211,238,0.88)", "rgba(251,146,60,0.88)"],
                 borderColor: coloresTecniTrack.panel,
                 borderWidth: 3
@@ -149,10 +111,10 @@ function pintarGraficos() {
     charts.push(new Chart(document.getElementById("graficaIngresosDia"), {
         type: "bar",
         data: {
-            labels: ingresosDia.map(item => item[0]),
+            labels: graficos.ingresosDia.labels,
             datasets: [{
                 label: "Ingresos",
-                data: ingresosDia.map(item => item[1]),
+                data: graficos.ingresosDia.data,
                 backgroundColor: "rgba(74,222,128,0.72)",
                 borderColor: coloresTecniTrack.verde,
                 borderWidth: 1,
@@ -165,10 +127,10 @@ function pintarGraficos() {
     charts.push(new Chart(document.getElementById("graficaServicios"), {
         type: "bar",
         data: {
-            labels: topServicios.map(item => item[0]),
+            labels: graficos.servicios.labels,
             datasets: [{
                 label: "Servicios",
-                data: topServicios.map(item => item[1]),
+                data: graficos.servicios.data,
                 backgroundColor: ["rgba(139,92,246,0.78)", "rgba(34,211,238,0.72)", "rgba(74,222,128,0.68)", "rgba(251,146,60,0.72)", "rgba(248,113,113,0.68)"],
                 borderColor: [coloresTecniTrack.morado, coloresTecniTrack.cyan, coloresTecniTrack.verde, coloresTecniTrack.naranja, "#f87171"],
                 borderWidth: 1,
@@ -180,17 +142,18 @@ function pintarGraficos() {
 }
 
 function exportarCsv() {
-    const facturas = reporteActual.facturas;
-    const pagadas = facturas.filter(factura => factura.estado === "Pagado");
-    const pendientes = facturas.filter(factura => factura.estado === "Pendiente");
     let csv = "Reporte,Valor\n";
-    csv += `Ingresos Totales,${pagadas.reduce((total, factura) => total + Number(factura.total || 0), 0).toFixed(2)}\n`;
-    csv += `Facturas Emitidas,${facturas.length}\n`;
-    csv += `Pagos Pendientes,${pendientes.reduce((total, factura) => total + Number(factura.total || 0), 0).toFixed(2)}\n`;
-    csv += `Clientes Atendidos,${new Set(facturas.map(factura => factura.cliente).filter(Boolean)).size}\n`;
+    csv += `Ingresos Totales,${Number(reporteActual.cards.ingresos || 0).toFixed(2)}\n`;
+    csv += `Facturas Emitidas,${reporteActual.cards.facturas || 0}\n`;
+    csv += `Pagos Pendientes,${Number(reporteActual.cards.pendientes || 0).toFixed(2)}\n`;
+    csv += `Clientes Atendidos,${reporteActual.cards.clientes || 0}\n`;
     csv += "\nServicio,Cantidad\n";
-    serviciosMasSolicitados(reporteActual.servicios).forEach(([servicio, cantidad]) => {
-        csv += `${servicio},${cantidad}\n`;
+    reporteActual.graficos.servicios.labels.forEach((servicio, index) => {
+        csv += `${servicio},${reporteActual.graficos.servicios.data[index] || 0}\n`;
+    });
+    csv += "\nFactura,Fecha,Cliente,Servicio,Metodo,Estado,Total\n";
+    reporteActual.exportacion.forEach(factura => {
+        csv += `${factura.numero},${factura.fecha},${factura.cliente},${factura.servicio},${factura.metodoPago},${factura.estado},${factura.total}\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -203,16 +166,8 @@ function exportarCsv() {
 
 async function iniciarReportes() {
     try {
-        const [facturas, servicios, clientes] = await Promise.all([
-            cargarJson("/facturacion/"),
-            cargarJson("/servicios/"),
-            cargarJson("/clientes/")
-        ]);
-        reporteActual = {
-            facturas: facturas.facturas || [],
-            servicios: servicios.solicitudes || [],
-            clientes: clientes.clientes || []
-        };
+        const datos = await cargarJson("/dashboard/reportes/");
+        reporteActual = datos.reporte || reporteActual;
         pintarCards();
         pintarGraficos();
     } catch (error) {

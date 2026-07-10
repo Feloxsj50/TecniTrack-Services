@@ -3,6 +3,7 @@ let tecnicosDisponibles = [];
 let clientesDisponibles = [];
 let solicitudes = [];
 let csrfToken = "";
+let clienteSeleccionado = null;
 const filtrosOrdenes = { estado: "Todos", prioridad: "Todas", busqueda: "" };
 
 function escaparHtml(valor) {
@@ -54,8 +55,13 @@ function pintarDatalistClientes(filtro = "") {
     if (!contenedor) return;
 
     const texto = filtro.trim().toLowerCase();
+    if (texto.length < 1) {
+        contenedor.innerHTML = "";
+        contenedor.hidden = true;
+        return;
+    }
+
     const clientesFiltrados = clientesDisponibles.filter(cliente =>
-        !texto ||
         cliente.nombre.toLowerCase().includes(texto) ||
         cliente.usuario.toLowerCase().includes(texto) ||
         cliente.correo.toLowerCase().includes(texto)
@@ -74,10 +80,11 @@ function pintarDatalistClientes(filtro = "") {
         boton.className = "client-suggestion";
         boton.innerHTML = `
             <strong>${escaparHtml(cliente.nombre)}</strong>
-            <span>@${escaparHtml(cliente.usuario)} - ${escaparHtml(cliente.correo)}</span>
+            <span>@${escaparHtml(cliente.usuario)} - ${escaparHtml(cliente.correo)}${cliente.telefono ? ` - ${escaparHtml(cliente.telefono)}` : ""}</span>
         `;
         boton.addEventListener("click", () => {
-            document.getElementById("cliente").value = cliente.nombre;
+            clienteSeleccionado = cliente;
+            document.getElementById("cliente").value = `${cliente.nombre} (@${cliente.usuario})`;
             contenedor.hidden = true;
         });
         contenedor.appendChild(boton);
@@ -93,30 +100,57 @@ async function cargarClientesDisponibles() {
         if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los clientes.");
 
         clientesDisponibles = datos.clientes.filter(cliente => cliente.estado === "Activo");
-        pintarDatalistClientes();
     } catch (error) {
         clientesDisponibles = [];
-        pintarDatalistClientes();
         mostrarNotificacion(error.message || "No se pudieron cargar los clientes.", "error");
     }
 }
 
-function valorClienteParaBackend(valor) {
+function resolverClienteFormulario(valor) {
     const texto = valor.trim().toLowerCase();
+    const usuarioEnTexto = valor.match(/@([A-Za-z0-9._-]{4,30})/);
+
+    if (clienteSeleccionado && (
+        texto === clienteSeleccionado.usuario.toLowerCase() ||
+        texto === clienteSeleccionado.nombre.toLowerCase() ||
+        texto === `${clienteSeleccionado.nombre} (@${clienteSeleccionado.usuario})`.toLowerCase()
+    )) {
+        return { valor: clienteSeleccionado.usuario, clienteId: clienteSeleccionado.id };
+    }
+
+    if (usuarioEnTexto) {
+        const clientePorUsuario = clientesDisponibles.find(item => item.usuario.toLowerCase() === usuarioEnTexto[1].toLowerCase());
+        if (clientePorUsuario) return { valor: clientePorUsuario.usuario, clienteId: clientePorUsuario.id };
+    }
+
     const cliente = clientesDisponibles.find(item =>
         item.usuario.toLowerCase() === texto ||
-        item.nombre.toLowerCase() === texto ||
         item.correo.toLowerCase() === texto
     );
 
-    return cliente ? cliente.usuario : valor.trim();
+    if (cliente) return { valor: cliente.usuario, clienteId: cliente.id };
+
+    const coincidenciasNombre = clientesDisponibles.filter(item => item.nombre.toLowerCase() === texto);
+    if (coincidenciasNombre.length > 1) {
+        return {
+            valor: "",
+            clienteId: "",
+            error: "Hay varios clientes con ese nombre. Selecciona el correcto desde la lista."
+        };
+    }
+
+    if (coincidenciasNombre.length === 1) {
+        return { valor: coincidenciasNombre[0].usuario, clienteId: coincidenciasNombre[0].id };
+    }
+
+    return { valor: valor.trim(), clienteId: "" };
 }
 
 function pintarSelectTecnicos(valorSeleccionado = "") {
     const select = document.getElementById("tecnicoServicio");
     if (!select) return;
 
-    select.innerHTML = `<option value="">Asignar tecnico</option>`;
+    select.innerHTML = `<option value="">Asignar técnico</option>`;
 
     tecnicosDisponibles.forEach(tecnico => {
         const option = document.createElement("option");
@@ -193,7 +227,7 @@ function actualizarContadorOrdenes(totalVisible) {
     const contador = document.getElementById("contadorOrdenes");
     if (!contador) return;
     const total = totalVisible ?? ordenesFiltradas().length;
-    contador.textContent = `${total} ${total === 1 ? "orden" : "ordenes"}`;
+    contador.textContent = `${total} ${total === 1 ? "orden" : "órdenes"}`;
 }
 
 function irAFacturacion(dbId) {
@@ -218,8 +252,8 @@ function cargarServicios() {
                 <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
-                        <strong>Sin ordenes registradas</strong>
-                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecera aqui.</span>
+                        <strong>Sin órdenes registradas</strong>
+                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecerá aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -245,6 +279,9 @@ function cargarServicios() {
                     <button class="btn-editar-historial" type="button" data-editar="${solicitud.dbId}">
                         <i class="fa-solid fa-pen"></i> Editar
                     </button>
+                    <button class="btn-eliminar-tabla" type="button" data-eliminar="${solicitud.dbId}">
+                        <i class="fa-solid fa-trash"></i> Eliminar
+                    </button>
                     ${estadoNormalizado(solicitud.estado) === "Completado" ? `
                         <button class="btn-facturar-orden" type="button" data-facturar="${solicitud.dbId}" ${puedeFacturar ? "" : "disabled"}>
                             <i class="fa-solid fa-file-invoice-dollar"></i> ${textoFacturar}
@@ -263,6 +300,10 @@ function cargarServicios() {
     tabla.querySelectorAll("[data-facturar]").forEach(boton => {
         boton.addEventListener("click", () => irAFacturacion(Number(boton.dataset.facturar)));
     });
+
+    tabla.querySelectorAll("[data-eliminar]").forEach(boton => {
+        boton.addEventListener("click", () => eliminarServicio(Number(boton.dataset.eliminar)));
+    });
 }
 async function obtenerSolicitudes() {
     const respuesta = await fetch(`${API_BASE}/servicios/`, { credentials: "include" });
@@ -276,6 +317,7 @@ async function obtenerSolicitudes() {
 function limpiarFormulario() {
     document.getElementById("idEditar").value = "";
     document.getElementById("cliente").value = "";
+    clienteSeleccionado = null;
     document.getElementById("dispositivo").value = "";
     document.getElementById("servicio").value = "";
     document.getElementById("fecha").value = "";
@@ -291,7 +333,8 @@ function editarServicio(dbId) {
     if (!solicitud) return;
 
     document.getElementById("idEditar").value = solicitud.dbId;
-    document.getElementById("cliente").value = solicitud.usuarioCliente;
+    document.getElementById("cliente").value = solicitud.usuarioCliente || solicitud.cliente;
+    clienteSeleccionado = clientesDisponibles.find(cliente => cliente.usuario === solicitud.usuarioCliente) || null;
     document.getElementById("dispositivo").value = solicitud.dispositivo;
     document.getElementById("servicio").value = solicitud.servicio;
     document.getElementById("fecha").value = solicitud.fecha;
@@ -306,8 +349,15 @@ function editarServicio(dbId) {
 
 document.getElementById("btnGuardar")?.addEventListener("click", async () => {
     const idEditar = document.getElementById("idEditar").value;
+    const clienteResuelto = resolverClienteFormulario(document.getElementById("cliente").value);
+    if (clienteResuelto.error) {
+        mostrarNotificacion(clienteResuelto.error, "error");
+        return;
+    }
+
     const payload = {
-        cliente: valorClienteParaBackend(document.getElementById("cliente").value),
+        cliente: clienteResuelto.valor,
+        clienteId: clienteResuelto.clienteId,
         dispositivo: document.getElementById("dispositivo").value.trim(),
         servicio: document.getElementById("servicio").value.trim(),
         fecha: document.getElementById("fecha").value,
@@ -344,11 +394,41 @@ document.getElementById("btnGuardar")?.addEventListener("click", async () => {
     }
 });
 
+async function eliminarServicio(dbId) {
+    const solicitud = solicitudes.find(item => item.dbId === dbId);
+    if (!solicitud) return;
+
+    const confirmado = await confirmarAccion({
+        titulo: "Eliminar orden",
+        mensaje: `Seguro que quieres eliminar ${solicitud.id} de ${solicitud.cliente}? Esta acción no se puede deshacer.`
+    });
+    if (!confirmado) return;
+
+    try {
+        const token = await obtenerCsrfToken();
+        const respuesta = await fetch(`${API_BASE}/servicios/${dbId}/eliminar/`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "X-CSRFToken": token }
+        });
+        const datos = await leerRespuestaJson(respuesta);
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo eliminar la orden.");
+
+        mostrarNotificacion("Orden eliminada correctamente.", "success");
+        if (Number(document.getElementById("idEditar").value) === dbId) limpiarFormulario();
+        await obtenerSolicitudes();
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo eliminar la orden.", "error");
+    }
+}
+
 const inputCliente = document.getElementById("cliente");
 const sugerenciasCliente = document.getElementById("clientesServicioList");
 
-inputCliente?.addEventListener("input", () => pintarDatalistClientes(inputCliente.value));
-inputCliente?.addEventListener("focus", () => pintarDatalistClientes(inputCliente.value));
+inputCliente?.addEventListener("input", () => {
+    clienteSeleccionado = null;
+    pintarDatalistClientes(inputCliente.value);
+});
 document.addEventListener("click", event => {
     if (!event.target.closest(".client-picker")) {
         if (sugerenciasCliente) sugerenciasCliente.hidden = true;

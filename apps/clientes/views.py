@@ -4,6 +4,7 @@ import re
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
+from apps.servicios.models import SolicitudServicio
 from apps.usuarios.models import Usuario
 from .models import Cliente
 
@@ -197,10 +198,24 @@ def eliminar_cliente(request, cliente_id):
     if permiso:
         return permiso
 
+    datos, error = obtener_datos_request(request)
+    if error:
+        return error
+
     try:
         cliente = Cliente.objects.select_related("usuario").get(id=cliente_id)
     except Cliente.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Cliente no encontrado."}, status=404)
+
+    eliminar_solicitudes = bool(datos.get("eliminarSolicitudes"))
+    nombre_cliente = cliente.usuario.get_full_name() or cliente.usuario.username
+    if eliminar_solicitudes:
+        SolicitudServicio.objects.filter(cliente=cliente, factura__isnull=True).delete()
+
+    SolicitudServicio.objects.filter(cliente=cliente).update(
+        cliente_nombre=nombre_cliente,
+        cliente=None,
+    )
 
     cliente.usuario.delete()
     return JsonResponse({"ok": True})

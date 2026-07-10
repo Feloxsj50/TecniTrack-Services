@@ -124,6 +124,18 @@ def buscar_cliente(valor):
     return None
 
 
+def buscar_cliente_por_id(valor):
+    if not valor:
+        return None
+
+    try:
+        cliente_id = int(valor)
+    except (TypeError, ValueError):
+        return None
+
+    return Cliente.objects.select_related("usuario").filter(id=cliente_id).first()
+
+
 def buscar_tecnico(username):
     username = username.strip()
     if not username:
@@ -164,7 +176,7 @@ def crear_solicitud(request):
         tecnico = None
     elif request.user.rol == Usuario.Rol.ADMIN:
         cliente_nombre = datos.get("cliente", "").strip()
-        cliente = buscar_cliente(cliente_nombre)
+        cliente = buscar_cliente_por_id(datos.get("clienteId")) or buscar_cliente(cliente_nombre)
     else:
         return JsonResponse({"ok": False, "error": "No tienes permiso para crear solicitudes."}, status=403)
 
@@ -202,7 +214,7 @@ def actualizar_solicitud(request, solicitud_id):
 
     if request.user.rol == Usuario.Rol.ADMIN:
         cliente_nombre = datos.get("cliente", "").strip()
-        cliente = buscar_cliente(cliente_nombre)
+        cliente = buscar_cliente_por_id(datos.get("clienteId")) or buscar_cliente(cliente_nombre)
 
         solicitud.cliente = cliente
         solicitud.cliente_nombre = "" if cliente else cliente_nombre
@@ -228,3 +240,26 @@ def actualizar_solicitud(request, solicitud_id):
     solicitud.save()
     solicitud.refresh_from_db()
     return JsonResponse({"ok": True, "solicitud": serializar_solicitud(solicitud)})
+
+
+@require_POST
+def eliminar_solicitud(request, solicitud_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+
+    if request.user.rol != Usuario.Rol.ADMIN:
+        return JsonResponse({"ok": False, "error": "Solo admin puede eliminar órdenes."}, status=403)
+
+    try:
+        solicitud = SolicitudServicio.objects.get(id=solicitud_id)
+    except SolicitudServicio.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Solicitud no encontrada."}, status=404)
+
+    if hasattr(solicitud, "factura"):
+        return JsonResponse(
+            {"ok": False, "error": "No se puede eliminar una orden facturada. Conserva ese registro para el historial."},
+            status=400,
+        )
+
+    solicitud.delete()
+    return JsonResponse({"ok": True})

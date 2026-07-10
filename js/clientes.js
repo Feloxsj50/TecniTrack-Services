@@ -305,11 +305,20 @@ async function eliminarCliente(clienteId) {
 
     if (!confirmado) return;
 
+    const eliminarSolicitudes = await confirmarAccion({
+        titulo: "Órdenes del cliente",
+        mensaje: "Quieres eliminar también las órdenes no facturadas de este cliente? Las facturadas se conservan como historial."
+    });
+
     const token = await obtenerCsrfToken();
     const respuesta = await fetch(`${API_BASE}/clientes/${clienteId}/eliminar/`, {
         method: "POST",
         credentials: "include",
-        headers: { "X-CSRFToken": token }
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": token
+        },
+        body: JSON.stringify({ eliminarSolicitudes })
     });
     const datos = await leerRespuestaJson(respuesta);
 
