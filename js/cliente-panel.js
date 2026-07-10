@@ -32,7 +32,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
+        return { ok: false, error: "Django devolvi\u00f3 una respuesta no v\u00e1lida." };
     }
 }
 
@@ -123,14 +123,14 @@ function renderizarServicioActual() {
 
     if (!actual) {
         titulo.textContent = "Sin solicitudes activas";
-        detalle.textContent = "Cuando envies una solicitud, podras seguir aqui el estado de tu equipo.";
+        detalle.textContent = "Cuando env\u00edes una solicitud, podr\u00e1s seguir aqu\u00ed el estado de tu equipo.";
         boton.disabled = true;
         boton.onclick = null;
         return;
     }
 
     titulo.textContent = `${actual.dispositivo} - ${actual.servicio}`;
-    detalle.textContent = `${actual.id} Â· ${estadoNormalizado(actual.estado)} Â· TÃ©cnico: ${actual.tecnicoNombre || "Por asignar"}`;
+    detalle.textContent = `${actual.id} - ${estadoNormalizado(actual.estado)} - T\u00e9cnico: ${actual.tecnicoNombre || "Por asignar"}`;
     boton.disabled = false;
     boton.onclick = () => abrirDetalleServicio(actual.dbId);
 }
@@ -150,7 +150,7 @@ function renderizarSolicitudesCliente() {
                     <div class="empty-state">
                         <i class="fa-solid fa-clipboard-list"></i>
                         <strong>Sin servicios para mostrar</strong>
-                        <span>Cuando solicites o recibas un servicio, aparecera aqui tu historial.</span>
+                        <span>Cuando solicites o recibas un servicio, aparecer\u00e1 aqu\u00ed tu historial.</span>
                     </div>
                 </td>
             </tr>
@@ -172,7 +172,7 @@ function renderizarSolicitudesCliente() {
             <td>
                 <div class="table-actions">
                     <button type="button" class="btn-editar-historial" data-servicio="${solicitud.dbId}">
-                        <i class="fa-solid fa-eye"></i> Ver detalle
+                        <i class="fa-solid fa-eye"></i> Ver
                     </button>
                     ${puedeVerRecibo ? `
                         <button type="button" class="btn-facturar-orden" data-recibos>
@@ -229,7 +229,7 @@ function renderizarPasosEstado(solicitud) {
     const estado = estadoNormalizado(solicitud.estado);
     const pasos = [
         { estado: "Pendiente", texto: "Solicitud recibida" },
-        { estado: "En Proceso", texto: "En revision" },
+        { estado: "En Proceso", texto: "En revisi\u00f3n" },
         { estado: "Completado", texto: "Servicio completado" }
     ];
     const indiceActual = pasos.findIndex(paso => paso.estado === estado);
@@ -253,14 +253,14 @@ function abrirDetalleServicio(dbId) {
 
     document.getElementById("panelServicioMeta").innerHTML = `
         <div><span>Fecha preferida</span><strong>${escaparHtml(solicitud.fecha || "-")}</strong></div>
-        <div><span>TÃ©cnico</span><strong>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</strong></div>
+        <div><span>T\u00e9cnico</span><strong>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</strong></div>
         <div><span>Estado</span><strong>${escaparHtml(estado)}</strong></div>
-        <div><span>Recibo</span><strong>${solicitud.facturada ? "Disponible" : "Aun no emitido"}</strong></div>
+        <div><span>Recibo</span><strong>${solicitud.facturada ? "Disponible" : "A\u00fan no emitido"}</strong></div>
     `;
 
     const diagnostico = solicitud.diagnostico
-        ? `<p><span>DiagnÃ³stico</span><strong>${escaparHtml(solicitud.diagnostico)}</strong></p>`
-        : `<p><span>DiagnÃ³stico</span><strong>El tÃ©cnico aÃºn no ha registrado un diagnÃ³stico.</strong></p>`;
+        ? `<p><span>Diagn\u00f3stico</span><strong>${escaparHtml(solicitud.diagnostico)}</strong></p>`
+        : `<p><span>Diagn\u00f3stico</span><strong>El t\u00e9cnico a\u00fan no ha registrado un diagn\u00f3stico.</strong></p>`;
     const repuesto = solicitud.repuesto
         ? `<p><span>Repuesto</span><strong>${escaparHtml(solicitud.repuesto)}</strong></p>`
         : `<p><span>Repuesto</span><strong>Sin repuesto registrado.</strong></p>`;
@@ -335,7 +335,7 @@ formSolicitud.addEventListener("submit", async event => {
         formSolicitud.reset();
         await cargarDatosCliente();
         await cargarSolicitudesCliente();
-        mostrarNotificacion("Solicitud enviada. El admin la revisarÃ¡ y asignarÃ¡ un tÃ©cnico.", "success");
+        mostrarNotificacion("Solicitud enviada. El admin la revisar\u00e1 y asignar\u00e1 un t\u00e9cnico.", "success");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo enviar la solicitud.", "error");
     }
@@ -353,4 +353,5 @@ function iniciarPanelCliente() {
 }
 
 iniciarPanelCliente();
+
 

@@ -20,7 +20,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
+        return { ok: false, error: "Django devolvi\u00f3 una respuesta no v\u00e1lida." };
     }
 }
 
@@ -75,9 +75,15 @@ function escaparHtml(valor) {
         .replaceAll("'", "&#039;");
 }
 
+function estadoFacturaNormalizado(estado) {
+    const valor = String(estado || "").trim().toLowerCase();
+    if (valor === "pagado" || valor === "paid") return "Pagado";
+    if (valor === "pendiente" || valor === "pending") return "Pendiente";
+    return estado || "Pendiente";
+}
 function actualizarResumen() {
-    const pagados = pagosCliente.filter(pago => pago.estado === "Pagado");
-    const pendientes = pagosCliente.filter(pago => pago.estado === "Pendiente");
+    const pagados = pagosCliente.filter(pago => estadoFacturaNormalizado(pago.estado) === "Pagado");
+    const pendientes = pagosCliente.filter(pago => estadoFacturaNormalizado(pago.estado) === "Pendiente");
     const totalPagado = pagados.reduce((total, pago) => total + pago.total, 0);
     const saldoPendiente = pendientes.reduce((total, pago) => total + pago.total, 0);
     const ultimoPago = pagados.slice().sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
@@ -85,11 +91,11 @@ function actualizarResumen() {
     document.getElementById("totalPagado").textContent = moneda(totalPagado);
     document.getElementById("saldoPendiente").textContent = moneda(saldoPendiente);
     document.getElementById("pagosRealizados").textContent = pagados.length;
-    document.getElementById("ultimaGarantÃ­a").textContent = ultimoPago?.garantia || "-";
+    document.getElementById("ultimaGarantia").textContent = ultimoPago?.garantia || "-";
 }
 
 function cargarPagoPendiente() {
-    const pendiente = pagosCliente.find(pago => pago.estado === "Pendiente");
+    const pendiente = pagosCliente.find(pago => estadoFacturaNormalizado(pago.estado) === "Pendiente");
     const panel = document.getElementById("pagoPendiente");
 
     if (!pendiente) {
@@ -110,7 +116,7 @@ function cargarPagoPendiente() {
 
 function renderizarHistorial(lista) {
     tablaPagos.innerHTML = "";
-    const pagados = lista.filter(pago => pago.estado === "Pagado");
+    const pagados = lista.filter(pago => estadoFacturaNormalizado(pago.estado) === "Pagado");
 
     if (!pagados.length) {
         tablaPagos.innerHTML = `
@@ -119,7 +125,7 @@ function renderizarHistorial(lista) {
                     <div class="empty-state">
                         <i class="fa-solid fa-receipt"></i>
                         <strong>Sin recibos registrados</strong>
-                        <span>Cuando el admin emita un recibo por un servicio completado, aparecera aqui.</span>
+                        <span>Cuando el admin emita un recibo por un servicio completado, aparecer\u00e1 aqu\u00ed.</span>
                     </div>
                 </td>
             </tr>
@@ -175,9 +181,9 @@ function contenidoRecibo(pago) {
             <div><span>Cliente</span><strong>${escaparHtml(pago.cliente)}</strong></div>
             <div><span>Fecha</span><strong>${fechaLegible(pago.fecha)}</strong></div>
             <div><span>Dispositivo</span><strong>${escaparHtml(pago.dispositivo)}</strong></div>
-            <div><span>TÃ©cnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
-            <div><span>Metodo</span><strong>${escaparHtml(pago.metodo)}</strong></div>
-            <div><span>GarantÃ­a</span><strong>${escaparHtml(pago.garantia)}</strong></div>
+            <div><span>T\u00e9cnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
+            <div><span>M\u00e9todo</span><strong>${escaparHtml(pago.metodo)}</strong></div>
+            <div><span>Garant\u00eda</span><strong>${escaparHtml(pago.garantia)}</strong></div>
         </div>
         <div class="recibo-lineas">
             <div class="recibo-linea">
@@ -209,7 +215,7 @@ function imprimirRecibo() {
     const ventana = window.open("", "_blank");
 
     if (!ventana) {
-        mostrarNotificacion("El navegador bloqueo la ventana de impresion.");
+        mostrarNotificacion("El navegador bloque\u00f3 la ventana de impresi\u00f3n.");
         return;
     }
 
@@ -272,4 +278,5 @@ async function iniciarRecibos() {
 }
 
 iniciarRecibos();
+
 
