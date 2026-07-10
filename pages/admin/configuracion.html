@@ -26,7 +26,7 @@
 
                 <div class="card">
                     <h3>v1.0</h3>
-                    <p>Version del Sistema</p>
+                    <p>Versión del Sistema</p>
                 </div>
 
                 <div class="card">
@@ -45,16 +45,16 @@
 
                 <input type="text" id="nombreTaller" placeholder="Nombre del negocio" required>
                 <input type="email" id="correoTaller" placeholder="Correo de soporte" required>
-                <input type="text" id="direccionTaller" placeholder="Direccion del taller" required>
-                <input type="text" id="telefonoTaller" placeholder="Telefono directo 7777-8888" maxlength="9" required>
+                <input type="text" id="direccionTaller" placeholder="Dirección del taller" required>
+                <input type="text" id="telefonoTaller" placeholder="Teléfono directo 7777-8888" maxlength="9" required>
                 <input type="text" id="whatsappTaller" placeholder="WhatsApp 7777-8888" maxlength="9" required>
-                <input type="text" id="horarioTaller" placeholder="Horario de atencion" required>
+                <input type="text" id="horarioTaller" placeholder="Horario de atención" required>
 
                 <button type="submit">Guardar Datos del Taller</button>
             </form>
 
             <div class="historial">
-                <h2>Gestion de Usuarios</h2>
+                <h2>Gestión de Usuarios</h2>
 
                 <table id="tablaUsuariosConfig">
                     <thead>
@@ -74,11 +74,23 @@
             <div class="backup-panel">
                 <div>
                     <h2>Respaldo de Datos</h2>
-                    <p>Exporta usuarios, servicios, inventario, facturas y datos del taller guardados en Django.</p>
+                    <p>Exporta usuarios, servicios, inventario, facturas, tickets y datos del taller guardados en Django.</p>
+                    <div class="backup-summary" id="backupSummary">
+                        <span>Usuarios: <strong id="backupUsuarios">0</strong></span>
+                        <span>Servicios: <strong id="backupServicios">0</strong></span>
+                        <span>Inventario: <strong id="backupInventario">0</strong></span>
+                        <span>Facturas: <strong id="backupFacturas">0</strong></span>
+                        <span>Tickets: <strong id="backupTickets">0</strong></span>
+                    </div>
                 </div>
-                <button type="button" id="btnExportarBackup">
-                    <i class="fa-solid fa-download"></i> Exportar JSON
-                </button>
+                <div class="backup-actions">
+                    <button type="button" id="btnExportarBackup">
+                        <i class="fa-solid fa-download"></i> JSON completo
+                    </button>
+                    <button type="button" id="btnExportarCsv">
+                        <i class="fa-solid fa-file-csv"></i> CSV por módulo
+                    </button>
+                </div>
             </div>
         </section>
     </div>

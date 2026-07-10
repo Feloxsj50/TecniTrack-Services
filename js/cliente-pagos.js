@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 let pagosCliente = [];
 
 const tablaPagos = document.querySelector("#tablaPagosCliente tbody");
@@ -10,7 +20,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
     }
 }
 
@@ -75,7 +85,7 @@ function actualizarResumen() {
     document.getElementById("totalPagado").textContent = moneda(totalPagado);
     document.getElementById("saldoPendiente").textContent = moneda(saldoPendiente);
     document.getElementById("pagosRealizados").textContent = pagados.length;
-    document.getElementById("ultimaGarantía").textContent = ultimoPago?.garantia || "-";
+    document.getElementById("ultimaGarantÃ­a").textContent = ultimoPago?.garantia || "-";
 }
 
 function cargarPagoPendiente() {
@@ -165,9 +175,9 @@ function contenidoRecibo(pago) {
             <div><span>Cliente</span><strong>${escaparHtml(pago.cliente)}</strong></div>
             <div><span>Fecha</span><strong>${fechaLegible(pago.fecha)}</strong></div>
             <div><span>Dispositivo</span><strong>${escaparHtml(pago.dispositivo)}</strong></div>
-            <div><span>Técnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
+            <div><span>TÃ©cnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
             <div><span>Metodo</span><strong>${escaparHtml(pago.metodo)}</strong></div>
-            <div><span>Garantía</span><strong>${escaparHtml(pago.garantia)}</strong></div>
+            <div><span>GarantÃ­a</span><strong>${escaparHtml(pago.garantia)}</strong></div>
         </div>
         <div class="recibo-lineas">
             <div class="recibo-linea">
@@ -262,3 +272,4 @@ async function iniciarRecibos() {
 }
 
 iniciarRecibos();
+

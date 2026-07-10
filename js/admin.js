@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 let tecnicosDisponibles = [];
 let clientesDisponibles = [];
 let solicitudes = [];
@@ -20,7 +30,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
     }
 }
 
@@ -150,7 +160,7 @@ function pintarSelectTecnicos(valorSeleccionado = "") {
     const select = document.getElementById("tecnicoServicio");
     if (!select) return;
 
-    select.innerHTML = `<option value="">Asignar técnico</option>`;
+    select.innerHTML = `<option value="">Asignar tÃ©cnico</option>`;
 
     tecnicosDisponibles.forEach(tecnico => {
         const option = document.createElement("option");
@@ -171,19 +181,19 @@ function pintarSelectTecnicos(valorSeleccionado = "") {
 
 async function cargarTecnicosDisponibles() {
     const select = document.getElementById("tecnicoServicio");
-    if (select) select.innerHTML = `<option value="">Cargando técnicos...</option>`;
+    if (select) select.innerHTML = `<option value="">Cargando tÃ©cnicos...</option>`;
 
     try {
         const respuesta = await fetch(`${API_BASE}/tecnicos/`, { credentials: "include" });
         const datos = await leerRespuestaJson(respuesta);
-        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los técnicos.");
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los tÃ©cnicos.");
 
         tecnicosDisponibles = datos.tecnicos.filter(tecnico => tecnico.estado === "Activo");
         pintarSelectTecnicos();
     } catch (error) {
         tecnicosDisponibles = [];
-        if (select) select.innerHTML = `<option value="">Sin técnicos disponibles</option>`;
-        mostrarNotificacion(error.message || "No se pudieron cargar los técnicos.", "error");
+        if (select) select.innerHTML = `<option value="">Sin tÃ©cnicos disponibles</option>`;
+        mostrarNotificacion(error.message || "No se pudieron cargar los tÃ©cnicos.", "error");
     }
 }
 
@@ -227,7 +237,7 @@ function actualizarContadorOrdenes(totalVisible) {
     const contador = document.getElementById("contadorOrdenes");
     if (!contador) return;
     const total = totalVisible ?? ordenesFiltradas().length;
-    contador.textContent = `${total} ${total === 1 ? "orden" : "órdenes"}`;
+    contador.textContent = `${total} ${total === 1 ? "orden" : "Ã³rdenes"}`;
 }
 
 function irAFacturacion(dbId) {
@@ -252,8 +262,8 @@ function cargarServicios() {
                 <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
-                        <strong>Sin órdenes registradas</strong>
-                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecerá aquí.</span>
+                        <strong>Sin Ã³rdenes registradas</strong>
+                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecerÃ¡ aquÃ­.</span>
                     </div>
                 </td>
             </tr>
@@ -400,7 +410,7 @@ async function eliminarServicio(dbId) {
 
     const confirmado = await confirmarAccion({
         titulo: "Eliminar orden",
-        mensaje: `Seguro que quieres eliminar ${solicitud.id} de ${solicitud.cliente}? Esta acción no se puede deshacer.`
+        mensaje: `Seguro que quieres eliminar ${solicitud.id} de ${solicitud.cliente}? Esta acciÃ³n no se puede deshacer.`
     });
     if (!confirmado) return;
 
@@ -462,3 +472,4 @@ async function iniciarDashboardAdmin() {
 }
 
 iniciarDashboardAdmin();
+

@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import update_session_auth_hash
 from django.middleware.csrf import get_token
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
@@ -62,6 +63,22 @@ def serializar_taller(taller):
         "horario": taller.horario,
         "actualizadoEn": taller.actualizado_en.isoformat(),
     }
+
+
+def iso(valor):
+    if not valor:
+        return ""
+    if hasattr(valor, "isoformat"):
+        return valor.isoformat()
+    return str(valor)
+
+
+def decimal_float(valor):
+    return float(valor or 0)
+
+
+def nombre_usuario(usuario):
+    return usuario.get_full_name() or usuario.username
 @ensure_csrf_cookie
 @require_GET
 def csrf_token(request):
@@ -355,13 +372,146 @@ def exportar_backup(request):
     from apps.inventario.models import ProductoInventario
     from apps.servicios.models import SolicitudServicio
     from apps.soporte.models import TicketSoporte
+    from apps.tecnicos.models import Tecnico
+
+    usuarios = Usuario.objects.all().order_by("rol", "username")
+    clientes = Cliente.objects.select_related("usuario").all()
+    tecnicos = Tecnico.objects.select_related("usuario").all()
+    servicios = SolicitudServicio.objects.select_related("cliente__usuario", "tecnico__usuario").all()
+    inventario = ProductoInventario.objects.all()
+    facturas = Factura.objects.select_related("solicitud__cliente__usuario", "solicitud__tecnico__usuario").all()
+    tickets = TicketSoporte.objects.select_related("usuario").all()
+
+    resumen = {
+        "usuarios": usuarios.count(),
+        "clientes": clientes.count(),
+        "tecnicos": tecnicos.count(),
+        "servicios": servicios.count(),
+        "inventario": inventario.count(),
+        "facturas": facturas.count(),
+        "tickets": tickets.count(),
+    }
+
+    if request.GET.get("resumen") == "1":
+        return JsonResponse({
+            "ok": True,
+            "metadata": {
+                "sistema": "TecniTrack",
+                "version": "1.0",
+                "generadoEn": timezone.now().isoformat(),
+                "generadoPor": request.user.username,
+            },
+            "resumen": resumen,
+        })
 
     backup = {
+        "metadata": {
+            "sistema": "TecniTrack",
+            "version": "1.0",
+            "generadoEn": timezone.now().isoformat(),
+            "generadoPor": request.user.username,
+            "formato": "json",
+            "nota": "Respaldo administrativo generado desde Django.",
+        },
+        "resumen": resumen,
         "taller": serializar_taller(taller_actual()),
-        "usuarios": [serializar_usuario(usuario) for usuario in Usuario.objects.all()],
-        "servicios": list(SolicitudServicio.objects.values()),
-        "inventario": list(ProductoInventario.objects.values()),
-        "facturas": list(Factura.objects.values()),
-        "tickets": list(TicketSoporte.objects.values()),
+        "usuarios": [serializar_usuario(usuario) for usuario in usuarios],
+        "clientes": [
+            {
+                "id": cliente.id,
+                "usuario": cliente.usuario.username,
+                "nombre": nombre_usuario(cliente.usuario),
+                "correo": cliente.usuario.email,
+                "telefono": cliente.usuario.telefono,
+                "estado": "Activo" if cliente.usuario.activo else "Inactivo",
+                "creadoEn": iso(cliente.creado_en),
+            }
+            for cliente in clientes
+        ],
+        "tecnicos": [
+            {
+                "id": tecnico.id,
+                "usuario": tecnico.usuario.username,
+                "nombre": nombre_usuario(tecnico.usuario),
+                "correo": tecnico.usuario.email,
+                "telefono": tecnico.usuario.telefono,
+                "especialidad": tecnico.especialidad,
+                "estado": "Activo" if tecnico.usuario.activo else "Inactivo",
+                "creadoEn": iso(tecnico.creado_en),
+            }
+            for tecnico in tecnicos
+        ],
+        "servicios": [
+            {
+                "id": servicio.id,
+                "codigo": f"SOL-{servicio.id:03d}",
+                "cliente": nombre_usuario(servicio.cliente.usuario) if servicio.cliente else servicio.cliente_nombre,
+                "tecnico": nombre_usuario(servicio.tecnico.usuario) if servicio.tecnico else "Sin asignar",
+                "dispositivo": servicio.dispositivo,
+                "problema": servicio.problema,
+                "fechaPreferida": iso(servicio.fecha_preferida),
+                "prioridad": servicio.get_prioridad_display(),
+                "estado": servicio.get_estado_display(),
+                "diagnostico": servicio.diagnostico,
+                "repuestoUsado": servicio.repuesto_usado,
+                "facturada": hasattr(servicio, "factura"),
+                "creadoEn": iso(servicio.creado_en),
+            }
+            for servicio in servicios
+        ],
+        "inventario": [
+            {
+                "id": producto.id,
+                "codigo": producto.codigo,
+                "nombre": producto.nombre,
+                "categoria": producto.categoria,
+                "proveedor": producto.proveedor,
+                "serie": producto.serie,
+                "stock": producto.stock,
+                "stockMinimo": producto.stock_minimo,
+                "precioCompra": decimal_float(producto.precio_compra),
+                "precioVenta": decimal_float(producto.precio_venta),
+                "ubicacion": producto.ubicacion,
+                "estado": producto.estado,
+                "activo": producto.activo,
+            }
+            for producto in inventario
+        ],
+        "facturas": [
+            {
+                "id": factura.id,
+                "numero": factura.numero,
+                "fecha": iso(factura.fecha),
+                "solicitud": f"SOL-{factura.solicitud_id:03d}",
+                "cliente": nombre_usuario(factura.solicitud.cliente.usuario) if factura.solicitud.cliente else factura.solicitud.cliente_nombre,
+                "servicio": factura.solicitud.problema,
+                "metodoPago": factura.get_metodo_pago_display(),
+                "estado": factura.get_estado_display(),
+                "montoServicio": decimal_float(factura.servicio_monto),
+                "montoRepuestos": decimal_float(factura.repuestos_monto),
+                "total": decimal_float(factura.total),
+                "garantia": factura.garantia,
+                "productos": factura.productos,
+            }
+            for factura in facturas
+        ],
+        "tickets": [
+            {
+                "id": ticket.id,
+                "codigo": f"TK-{ticket.id:03d}",
+                "usuario": ticket.usuario.username,
+                "rol": ticket.rol,
+                "nombre": ticket.nombre,
+                "correo": ticket.correo,
+                "area": ticket.area,
+                "asunto": ticket.asunto,
+                "detalle": ticket.detalle,
+                "respuesta": ticket.respuesta,
+                "estado": ticket.get_estado_display(),
+                "creadoEn": iso(ticket.creado_en),
+                "respondidoEn": iso(ticket.respondido_en),
+            }
+            for ticket in tickets
+        ],
     }
     return JsonResponse({"ok": True, "backup": backup})

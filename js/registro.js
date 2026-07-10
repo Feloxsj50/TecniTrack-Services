@@ -1,4 +1,4 @@
-const campos = {
+﻿const campos = {
     nombres: document.getElementById("nombres"),
     apellidos: document.getElementById("apellidos"),
     username: document.getElementById("username"),
@@ -22,7 +22,17 @@ const ayudas = {
 const toggle = document.querySelector(".toggle");
 const registerButton = document.querySelector(".btn-login");
 const strengthMeter = document.querySelector(".strength-meter");
-const API_BASE = window.location.origin;
+const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 
 function mostrarMensaje(elemento, mensaje, clase) {
     if (!elemento) return;
@@ -99,7 +109,7 @@ function validarUsername() {
     marcarCampo(campos.username, valido);
     mostrarMensaje(
         ayudas.username,
-        valor && !valido ? "Usa 4 a 30 caracteres: letras, números, punto, guion o guion bajo" : "",
+        valor && !valido ? "Usa 4 a 30 caracteres: letras, nÃºmeros, punto, guion o guion bajo" : "",
         valido ? "success" : "error"
     );
     return valido;
@@ -210,4 +220,5 @@ if (registerButton) {
         }
     });
 }
+
 

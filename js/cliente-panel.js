@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 
 const formSolicitud = document.getElementById("formSolicitud");
 const tablaServiciosCliente = document.querySelector("#tablaServicios tbody");
@@ -22,7 +32,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
     }
 }
 
@@ -120,7 +130,7 @@ function renderizarServicioActual() {
     }
 
     titulo.textContent = `${actual.dispositivo} - ${actual.servicio}`;
-    detalle.textContent = `${actual.id} · ${estadoNormalizado(actual.estado)} · Técnico: ${actual.tecnicoNombre || "Por asignar"}`;
+    detalle.textContent = `${actual.id} Â· ${estadoNormalizado(actual.estado)} Â· TÃ©cnico: ${actual.tecnicoNombre || "Por asignar"}`;
     boton.disabled = false;
     boton.onclick = () => abrirDetalleServicio(actual.dbId);
 }
@@ -243,14 +253,14 @@ function abrirDetalleServicio(dbId) {
 
     document.getElementById("panelServicioMeta").innerHTML = `
         <div><span>Fecha preferida</span><strong>${escaparHtml(solicitud.fecha || "-")}</strong></div>
-        <div><span>Técnico</span><strong>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</strong></div>
+        <div><span>TÃ©cnico</span><strong>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</strong></div>
         <div><span>Estado</span><strong>${escaparHtml(estado)}</strong></div>
         <div><span>Recibo</span><strong>${solicitud.facturada ? "Disponible" : "Aun no emitido"}</strong></div>
     `;
 
     const diagnostico = solicitud.diagnostico
-        ? `<p><span>Diagnóstico</span><strong>${escaparHtml(solicitud.diagnostico)}</strong></p>`
-        : `<p><span>Diagnóstico</span><strong>El técnico aún no ha registrado un diagnóstico.</strong></p>`;
+        ? `<p><span>DiagnÃ³stico</span><strong>${escaparHtml(solicitud.diagnostico)}</strong></p>`
+        : `<p><span>DiagnÃ³stico</span><strong>El tÃ©cnico aÃºn no ha registrado un diagnÃ³stico.</strong></p>`;
     const repuesto = solicitud.repuesto
         ? `<p><span>Repuesto</span><strong>${escaparHtml(solicitud.repuesto)}</strong></p>`
         : `<p><span>Repuesto</span><strong>Sin repuesto registrado.</strong></p>`;
@@ -325,7 +335,7 @@ formSolicitud.addEventListener("submit", async event => {
         formSolicitud.reset();
         await cargarDatosCliente();
         await cargarSolicitudesCliente();
-        mostrarNotificacion("Solicitud enviada. El admin la revisará y asignará un técnico.", "success");
+        mostrarNotificacion("Solicitud enviada. El admin la revisarÃ¡ y asignarÃ¡ un tÃ©cnico.", "success");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo enviar la solicitud.", "error");
     }
@@ -343,3 +353,4 @@ function iniciarPanelCliente() {
 }
 
 iniciarPanelCliente();
+

@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 let perfilActual = null;
 let csrfToken = "";
 
@@ -7,7 +17,7 @@ function obtenerIniciales(nombre) {
 }
 
 function nombreRol(rol) {
-    return { admin: "Administrador", tecnico: "Técnico", cliente: "Cliente" }[rol] || "Usuario";
+    return { admin: "Administrador", tecnico: "TÃ©cnico", cliente: "Cliente" }[rol] || "Usuario";
 }
 
 function panelRol(rol) {
@@ -44,7 +54,7 @@ async function leerRespuestaJson(respuesta) {
             ok: false,
             error: respuesta.status === 403
                 ? "No se pudo validar la seguridad de Django. Inicia sesion nuevamente desde este mismo enlace."
-                : "Django devolvió una respuesta no válida."
+                : "Django devolviÃ³ una respuesta no vÃ¡lida."
         };
     }
 }
@@ -90,7 +100,7 @@ function pintarPerfil(perfil) {
     document.getElementById("perfilRol").textContent = nombreRol(perfil.rol);
     document.getElementById("perfilUsuario").textContent = perfil.username;
     document.getElementById("perfilCorreo").textContent = perfil.email;
-    document.getElementById("perfilTelefono").textContent = perfil.telefono || "Sin teléfono";
+    document.getElementById("perfilTelefono").textContent = perfil.telefono || "Sin telÃ©fono";
     document.getElementById("perfilArea").textContent = areaVisible;
     document.getElementById("perfilPanel").textContent = panelRol(perfil.rol);
     document.getElementById("perfilPermisos").textContent = permisosRol(perfil.rol);
@@ -107,9 +117,9 @@ async function actualizarPerfil() {
     const email = document.getElementById("correoPerfil").value.trim().toLowerCase();
     const telefono = document.getElementById("telefonoPerfil").value.trim();
 
-    if (!nombre || !email || !telefono) return mostrarNotificacion("Completa nombre, correo y teléfono.", "error");
+    if (!nombre || !email || !telefono) return mostrarNotificacion("Completa nombre, correo y telÃ©fono.", "error");
     if (!correoValido(email)) return mostrarNotificacion("Ingresa un correo valido.", "error");
-    if (!telefonoValido(telefono)) return mostrarNotificacion("Ingresa un teléfono válido con formato 7777-8888.", "error");
+    if (!telefonoValido(telefono)) return mostrarNotificacion("Ingresa un telÃ©fono vÃ¡lido con formato 7777-8888.", "error");
 
     const token = await obtenerCsrfToken();
     const respuesta = await fetch(`${API_BASE}/usuarios/perfil/actualizar/`, {
@@ -168,6 +178,7 @@ document.getElementById("btnCambiarPassword").addEventListener("click", async ()
 document.getElementById("telefonoPerfil")?.addEventListener("input", event => formatearTelefono(event.target));
 
 cargarPerfil();
+
 
 
 

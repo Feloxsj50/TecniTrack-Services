@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 const colorTextoSecundario = "#94a3b8";
 const colorGrid = "rgba(148,163,184,0.12)";
 const coloresTecniTrack = {
@@ -31,7 +41,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
     }
 }
 
@@ -182,3 +192,4 @@ document.querySelector(".btn-print")?.addEventListener("click", () => window.pri
 document.querySelector(".btn-excel")?.addEventListener("click", exportarCsv);
 
 iniciarReportes();
+

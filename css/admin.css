@@ -1571,6 +1571,10 @@ body {
     box-shadow: var(--shadow-card);
 }
 
+.backup-panel > div:first-child {
+    min-width: 0;
+}
+
 .backup-panel h2 {
     margin-bottom: 4px;
     font-size: 16px;
@@ -1580,6 +1584,39 @@ body {
 .backup-panel p {
     color: var(--text-secondary);
     font-size: 13px;
+}
+
+.backup-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.backup-summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 30px;
+    padding: 7px 10px;
+    border: 0.5px solid rgba(148, 163, 184, 0.16);
+    border-radius: var(--radius-sm);
+    background: rgba(15, 23, 42, 0.35);
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.backup-summary strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.backup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
 }
 
 .backup-panel button {

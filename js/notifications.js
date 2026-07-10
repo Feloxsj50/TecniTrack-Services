@@ -13,6 +13,12 @@
 
     window.mostrarNotificacion = function (mensaje, tipo = "error") {
         const contenedor = obtenerContenedor();
+        const clave = `${tipo}:${String(mensaje)}`;
+        const existente = [...contenedor.querySelectorAll(".notification")]
+            .find(item => item.dataset.key === clave);
+
+        if (existente) return;
+
         const notificacion = document.createElement("div");
         const tiempoVisible = tipo === "info" ? 6500 : 4200;
         const textoSeguro = String(mensaje)
@@ -24,6 +30,7 @@
             .replace(/\n/g, "<br>");
 
         notificacion.className = `notification notification-${tipo}`;
+        notificacion.dataset.key = clave;
         notificacion.innerHTML = `
             <span class="notification-dot"></span>
             <p>${textoSeguro}</p>

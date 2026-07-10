@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 let productos = [];
 let productoEditandoId = null;
 let csrfToken = "";
@@ -20,7 +30,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
     }
 }
 
@@ -98,7 +108,7 @@ function renderizarTabla(lista) {
                     <div class="empty-state">
                         <i class="fa-solid fa-boxes-stacked"></i>
                         <strong>Sin productos registrados</strong>
-                        <span>Cuando agregues productos al inventario, aparecerán aquí.</span>
+                        <span>Cuando agregues productos al inventario, aparecerÃ¡n aquÃ­.</span>
                     </div>
                 </td>
             </tr>
@@ -197,7 +207,7 @@ function limpiarFormulario() {
 
     productoEditandoId = null;
     const btnGuardar = document.getElementById("btnAgregarProducto");
-    btnGuardar.textContent = "Añadir";
+    btnGuardar.textContent = "AÃ±adir";
     btnGuardar.style.background = "";
     btnGuardar.style.color = "";
     btnGuardar.style.borderColor = "";
@@ -230,12 +240,12 @@ function validarProducto(producto) {
     }
 
     if (!esEnteroNoNegativo(producto.stock) || !esEnteroNoNegativo(producto.stockMinimo)) {
-        mostrarNotificacion("El stock y el stock mínimo deben ser números enteros de 0 en adelante.", "error");
+        mostrarNotificacion("El stock y el stock mÃ­nimo deben ser nÃºmeros enteros de 0 en adelante.", "error");
         return false;
     }
 
     if (!esPrecioValido(producto.compra) || !esPrecioValido(producto.venta)) {
-        mostrarNotificacion("Los precios deben ser números de 0 en adelante.", "error");
+        mostrarNotificacion("Los precios deben ser nÃºmeros de 0 en adelante.", "error");
         return false;
     }
 
@@ -320,7 +330,7 @@ async function cargarInventario() {
 function mostrarHistorialInventario() {
     const resumen = productos.length
         ? productos.map(producto => `${producto.id} - ${producto.nombre}: ${producto.stock} unidades (${producto.estado})`).join("\n")
-        : "Todavía no hay productos registrados.";
+        : "TodavÃ­a no hay productos registrados.";
 
     mostrarNotificacion(`Inventario actual:\n\n${resumen}`, "info");
 }
@@ -340,7 +350,7 @@ function exportarInventario() {
 
     descargarCsv(
         "reporte_inventario.csv",
-        ["ID", "Producto", "Categoría", "Stock", "Stock mínimo", "Precio compra", "Precio venta", "Ubicación", "Estado"],
+        ["ID", "Producto", "CategorÃ­a", "Stock", "Stock mÃ­nimo", "Precio compra", "Precio venta", "UbicaciÃ³n", "Estado"],
         filas
     );
     mostrarNotificacion("Reporte de inventario exportado correctamente.", "success");
@@ -360,3 +370,4 @@ function iniciarInventario() {
 }
 
 iniciarInventario();
+

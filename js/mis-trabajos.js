@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 const tbodyTrabajos = document.querySelector("#tablaServicios tbody");
 
 function escaparHtml(valor) {
@@ -15,7 +25,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
     }
 }
 
@@ -50,7 +60,7 @@ function renderizarTrabajos(trabajos) {
                     <div class="empty-state">
                         <i class="fa-solid fa-clipboard-check"></i>
                         <strong>Sin trabajos completados</strong>
-                        <span>Cuando marques un servicio como completado, aparecerá aquí.</span>
+                        <span>Cuando marques un servicio como completado, aparecerÃ¡ aquÃ­.</span>
                     </div>
                 </td>
             </tr>
@@ -86,7 +96,7 @@ async function cargarMisTrabajos() {
                     <div class="empty-state">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         <strong>No se pudieron cargar tus trabajos</strong>
-                        <span>${escaparHtml(error.message || "Verifica que Django esté activo.")}</span>
+                        <span>${escaparHtml(error.message || "Verifica que Django estÃ© activo.")}</span>
                     </div>
                 </td>
             </tr>

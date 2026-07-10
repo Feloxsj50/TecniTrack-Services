@@ -1,4 +1,4 @@
-const btnGuardarCliente = document.getElementById("btnGuardarCliente");
+﻿const btnGuardarCliente = document.getElementById("btnGuardarCliente");
 const tablaClientes = document.querySelector("#tablaClientes tbody");
 const buscarCliente = document.getElementById("buscarCliente");
 const nombreCliente = document.getElementById("nombreCliente");
@@ -17,7 +17,17 @@ const resumenTotal = document.getElementById("resumenTotal");
 const resumenActivos = document.getElementById("resumenActivos");
 const resumenInactivos = document.getElementById("resumenInactivos");
 
-const API_BASE = window.location.origin;
+const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 let clientes = [];
 let clienteEditandoId = null;
 let csrfToken = "";
@@ -58,7 +68,7 @@ async function leerRespuestaJson(respuesta) {
             ok: false,
             error: respuesta.status === 403
                 ? "No se pudo validar la seguridad de Django. Inicia sesion como admin nuevamente."
-                : "Django devolvió una respuesta no válida. Abre el sitio desde el servidor de Django."
+                : "Django devolviÃ³ una respuesta no vÃ¡lida. Abre el sitio desde el servidor de Django."
         };
     }
 }
@@ -120,7 +130,7 @@ function renderizarTabla(lista) {
             <td>${escaparHtml(cliente.id)}</td>
             <td>${escaparHtml(cliente.nombre)}<br><small>@${escaparHtml(cliente.usuario)}</small></td>
             <td>${escaparHtml(cliente.correo)}</td>
-            <td>${escaparHtml(cliente.telefono || "Sin teléfono")}</td>
+            <td>${escaparHtml(cliente.telefono || "Sin telÃ©fono")}</td>
             <td><span class="estado-cliente ${claseEstado}">${escaparHtml(cliente.estado)}</span></td>
             <td>
                 <button class="btn-editar" type="button" data-editar="${cliente.id}"><i class="fa fa-pen"></i> Editar</button>
@@ -188,7 +198,7 @@ function cargarClienteEnFormulario(clienteId) {
     correoCliente.value = cliente.correo;
     telefonoCliente.value = cliente.telefono || "";
     passwordCliente.value = "";
-    passwordCliente.placeholder = "Nueva contraseña temporal (opcional)";
+    passwordCliente.placeholder = "Nueva contraseÃ±a temporal (opcional)";
     estadoCliente.value = cliente.estado;
 
     btnGuardarCliente.textContent = "Guardar cambios";
@@ -218,7 +228,7 @@ function limpiarFormulario() {
 
 function validarFormularioCliente({ nombre, username, correo, telefono, password }) {
     if (!nombre || !correo || !telefono) {
-        mostrarNotificacion("Completa nombre, correo y teléfono.", "error");
+        mostrarNotificacion("Completa nombre, correo y telÃ©fono.", "error");
         return false;
     }
 
@@ -238,17 +248,17 @@ function validarFormularioCliente({ nombre, username, correo, telefono, password
     }
 
     if (!telefonoValido(telefono)) {
-        mostrarNotificacion("Ingresa un teléfono válido con formato 7777-8888.", "error");
+        mostrarNotificacion("Ingresa un telÃ©fono vÃ¡lido con formato 7777-8888.", "error");
         return false;
     }
 
     if (!clienteEditandoId && !password) {
-        mostrarNotificacion("Ingresa una contraseña temporal para el cliente.", "error");
+        mostrarNotificacion("Ingresa una contraseÃ±a temporal para el cliente.", "error");
         return false;
     }
 
     if (password && password.length < 8) {
-        mostrarNotificacion("La contraseña temporal debe tener al menos 8 caracteres.", "error");
+        mostrarNotificacion("La contraseÃ±a temporal debe tener al menos 8 caracteres.", "error");
         return false;
     }
 
@@ -300,14 +310,14 @@ async function eliminarCliente(clienteId) {
 
     const confirmado = await confirmarAccion({
         titulo: "Eliminar cliente",
-        mensaje: `Seguro que quieres eliminar a ${cliente.nombre}? Esta acción no se puede deshacer.`
+        mensaje: `Seguro que quieres eliminar a ${cliente.nombre}? Esta acciÃ³n no se puede deshacer.`
     });
 
     if (!confirmado) return;
 
     const eliminarSolicitudes = await confirmarAccion({
-        titulo: "Órdenes del cliente",
-        mensaje: "Quieres eliminar también las órdenes no facturadas de este cliente? Las facturadas se conservan como historial."
+        titulo: "Ã“rdenes del cliente",
+        mensaje: "Quieres eliminar tambiÃ©n las Ã³rdenes no facturadas de este cliente? Las facturadas se conservan como historial."
     });
 
     const token = await obtenerCsrfToken();
@@ -357,4 +367,5 @@ telefonoCliente?.addEventListener("input", (event) => {
 });
 
 cargarClientes();
+
 

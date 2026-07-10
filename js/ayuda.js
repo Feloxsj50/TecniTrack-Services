@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 const sesionAyuda = TecniAuth.obtenerSesion();
 const rolAyuda = sesionAyuda?.rol || "cliente";
 let usuarioActual = null;
@@ -15,10 +25,10 @@ const configuracionAyuda = {
         ticketsTitulo: "Tickets abiertos por usuarios"
     },
     tecnico: {
-        titulo: "Soporte Técnico",
+        titulo: "Soporte TÃ©cnico",
         formTitulo: "Pedir Apoyo al Admin",
         boton: "Enviar Consulta",
-        areas: ["Trabajo asignado", "Diagnóstico", "Inventario", "Estado del servicio"],
+        areas: ["Trabajo asignado", "DiagnÃ³stico", "Inventario", "Estado del servicio"],
         ticketsTitulo: "Mis tickets de soporte"
     },
     cliente: {
@@ -51,7 +61,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
     }
 }
 
@@ -76,7 +86,7 @@ async function apiJson(url, opciones = {}) {
         ...opciones
     });
     const datos = await leerRespuestaJson(respuesta);
-    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo completar la acción.");
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo completar la acciÃ³n.");
     return datos;
 }
 
@@ -131,11 +141,11 @@ function configurarCards(config) {
     if (rolAyuda === "cliente") {
         const taller = tallerActual || tallerDefault;
         document.getElementById("statPrincipal").textContent = taller.direccion || tallerDefault.direccion;
-        document.getElementById("statPrincipalTexto").textContent = "Dirección del Taller";
+        document.getElementById("statPrincipalTexto").textContent = "DirecciÃ³n del Taller";
         document.getElementById("statCanal").textContent = taller.telefono || tallerDefault.telefono;
-        document.getElementById("statCanalTexto").textContent = "Teléfono Directo";
+        document.getElementById("statCanalTexto").textContent = "TelÃ©fono Directo";
         document.getElementById("statTickets").textContent = taller.horario || tallerDefault.horario;
-        document.getElementById("statTicketsTexto").textContent = "Horario de Atención";
+        document.getElementById("statTicketsTexto").textContent = "Horario de AtenciÃ³n";
         document.getElementById("statTiempo").textContent = taller.whatsapp || tallerDefault.whatsapp;
         document.getElementById("statTiempoTexto").textContent = "WhatsApp";
         return;
@@ -183,7 +193,7 @@ function cargarFiltrosAdmin() {
     const valorActual = select.value || "todas";
 
     select.innerHTML = `
-        <option value="todas">Todas las áreas</option>
+        <option value="todas">Todas las Ã¡reas</option>
         ${areas.map(area => `<option value="${escaparHtml(area)}">${escaparHtml(area)}</option>`).join("")}
     `;
 
@@ -192,8 +202,8 @@ function cargarFiltrosAdmin() {
 
 function renderizarEncabezadoTickets() {
     const columnas = rolAyuda === "cliente"
-        ? ["Fecha", "ID", "Área", "Asunto", "Respuesta", "Estado", "Acciones"]
-        : ["Fecha", "ID", "Usuario", "Área", "Asunto", "Respuesta", "Estado", "Acciones"];
+        ? ["Fecha", "ID", "Ãrea", "Asunto", "Respuesta", "Estado", "Acciones"]
+        : ["Fecha", "ID", "Usuario", "Ãrea", "Asunto", "Respuesta", "Estado", "Acciones"];
 
     document.getElementById("ticketsHead").innerHTML = columnas
         .map(columna => `<th>${columna}</th>`)
@@ -229,7 +239,7 @@ function renderizarTickets() {
                     <div class="empty-state">
                         <i class="fa-solid fa-headset"></i>
                         <strong>Sin consultas registradas</strong>
-                        <span>Cuando envíes una consulta de soporte, aparecerá aquí.</span>
+                        <span>Cuando envÃ­es una consulta de soporte, aparecerÃ¡ aquÃ­.</span>
                     </div>
                 </td>
             </tr>

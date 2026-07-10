@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 
 const formTecnico = document.getElementById("formTecnico");
 const tablaTecnico = document.querySelector("#tablaServicios tbody");
@@ -140,7 +150,7 @@ function renderizarProximoTrabajo() {
 
     const dias = diasAbierto(proximo);
     titulo.textContent = `${proximo.cliente} - ${proximo.dispositivo}`;
-    detalle.textContent = `${proximo.id} · ${proximo.servicio} · ${proximo.prioridad || "Media"} · ${dias} ${dias === 1 ? "dia" : "dias"} abierto`;
+    detalle.textContent = `${proximo.id} Â· ${proximo.servicio} Â· ${proximo.prioridad || "Media"} Â· ${dias} ${dias === 1 ? "dia" : "dias"} abierto`;
     boton.disabled = false;
     boton.onclick = () => abrirPanelTrabajo(proximo.dbId);
 }
@@ -440,3 +450,4 @@ function iniciarPanelTecnico() {
 }
 
 iniciarPanelTecnico();
+

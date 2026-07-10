@@ -1,6 +1,17 @@
-const API_BASE = window.location.origin;
+const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 let csrfToken = "";
 let usuariosConfig = [];
+let backupCache = null;
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -16,7 +27,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolvio una respuesta no valida." };
     }
 }
 
@@ -68,7 +79,7 @@ async function cargarTaller() {
 }
 
 function nombreRol(rol) {
-    return { admin: "Admin", tecnico: "Técnico", cliente: "Cliente" }[rol] || rol;
+    return { admin: "Admin", tecnico: "Tecnico", cliente: "Cliente" }[rol] || rol;
 }
 
 function renderizarUsuarios() {
@@ -82,7 +93,7 @@ function renderizarUsuarios() {
                     <div class="empty-state">
                         <i class="fa-solid fa-users"></i>
                         <strong>Sin usuarios registrados</strong>
-                        <span>Cuando se registren clientes o admin cree tecnicos, aparecerán aquí.</span>
+                        <span>Cuando se registren clientes o admin cree tecnicos, apareceran aqui.</span>
                     </div>
                 </td>
             </tr>
@@ -131,6 +142,20 @@ function actualizarResumen() {
     document.getElementById("totalTickets").textContent = "0";
 }
 
+function pintarResumenBackup(resumen = {}) {
+    document.getElementById("backupUsuarios").textContent = resumen.usuarios || 0;
+    document.getElementById("backupServicios").textContent = resumen.servicios || 0;
+    document.getElementById("backupInventario").textContent = resumen.inventario || 0;
+    document.getElementById("backupFacturas").textContent = resumen.facturas || 0;
+    document.getElementById("backupTickets").textContent = resumen.tickets || 0;
+    document.getElementById("totalTickets").textContent = resumen.tickets || 0;
+}
+
+async function cargarResumenBackup() {
+    const datos = await apiJson("/usuarios/backup/?resumen=1");
+    pintarResumenBackup(datos.resumen || {});
+}
+
 async function cambiarEstadoUsuario(usuarioId) {
     const usuario = usuariosConfig.find(item => item.id === usuarioId);
     if (!usuario) return;
@@ -141,6 +166,7 @@ async function cambiarEstadoUsuario(usuarioId) {
             body: JSON.stringify({ activo: !usuario.activo })
         });
         await cargarUsuarios();
+        backupCache = null;
         mostrarNotificacion("Estado del usuario actualizado.", "success");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo actualizar el usuario.", "error");
@@ -151,11 +177,11 @@ async function resetearPassword(usuarioId) {
     const usuario = usuariosConfig.find(item => item.id === usuarioId);
     if (!usuario) return;
 
-    const password = window.prompt(`Nueva contraseña temporal para ${usuario.username}:`);
+    const password = window.prompt(`Nueva contrasena temporal para ${usuario.username}:`);
     if (password === null) return;
 
     if (password.length < 8) {
-        mostrarNotificacion("La contraseña temporal debe tener al menos 8 caracteres.", "error");
+        mostrarNotificacion("La contrasena temporal debe tener al menos 8 caracteres.", "error");
         return;
     }
 
@@ -166,7 +192,7 @@ async function resetearPassword(usuarioId) {
         });
         mostrarNotificacion("Contrasena temporal actualizada correctamente.", "success");
     } catch (error) {
-        mostrarNotificacion(error.message || "No se pudo resetear la contraseña.", "error");
+        mostrarNotificacion(error.message || "No se pudo resetear la contrasena.", "error");
     }
 }
 
@@ -188,7 +214,7 @@ async function guardarTaller(event) {
     }
 
     if (!telefonoValido(taller.telefono) || !telefonoValido(taller.whatsapp)) {
-        mostrarNotificacion("Teléfono y WhatsApp deben tener formato 7777-8888.", "error");
+        mostrarNotificacion("Telefono y WhatsApp deben tener formato 7777-8888.", "error");
         return;
     }
 
@@ -198,31 +224,85 @@ async function guardarTaller(event) {
             body: JSON.stringify(taller)
         });
         cargarFormularioTaller(datos.taller);
+        backupCache = null;
         mostrarNotificacion("Datos del taller guardados correctamente.", "success");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudieron guardar los datos del taller.", "error");
     }
 }
 
+function descargarArchivo(contenido, nombreArchivo, tipo) {
+    const blob = new Blob([contenido], { type: tipo });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    enlace.click();
+    URL.revokeObjectURL(url);
+}
+
+function valorCsv(valor) {
+    if (valor === null || valor === undefined) return "";
+    const texto = Array.isArray(valor) || typeof valor === "object"
+        ? JSON.stringify(valor)
+        : String(valor);
+    return `"${texto.replaceAll('"', '""')}"`;
+}
+
+function filasACsv(filas) {
+    if (!filas?.length) return "Sin datos\n";
+    const columnas = Object.keys(filas[0]);
+    const encabezado = columnas.map(valorCsv).join(",");
+    const cuerpo = filas.map(fila => columnas.map(columna => valorCsv(fila[columna])).join(",")).join("\n");
+    return `${encabezado}\n${cuerpo}\n`;
+}
+
+async function obtenerBackupCompleto() {
+    if (backupCache) return backupCache;
+    const datos = await apiJson("/usuarios/backup/");
+    backupCache = datos.backup;
+    pintarResumenBackup(backupCache.resumen || {});
+    return backupCache;
+}
+
 async function exportarBackup() {
     try {
-        const datos = await apiJson("/usuarios/backup/");
-        const blob = new Blob([JSON.stringify(datos.backup, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const enlace = document.createElement("a");
-        enlace.href = url;
-        enlace.download = `tecnitrack-backup-${new Date().toISOString().slice(0, 10)}.json`;
-        enlace.click();
-        URL.revokeObjectURL(url);
-        mostrarNotificacion("Respaldo JSON exportado correctamente.", "success");
+        const backup = await obtenerBackupCompleto();
+        descargarArchivo(
+            JSON.stringify(backup, null, 2),
+            `tecnitrack-backup-completo-${new Date().toISOString().slice(0, 10)}.json`,
+            "application/json;charset=utf-8;"
+        );
+        mostrarNotificacion("Respaldo JSON completo exportado correctamente.", "success");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo exportar el backup.", "error");
+    }
+}
+
+async function exportarCsvPorModulo() {
+    try {
+        const backup = await obtenerBackupCompleto();
+        const fecha = new Date().toISOString().slice(0, 10);
+        const modulos = ["usuarios", "clientes", "tecnicos", "servicios", "inventario", "facturas", "tickets"];
+
+        modulos.forEach(modulo => {
+            descargarArchivo(
+                filasACsv(backup[modulo] || []),
+                `tecnitrack-${modulo}-${fecha}.csv`,
+                "text/csv;charset=utf-8;"
+            );
+        });
+
+        mostrarNotificacion("CSV por modulo exportado correctamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo exportar CSV.", "error");
     }
 }
 
 function conectarEventos() {
     document.getElementById("formTaller").addEventListener("submit", guardarTaller);
     document.getElementById("btnExportarBackup").addEventListener("click", exportarBackup);
+    document.getElementById("btnExportarCsv").addEventListener("click", exportarCsvPorModulo);
     document.getElementById("telefonoTaller")?.addEventListener("input", event => formatearTelefono(event.target));
     document.getElementById("whatsappTaller")?.addEventListener("input", event => formatearTelefono(event.target));
 }
@@ -231,7 +311,7 @@ async function iniciarConfiguracion() {
     conectarEventos();
     actualizarResumen();
     try {
-        await Promise.all([cargarTaller(), cargarUsuarios()]);
+        await Promise.all([cargarTaller(), cargarUsuarios(), cargarResumenBackup()]);
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo cargar configuracion.", "error");
     }

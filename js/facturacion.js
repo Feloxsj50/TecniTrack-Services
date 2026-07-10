@@ -1,4 +1,14 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = (() => {
+    const origin = window.location.origin;
+    const localStaticPorts = ["5500", "5501", "5173"];
+
+    if (window.location.protocol === "file:") return "http://127.0.0.1:8000";
+    if (localStaticPorts.includes(window.location.port)) {
+        return window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000";
+    }
+
+    return origin;
+})();
 const detallesFactura = [];
 let facturas = [];
 let serviciosCompletados = [];
@@ -20,7 +30,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvió una respuesta no válida." };
+        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
     }
 }
 
@@ -136,7 +146,7 @@ function preseleccionarSolicitudUrl() {
 }
 function pintarTecnico(nombre) {
     const select = document.getElementById("tecnicoFactura");
-    select.innerHTML = `<option value="${escaparHtml(nombre || "")}">${escaparHtml(nombre || "Técnico asignado")}</option>`;
+    select.innerHTML = `<option value="${escaparHtml(nombre || "")}">${escaparHtml(nombre || "TÃ©cnico asignado")}</option>`;
 }
 
 function seleccionarServicio(id) {
@@ -369,7 +379,7 @@ function facturaDesdeFormulario() {
         numero: document.getElementById("numeroFactura").value || "Factura",
         fecha: document.getElementById("fechaFactura").value || hoyIso(),
         cliente: document.getElementById("clienteFactura").value || "Sin cliente",
-        tecnico: document.getElementById("tecnicoFactura").value || "Sin técnico",
+        tecnico: document.getElementById("tecnicoFactura").value || "Sin tÃ©cnico",
         servicio: document.getElementById("servicioFactura").value || "Servicio no seleccionado",
         dispositivo: servicioSeleccionado?.dispositivo || "Sin dispositivo",
         metodoPago: document.getElementById("metodoPagoFactura").value,
@@ -425,11 +435,11 @@ function imprimirFactura(factura = null) {
                 <div><strong>Fecha:</strong> ${escaparHtml(data.fecha)}</div>
                 <div><strong>Cliente:</strong> ${escaparHtml(data.cliente)}</div>
                 <div><strong>Dispositivo:</strong> ${escaparHtml(data.dispositivo)}</div>
-                <div><strong>Técnico:</strong> ${escaparHtml(data.tecnico)}</div>
+                <div><strong>TÃ©cnico:</strong> ${escaparHtml(data.tecnico)}</div>
                 <div><strong>Servicio:</strong> ${escaparHtml(data.servicio)}</div>
-                <div><strong>Método de pago:</strong> ${escaparHtml(data.metodoPago)}</div>
+                <div><strong>MÃ©todo de pago:</strong> ${escaparHtml(data.metodoPago)}</div>
                 <div><strong>Estado:</strong> ${escaparHtml(data.estado)}</div>
-                <div><strong>Garantía:</strong> ${escaparHtml(data.garantia)}</div>
+                <div><strong>GarantÃ­a:</strong> ${escaparHtml(data.garantia)}</div>
             </div>
             <table>
                 <thead>
@@ -502,7 +512,7 @@ function conectarEventos() {
     document.getElementById("btnHistorialFacturas").addEventListener("click", () => {
         const resumen = facturas.length
             ? facturas.map(factura => `${factura.numero} - ${factura.cliente}: ${moneda(factura.total)} (${factura.estado})`).join("\n")
-            : "Todavía no hay facturas registradas.";
+            : "TodavÃ­a no hay facturas registradas.";
         mostrarNotificacion(`Historial actual de facturacion:\n\n${resumen}`, "info");
     });
 
@@ -519,7 +529,7 @@ function conectarEventos() {
 
         descargarCsv(
             "reporte_facturas.csv",
-            ["Factura", "Fecha", "Cliente", "Técnico", "Total", "Método de pago", "Estado"],
+            ["Factura", "Fecha", "Cliente", "TÃ©cnico", "Total", "MÃ©todo de pago", "Estado"],
             filas
         );
         mostrarNotificacion("Reporte de facturacion exportado correctamente.", "success");
@@ -552,3 +562,4 @@ async function iniciarFacturacion() {
 }
 
 iniciarFacturacion();
+
