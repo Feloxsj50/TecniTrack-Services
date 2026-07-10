@@ -25,7 +25,7 @@ class Factura(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     metodo_pago = models.CharField(max_length=20, choices=MetodoPago.choices, default=MetodoPago.EFECTIVO)
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PAGADO)
-    garantia = models.CharField(max_length=40, default="30 Dias")
+    garantia = models.CharField(max_length=40, default="30 Días")
     productos = models.JSONField(default=list, blank=True)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)

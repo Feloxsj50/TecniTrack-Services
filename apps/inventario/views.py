@@ -16,14 +16,14 @@ def obtener_datos_request(request):
         try:
             return json.loads(request.body.decode("utf-8")), None
         except json.JSONDecodeError:
-            return None, JsonResponse({"ok": False, "error": "Datos invalidos."}, status=400)
+            return None, JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
 
     return request.POST, None
 
 
 def validar_admin(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     if request.user.rol != Usuario.Rol.ADMIN:
         return JsonResponse({"ok": False, "error": "Solo admin puede modificar inventario."}, status=403)
@@ -35,7 +35,7 @@ def entero_no_negativo(valor, campo):
     try:
         numero = int(valor)
     except (TypeError, ValueError):
-        raise ValueError(f"{campo} debe ser un numero entero.")
+        raise ValueError(f"{campo} debe ser un número entero.")
     if numero < 0:
         raise ValueError(f"{campo} no puede ser negativo.")
     return numero
@@ -45,7 +45,7 @@ def decimal_no_negativo(valor, campo):
     try:
         numero = Decimal(str(valor or "0"))
     except (InvalidOperation, TypeError):
-        raise ValueError(f"{campo} debe ser un monto valido.")
+        raise ValueError(f"{campo} debe ser un monto válido.")
     if numero < 0:
         raise ValueError(f"{campo} no puede ser negativo.")
     return numero.quantize(Decimal("0.01"))
@@ -87,7 +87,7 @@ def validar_producto(datos):
         return None, JsonResponse({"ok": False, "error": "El nombre del producto debe tener al menos 3 caracteres."}, status=400)
 
     if categoria not in CATEGORIAS_VALIDAS:
-        return None, JsonResponse({"ok": False, "error": "Categoria invalida."}, status=400)
+        return None, JsonResponse({"ok": False, "error": "Categoria inválida."}, status=400)
 
     try:
         stock = entero_no_negativo(datos.get("stock"), "El stock")
@@ -117,7 +117,7 @@ def validar_producto(datos):
 @require_GET
 def listar_productos(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     if request.user.rol not in [Usuario.Rol.ADMIN, Usuario.Rol.TECNICO]:
         return JsonResponse({"ok": False, "error": "No tienes permiso para consultar inventario."}, status=403)

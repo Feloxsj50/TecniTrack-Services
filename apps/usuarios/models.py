@@ -5,7 +5,7 @@ from django.db import models
 class Usuario(AbstractUser):
     class Rol(models.TextChoices):
         ADMIN = "admin", "Admin"
-        TECNICO = "tecnico", "Tecnico"
+        TECNICO = "tecnico", "Técnico"
         CLIENTE = "cliente", "Cliente"
 
     rol = models.CharField(max_length=20, choices=Rol.choices, default=Rol.CLIENTE)

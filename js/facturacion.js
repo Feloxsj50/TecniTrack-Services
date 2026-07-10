@@ -1,4 +1,4 @@
-﻿const API_BASE = (() => {
+const API_BASE = (() => {
     const origin = window.location.origin;
     const localStaticPorts = ["5500", "5501", "5173"];
 
@@ -30,7 +30,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -46,7 +46,7 @@ async function apiJson(url, opciones = {}) {
     });
     const datos = await leerRespuestaJson(respuesta);
     if (!respuesta.ok || !datos.ok) {
-        throw new Error(datos.error || "No se pudo completar la accion.");
+        throw new Error(datos.error || "No se pudo completar la acción.");
     }
     return datos;
 }
@@ -110,7 +110,7 @@ function pintarServiciosCompletados() {
     select.innerHTML = `<option value="">Seleccionar orden completada</option>`;
 
     if (!disponibles.length) {
-        select.innerHTML = `<option value="">No hay ordenes completadas por facturar</option>`;
+        select.innerHTML = `<option value="">No hay órdenes completadas por facturar</option>`;
         return;
     }
 
@@ -136,7 +136,7 @@ function preseleccionarSolicitudUrl() {
 
     const existe = serviciosCompletados.some(servicio => String(servicio.id) === String(solicitudId));
     if (!existe) {
-        mostrarNotificacion("La orden seleccionada no esta completada o ya no esta disponible para facturar.", "error");
+        mostrarNotificacion("La orden seleccionada no está completada o ya no está disponible para facturar.", "error");
         return;
     }
 
@@ -146,7 +146,7 @@ function preseleccionarSolicitudUrl() {
 }
 function pintarTecnico(nombre) {
     const select = document.getElementById("tecnicoFactura");
-    select.innerHTML = `<option value="${escaparHtml(nombre || "")}">${escaparHtml(nombre || "TÃ©cnico asignado")}</option>`;
+    select.innerHTML = `<option value="${escaparHtml(nombre || "")}">${escaparHtml(nombre || "Técnico asignado")}</option>`;
 }
 
 function seleccionarServicio(id) {
@@ -161,7 +161,7 @@ function seleccionarServicio(id) {
 
     document.getElementById("clienteFactura").value = servicioSeleccionado.cliente;
     pintarTecnico(servicioSeleccionado.tecnico);
-    document.getElementById("servicioFactura").value = servicioSeleccionado.servicio;
+    document.getElementById("servicioFactura").value = servicioSeleccionado.servicio || "Servicio";
     document.getElementById("fechaFactura").value = hoyIso();
 }
 
@@ -208,7 +208,7 @@ function renderHistorialFacturas(lista) {
                     <div class="empty-state">
                         <i class="fa-solid fa-file-invoice-dollar"></i>
                         <strong>Sin facturas registradas</strong>
-                        <span>Cuando generes una factura desde una orden completada, aparecera aqui.</span>
+                        <span>Cuando generes una factura desde una orden completada, aparecerá aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -314,7 +314,7 @@ function limpiarFactura() {
     document.getElementById("precioProducto").value = "";
     document.getElementById("metodoPagoFactura").value = "Efectivo";
     document.getElementById("estadoFactura").value = "Pagado";
-    document.getElementById("garantiaFactura").value = "30 Dias";
+    document.getElementById("garantiaFactura").value = "30 Días";
 
     detallesFactura.length = 0;
     renderDetalleFactura();
@@ -379,8 +379,8 @@ function facturaDesdeFormulario() {
         numero: document.getElementById("numeroFactura").value || "Factura",
         fecha: document.getElementById("fechaFactura").value || hoyIso(),
         cliente: document.getElementById("clienteFactura").value || "Sin cliente",
-        tecnico: document.getElementById("tecnicoFactura").value || "Sin tÃ©cnico",
-        servicio: document.getElementById("servicioFactura").value || "Servicio no seleccionado",
+        tecnico: document.getElementById("tecnicoFactura").value || "Sin técnico",
+        servicio: document.getElementById("servicioFactura").value || "Servicio",
         dispositivo: servicioSeleccionado?.dispositivo || "Sin dispositivo",
         metodoPago: document.getElementById("metodoPagoFactura").value,
         estado: document.getElementById("estadoFactura").value,
@@ -394,6 +394,16 @@ function facturaDesdeFormulario() {
 function imprimirFactura(factura = null) {
     const data = factura || facturaDesdeFormulario();
     const productos = data.productos || [];
+    const servicioHtml = Number(data.montoServicio || 0) > 0
+        ? `
+            <tr>
+                <td>Servicio</td>
+                <td>1</td>
+                <td>${moneda(data.montoServicio)}</td>
+                <td>${moneda(data.montoServicio)}</td>
+            </tr>
+        `
+        : "";
     const repuestosHtml = productos.length
         ? productos.map(item => `
             <tr>
@@ -403,11 +413,14 @@ function imprimirFactura(factura = null) {
                 <td>${moneda(item.subtotal || item.cantidad * item.precio)}</td>
             </tr>
         `).join("")
-        : `<tr><td colspan="4">Sin repuestos agregados</td></tr>`;
+        : "";
+    const detalleHtml = servicioHtml || repuestosHtml
+        ? `${servicioHtml}${repuestosHtml}`
+        : `<tr><td colspan="4">Sin conceptos agregados</td></tr>`;
 
     const ventana = window.open("", "_blank");
     if (!ventana) {
-        mostrarNotificacion("El navegador bloqueo la ventana de impresion.");
+        mostrarNotificacion("El navegador bloqueó la ventana de impresión.");
         return;
     }
 
@@ -435,17 +448,17 @@ function imprimirFactura(factura = null) {
                 <div><strong>Fecha:</strong> ${escaparHtml(data.fecha)}</div>
                 <div><strong>Cliente:</strong> ${escaparHtml(data.cliente)}</div>
                 <div><strong>Dispositivo:</strong> ${escaparHtml(data.dispositivo)}</div>
-                <div><strong>TÃ©cnico:</strong> ${escaparHtml(data.tecnico)}</div>
+                <div><strong>Técnico:</strong> ${escaparHtml(data.tecnico)}</div>
                 <div><strong>Servicio:</strong> ${escaparHtml(data.servicio)}</div>
-                <div><strong>MÃ©todo de pago:</strong> ${escaparHtml(data.metodoPago)}</div>
+                <div><strong>Método de pago:</strong> ${escaparHtml(data.metodoPago)}</div>
                 <div><strong>Estado:</strong> ${escaparHtml(data.estado)}</div>
-                <div><strong>GarantÃ­a:</strong> ${escaparHtml(data.garantia)}</div>
+                <div><strong>Garantía:</strong> ${escaparHtml(data.garantia)}</div>
             </div>
             <table>
                 <thead>
                     <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
                 </thead>
-                <tbody>${repuestosHtml}</tbody>
+                <tbody>${detalleHtml}</tbody>
             </table>
             <p class="total">Total: ${moneda(data.total)}</p>
             <script>window.print();<\/script>
@@ -489,7 +502,7 @@ function conectarEventos() {
         }
 
         if (!esCantidadValida(cantidad)) {
-            mostrarNotificacion("La cantidad debe ser un numero entero mayor que 0.");
+            mostrarNotificacion("La cantidad debe ser un número entero mayor que 0.");
             return;
         }
 
@@ -512,8 +525,8 @@ function conectarEventos() {
     document.getElementById("btnHistorialFacturas").addEventListener("click", () => {
         const resumen = facturas.length
             ? facturas.map(factura => `${factura.numero} - ${factura.cliente}: ${moneda(factura.total)} (${factura.estado})`).join("\n")
-            : "TodavÃ­a no hay facturas registradas.";
-        mostrarNotificacion(`Historial actual de facturacion:\n\n${resumen}`, "info");
+            : "Todavía no hay facturas registradas.";
+        mostrarNotificacion(`Historial actual de facturación:\n\n${resumen}`, "info");
     });
 
     document.getElementById("btnExportarFacturas").addEventListener("click", () => {
@@ -529,10 +542,10 @@ function conectarEventos() {
 
         descargarCsv(
             "reporte_facturas.csv",
-            ["Factura", "Fecha", "Cliente", "TÃ©cnico", "Total", "MÃ©todo de pago", "Estado"],
+            ["Factura", "Fecha", "Cliente", "Técnico", "Total", "Método de pago", "Estado"],
             filas
         );
-        mostrarNotificacion("Reporte de facturacion exportado correctamente.", "success");
+        mostrarNotificacion("Reporte de facturación exportado correctamente.", "success");
     });
 
     document.getElementById("buscarFactura").addEventListener("input", event => {
@@ -555,11 +568,10 @@ async function iniciarFacturacion() {
     try {
         await cargarDatosFacturacion();
     } catch (error) {
-        mostrarNotificacion(error.message || "No se pudo cargar facturacion.", "error");
+        mostrarNotificacion(error.message || "No se pudo cargar facturación.", "error");
         pintarServiciosCompletados();
         renderHistorialFacturas([]);
     }
 }
 
 iniciarFacturacion();
-

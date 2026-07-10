@@ -17,7 +17,7 @@ def moneda_decimal(valor):
 @require_GET
 def reportes(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     if request.user.rol != Usuario.Rol.ADMIN:
         return JsonResponse({"ok": False, "error": "Solo admin puede consultar reportes."}, status=403)

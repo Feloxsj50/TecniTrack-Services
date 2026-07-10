@@ -1,4 +1,4 @@
-﻿const API_BASE = (() => {
+const API_BASE = (() => {
     const origin = window.location.origin;
     const localStaticPorts = ["5500", "5501", "5173"];
 
@@ -33,7 +33,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolvio una respuesta no valida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -142,7 +142,7 @@ function renderizarProximoTrabajo() {
 
     if (!proximo) {
         titulo.textContent = "Sin trabajos activos";
-        detalle.textContent = "Cuando el admin asigne una orden, aparecera aqui la mas urgente.";
+        detalle.textContent = "Cuando el admin asigne una orden, aparecerá aquí la más urgente.";
         boton.disabled = true;
         boton.onclick = null;
         return;
@@ -150,7 +150,7 @@ function renderizarProximoTrabajo() {
 
     const dias = diasAbierto(proximo);
     titulo.textContent = `${proximo.cliente} - ${proximo.dispositivo}`;
-    detalle.textContent = `${proximo.id} Â· ${proximo.servicio} Â· ${proximo.prioridad || "Media"} Â· ${dias} ${dias === 1 ? "dia" : "dias"} abierto`;
+    detalle.textContent = `${proximo.id} - ${proximo.servicio} - ${proximo.prioridad || "Media"} - ${dias} ${dias === 1 ? "día" : "días"} abierto`;
     boton.disabled = false;
     boton.onclick = () => abrirPanelTrabajo(proximo.dbId);
 }
@@ -185,7 +185,7 @@ function renderizarNotificaciones() {
         ${atrasados.length ? `
             <div class="tech-alert urgent">
                 <i class="fa-solid fa-clock"></i>
-                <span>${atrasados.length} lleva${atrasados.length === 1 ? "" : "n"} 3 dias o mas abierto${atrasados.length === 1 ? "" : "s"}.</span>
+                <span>${atrasados.length} lleva${atrasados.length === 1 ? "" : "n"} 3 días o más abierto${atrasados.length === 1 ? "" : "s"}.</span>
             </div>
         ` : ""}
     `;
@@ -233,7 +233,7 @@ function renderizarAsignadas() {
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
             <td><span class="${clasePrioridad(solicitud.prioridad)}">${escaparHtml(solicitud.prioridad || "Media")}</span></td>
-            <td>${dias} ${dias === 1 ? "dia" : "dias"}</td>
+            <td>${dias} ${dias === 1 ? "día" : "días"}</td>
             <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(estadoNormalizado(solicitud.estado))}</span></td>
             <td>
                 <div class="table-actions">
@@ -282,7 +282,7 @@ function renderizarMetaPanel(solicitud) {
         <div><span>Equipo</span><strong>${escaparHtml(solicitud.dispositivo)}</strong></div>
         <div><span>Servicio</span><strong>${escaparHtml(solicitud.servicio)}</strong></div>
         <div><span>Prioridad</span><strong>${escaparHtml(solicitud.prioridad || "Media")}</strong></div>
-        <div><span>Tiempo abierto</span><strong>${dias} ${dias === 1 ? "dia" : "dias"}</strong></div>
+        <div><span>Tiempo abierto</span><strong>${dias} ${dias === 1 ? "día" : "días"}</strong></div>
     `;
 }
 
@@ -450,4 +450,3 @@ function iniciarPanelTecnico() {
 }
 
 iniciarPanelTecnico();
-

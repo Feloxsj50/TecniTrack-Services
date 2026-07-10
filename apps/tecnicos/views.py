@@ -13,13 +13,13 @@ def validar_admin(request):
         return JsonResponse(
             {
                 "ok": False,
-                "error": "Sesion Django no activa. Cierra sesion e inicia como admin nuevamente.",
+                "error": "Sesión Django no activa. Cierra sesión e inicia como admin nuevamente.",
             },
             status=401,
         )
 
     if request.user.rol != "admin":
-        return JsonResponse({"ok": False, "error": "Solo admin puede modificar tecnicos."}, status=403)
+        return JsonResponse({"ok": False, "error": "Solo admin puede modificar técnicos."}, status=403)
 
     return None
 
@@ -38,7 +38,7 @@ def obtener_datos_request(request):
         try:
             return json.loads(request.body.decode("utf-8")), None
         except json.JSONDecodeError:
-            return None, JsonResponse({"ok": False, "error": "Datos invalidos."}, status=400)
+            return None, JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
 
     return request.POST, None
 
@@ -101,19 +101,19 @@ def crear_tecnico(request):
         return JsonResponse({"ok": False, "error": "La especialidad debe tener al menos 3 caracteres."}, status=400)
 
     if not re.fullmatch(r"[A-Za-z0-9._-]{4,30}", username):
-        return JsonResponse({"ok": False, "error": "El usuario debe tener 4 a 30 caracteres validos."}, status=400)
+        return JsonResponse({"ok": False, "error": "El usuario debe tener 4 a 30 caracteres válidos."}, status=400)
 
     if "@" not in correo or "." not in correo:
-        return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+        return JsonResponse({"ok": False, "error": "Ingresa un correo válido."}, status=400)
 
     if len(password) < 8:
-        return JsonResponse({"ok": False, "error": "La contrasena temporal debe tener al menos 8 caracteres."}, status=400)
+        return JsonResponse({"ok": False, "error": "La contraseña temporal debe tener al menos 8 caracteres."}, status=400)
 
     if not re.fullmatch(r"\d{4}-\d{4}", telefono):
-        return JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
+        return JsonResponse({"ok": False, "error": "El teléfono debe tener el formato 7777-8888."}, status=400)
 
     if estado not in ["Activo", "Inactivo"]:
-        return JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+        return JsonResponse({"ok": False, "error": "Estado inválido."}, status=400)
 
     if Usuario.objects.filter(username__iexact=username).exists():
         return JsonResponse({"ok": False, "error": "Este usuario ya existe."}, status=409)
@@ -152,7 +152,7 @@ def actualizar_tecnico(request, tecnico_id):
     try:
         tecnico = Tecnico.objects.select_related("usuario").get(id=tecnico_id)
     except Tecnico.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Tecnico no encontrado."}, status=404)
+        return JsonResponse({"ok": False, "error": "Técnico no encontrado."}, status=404)
 
     datos, error = obtener_datos_request(request)
     if error:
@@ -175,16 +175,16 @@ def actualizar_tecnico(request, tecnico_id):
         return JsonResponse({"ok": False, "error": "La especialidad debe tener al menos 3 caracteres."}, status=400)
 
     if "@" not in correo or "." not in correo:
-        return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+        return JsonResponse({"ok": False, "error": "Ingresa un correo válido."}, status=400)
 
     if password and len(password) < 8:
-        return JsonResponse({"ok": False, "error": "La nueva contrasena temporal debe tener al menos 8 caracteres."}, status=400)
+        return JsonResponse({"ok": False, "error": "La nueva contraseña temporal debe tener al menos 8 caracteres."}, status=400)
 
     if not re.fullmatch(r"\d{4}-\d{4}", telefono):
-        return JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
+        return JsonResponse({"ok": False, "error": "El teléfono debe tener el formato 7777-8888."}, status=400)
 
     if estado not in ["Activo", "Inactivo"]:
-        return JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+        return JsonResponse({"ok": False, "error": "Estado inválido."}, status=400)
 
     usuario = tecnico.usuario
     if Usuario.objects.filter(email=correo).exclude(id=usuario.id).exists():
@@ -216,7 +216,7 @@ def eliminar_tecnico(request, tecnico_id):
     try:
         tecnico = Tecnico.objects.select_related("usuario").get(id=tecnico_id)
     except Tecnico.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Tecnico no encontrado."}, status=404)
+        return JsonResponse({"ok": False, "error": "Técnico no encontrado."}, status=404)
 
     tecnico.usuario.delete()
     return JsonResponse({"ok": True})

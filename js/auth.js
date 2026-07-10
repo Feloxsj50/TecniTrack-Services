@@ -1,5 +1,5 @@
 (function () {
-    const SESSION_KEY = "tecnitrackSesion";
+    const SESSION_KEY = "tecnitrackSesión";
     const ROLE_KEY = "rolActual";
     const MESSAGE_KEY = "tecnitrackMensaje";
     const publicPages = ["auth/index.html", "auth/registro.html"];
@@ -59,7 +59,7 @@
     function logout() {
         sessionStorage.removeItem(SESSION_KEY);
         sessionStorage.removeItem(ROLE_KEY);
-        saveMessage("Sesion cerrada correctamente.", "success");
+        saveMessage("Sesión cerrada correctamente.", "success");
         window.location.replace(pageUrl("auth/index.html"));
     }
 
@@ -74,7 +74,7 @@
         document.documentElement.style.visibility = "hidden";
         const session = getSession();
         if (!session || !permissions[session.rol]) {
-            saveMessage("Inicia sesion para acceder al sistema.", "error");
+            saveMessage("Inicia sesión para acceder al sistema.", "error");
             window.location.replace(pageUrl("auth/index.html"));
             return;
         }
@@ -89,9 +89,9 @@
     }
 
     window.TecniAuth = {
-        iniciarSesion: login,
-        cerrarSesion: logout,
-        obtenerSesion: getSession,
+        iniciarSesión: login,
+        cerrarSesión: logout,
+        obtenerSesión: getSession,
         puedeAcceder: canAccess,
         paginaInicio: rol => pageUrl(homePages[rol] || "auth/index.html"),
         urlPagina: pageUrl,

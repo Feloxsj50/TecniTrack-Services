@@ -1,4 +1,4 @@
-﻿from django.db import models
+from django.db import models
 
 from apps.clientes.models import Cliente
 from apps.tecnicos.models import Tecnico

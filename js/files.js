@@ -1,4 +1,4 @@
-﻿const API_BASE = (() => {
+const API_BASE = (() => {
     const origin = window.location.origin;
     const localStaticPorts = ["5500", "5501", "5173"];
 
@@ -41,7 +41,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -161,7 +161,7 @@ function exportarCsv() {
     reporteActual.graficos.servicios.labels.forEach((servicio, index) => {
         csv += `${servicio},${reporteActual.graficos.servicios.data[index] || 0}\n`;
     });
-    csv += "\nFactura,Fecha,Cliente,Servicio,Metodo,Estado,Total\n";
+    csv += "\nFactura,Fecha,Cliente,Servicio,Método,Estado,Total\n";
     reporteActual.exportacion.forEach(factura => {
         csv += `${factura.numero},${factura.fecha},${factura.cliente},${factura.servicio},${factura.metodoPago},${factura.estado},${factura.total}\n`;
     });
@@ -192,4 +192,3 @@ document.querySelector(".btn-print")?.addEventListener("click", () => window.pri
 document.querySelector(".btn-excel")?.addEventListener("click", exportarCsv);
 
 iniciarReportes();
-

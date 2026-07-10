@@ -1,4 +1,4 @@
-﻿const campos = {
+const campos = {
     nombres: document.getElementById("nombres"),
     apellidos: document.getElementById("apellidos"),
     username: document.getElementById("username"),
@@ -59,7 +59,7 @@ function evaluarPassword(valor) {
 
     if (valor.length === 0) return { nivel: "", texto: "", valido: false };
     if (puntos <= 1) return { nivel: "weak", texto: "Contrase\u00f1a d\u00e9bil", valido: false };
-    if (puntos <= 3) return { nivel: "medium", texto: "Contrase\u00f1a media", valido: valor.length >= 8 };
+    if (puntos <= 3) return { nivel: "medium", texto: "Contrase\u00f1a medía", valido: valor.length >= 8 };
     return { nivel: "strong", texto: "Contrase\u00f1a fuerte", valido: true };
 }
 
@@ -109,7 +109,7 @@ function validarUsername() {
     marcarCampo(campos.username, valido);
     mostrarMensaje(
         ayudas.username,
-        valor && !valido ? "Usa 4 a 30 caracteres: letras, nÃºmeros, punto, guion o guion bajo" : "",
+        valor && !valido ? "Usa 4 a 30 caracteres: letras, números, punto, guion o guion bajo" : "",
         valido ? "success" : "error"
     );
     return valido;
@@ -220,5 +220,3 @@ if (registerButton) {
         }
     });
 }
-
-

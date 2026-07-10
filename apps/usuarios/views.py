@@ -16,7 +16,7 @@ from apps.usuarios.models import ConfiguracionTaller, Usuario
 def serializar_usuario(usuario):
     area = "Administracion" if usuario.rol == Usuario.Rol.ADMIN else "Cliente"
     if usuario.rol == Usuario.Rol.TECNICO and hasattr(usuario, "perfil_tecnico"):
-        area = usuario.perfil_tecnico.especialidad or "Tecnico"
+        area = usuario.perfil_tecnico.especialidad or "Técnico"
 
     return {
         "id": usuario.id,
@@ -33,9 +33,9 @@ def serializar_usuario(usuario):
 
 def validar_admin(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
     if request.user.rol != Usuario.Rol.ADMIN:
-        return JsonResponse({"ok": False, "error": "Solo admin puede realizar esta accion."}, status=403)
+        return JsonResponse({"ok": False, "error": "Solo admin puede realizar esta acción."}, status=403)
     return None
 
 
@@ -90,7 +90,7 @@ def obtener_datos_request(request):
         try:
             return json.loads(request.body.decode("utf-8")), None
         except json.JSONDecodeError:
-            return None, JsonResponse({"ok": False, "error": "Datos invalidos."}, status=400)
+            return None, JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
 
     return request.POST, None
 
@@ -105,12 +105,12 @@ def iniciar_sesion(request):
     password = datos.get("password", "")
 
     if not username or not password:
-        return JsonResponse({"ok": False, "error": "Completa usuario y contrasena."}, status=400)
+        return JsonResponse({"ok": False, "error": "Completa usuario y contraseña."}, status=400)
 
     usuario = authenticate(request, username=username, password=password)
 
     if not usuario or not usuario.activo:
-        return JsonResponse({"ok": False, "error": "Usuario o contrasena incorrectos."}, status=401)
+        return JsonResponse({"ok": False, "error": "Usuario o contraseña incorrectos."}, status=401)
 
     login(request, usuario)
     return JsonResponse({"ok": True, "usuario": serializar_usuario(usuario)})
@@ -138,21 +138,21 @@ def registrar_cliente(request):
 
     if not re.fullmatch(r"[A-Za-z0-9._-]{4,30}", username):
         return JsonResponse(
-            {"ok": False, "error": "El nombre de usuario debe tener 4 a 30 caracteres validos."},
+            {"ok": False, "error": "El nombre de usuario debe tener 4 a 30 caracteres válidos."},
             status=400,
         )
 
     if "@" not in email or "." not in email:
-        return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+        return JsonResponse({"ok": False, "error": "Ingresa un correo válido."}, status=400)
 
     if not re.fullmatch(r"\d{4}-\d{4}", telefono):
-        return JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
+        return JsonResponse({"ok": False, "error": "El teléfono debe tener el formato 7777-8888."}, status=400)
 
     if len(password) < 8:
-        return JsonResponse({"ok": False, "error": "La contrasena debe tener al menos 8 caracteres."}, status=400)
+        return JsonResponse({"ok": False, "error": "La contraseña debe tener al menos 8 caracteres."}, status=400)
 
     if password != confirmacion:
-        return JsonResponse({"ok": False, "error": "Las contrasenas no coinciden."}, status=400)
+        return JsonResponse({"ok": False, "error": "Las contraseñas no coinciden."}, status=400)
 
     if Usuario.objects.filter(email=email).exists():
         return JsonResponse({"ok": False, "error": "Este correo ya esta registrado."}, status=409)
@@ -184,7 +184,7 @@ def cerrar_sesion(request):
 @require_GET
 def usuario_actual(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     return JsonResponse({"ok": True, "usuario": serializar_usuario(request.user)})
 
@@ -192,7 +192,7 @@ def usuario_actual(request):
 @require_POST
 def actualizar_perfil(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     datos, error = obtener_datos_request(request)
     if error:
@@ -203,16 +203,16 @@ def actualizar_perfil(request):
     telefono = datos.get("telefono", "").strip()
 
     if not all([nombre, email, telefono]):
-        return JsonResponse({"ok": False, "error": "Completa nombre, correo y telefono."}, status=400)
+        return JsonResponse({"ok": False, "error": "Completa nombre, correo y teléfono."}, status=400)
 
     if len(nombre) < 3:
         return JsonResponse({"ok": False, "error": "El nombre debe tener al menos 3 caracteres."}, status=400)
 
     if "@" not in email or "." not in email:
-        return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+        return JsonResponse({"ok": False, "error": "Ingresa un correo válido."}, status=400)
 
     if not re.fullmatch(r"\d{4}-\d{4}", telefono):
-        return JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
+        return JsonResponse({"ok": False, "error": "El teléfono debe tener el formato 7777-8888."}, status=400)
 
     if Usuario.objects.filter(email=email).exclude(id=request.user.id).exists():
         return JsonResponse({"ok": False, "error": "Este correo ya esta en uso."}, status=409)
@@ -230,7 +230,7 @@ def actualizar_perfil(request):
 @require_POST
 def cambiar_password(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     datos, error = obtener_datos_request(request)
     if error:
@@ -241,16 +241,16 @@ def cambiar_password(request):
     confirmacion = datos.get("confirmacion", "")
 
     if not all([actual, nueva, confirmacion]):
-        return JsonResponse({"ok": False, "error": "Completa todos los campos de contrasena."}, status=400)
+        return JsonResponse({"ok": False, "error": "Completa todos los campos de contraseña."}, status=400)
 
     if not request.user.check_password(actual):
-        return JsonResponse({"ok": False, "error": "La contrasena actual no es correcta."}, status=400)
+        return JsonResponse({"ok": False, "error": "La contraseña actual no es correcta."}, status=400)
 
     if len(nueva) < 8:
-        return JsonResponse({"ok": False, "error": "La nueva contrasena debe tener al menos 8 caracteres."}, status=400)
+        return JsonResponse({"ok": False, "error": "La nueva contraseña debe tener al menos 8 caracteres."}, status=400)
 
     if nueva != confirmacion:
-        return JsonResponse({"ok": False, "error": "La nueva contrasena y la confirmacion no coinciden."}, status=400)
+        return JsonResponse({"ok": False, "error": "La nueva contraseña y la confirmacion no coinciden."}, status=400)
 
     request.user.set_password(nueva)
     request.user.save()
@@ -288,7 +288,7 @@ def cambiar_estado_usuario(request, usuario_id):
 
     activo = datos.get("activo")
     if not isinstance(activo, bool):
-        return JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+        return JsonResponse({"ok": False, "error": "Estado inválido."}, status=400)
 
     usuario.activo = activo
     usuario.save(update_fields=["activo", "actualizado_en"])
@@ -312,7 +312,7 @@ def resetear_password_usuario(request, usuario_id):
 
     password = datos.get("password", "")
     if len(password) < 8:
-        return JsonResponse({"ok": False, "error": "La contrasena temporal debe tener al menos 8 caracteres."}, status=400)
+        return JsonResponse({"ok": False, "error": "La contraseña temporal debe tener al menos 8 caracteres."}, status=400)
 
     usuario.set_password(password)
     usuario.save()
@@ -322,7 +322,7 @@ def resetear_password_usuario(request, usuario_id):
 @require_GET
 def obtener_taller(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     return JsonResponse({"ok": True, "taller": serializar_taller(taller_actual())})
 
@@ -347,7 +347,7 @@ def actualizar_taller(request):
     if not all([nombre, correo, direccion, telefono, whatsapp, horario]):
         return JsonResponse({"ok": False, "error": "Completa todos los datos del taller."}, status=400)
     if "@" not in correo or "." not in correo:
-        return JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+        return JsonResponse({"ok": False, "error": "Ingresa un correo válido."}, status=400)
     if not re.fullmatch(r"\d{4}-\d{4}", telefono) or not re.fullmatch(r"\d{4}-\d{4}", whatsapp):
         return JsonResponse({"ok": False, "error": "Telefono y WhatsApp deben tener formato 7777-8888."}, status=400)
 

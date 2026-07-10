@@ -1,4 +1,4 @@
-﻿const API_BASE = (() => {
+const API_BASE = (() => {
     const origin = window.location.origin;
     const localStaticPorts = ["5500", "5501", "5173"];
 
@@ -17,7 +17,7 @@ function obtenerIniciales(nombre) {
 }
 
 function nombreRol(rol) {
-    return { admin: "Administrador", tecnico: "TÃ©cnico", cliente: "Cliente" }[rol] || "Usuario";
+    return { admin: "Administrador", tecnico: "Técnico", cliente: "Cliente" }[rol] || "Usuario";
 }
 
 function panelRol(rol) {
@@ -29,7 +29,7 @@ function permisosRol(rol) {
         admin: "Completos",
         tecnico: "Trabajos asignados",
         cliente: "Solicitudes y recibos"
-    }[rol] || "Basicos";
+    }[rol] || "Básicos";
 }
 
 function telefonoValido(telefono) {
@@ -53,8 +53,8 @@ async function leerRespuestaJson(respuesta) {
         return {
             ok: false,
             error: respuesta.status === 403
-                ? "No se pudo validar la seguridad de Django. Inicia sesion nuevamente desde este mismo enlace."
-                : "Django devolviÃ³ una respuesta no vÃ¡lida."
+                ? "No se pudo validar la seguridad de Django. Inicia sesión nuevamente desde este mismo enlace."
+                : "Django devolvió una respuesta no válida."
         };
     }
 }
@@ -84,7 +84,7 @@ async function cargarPerfil() {
         perfilActual = datos.usuario;
         pintarPerfil(perfilActual);
     } catch (error) {
-        mostrarNotificacion(error.message || "Inicia sesion nuevamente.", "error");
+        mostrarNotificacion(error.message || "Inicia sesión nuevamente.", "error");
     }
 }
 
@@ -100,7 +100,7 @@ function pintarPerfil(perfil) {
     document.getElementById("perfilRol").textContent = nombreRol(perfil.rol);
     document.getElementById("perfilUsuario").textContent = perfil.username;
     document.getElementById("perfilCorreo").textContent = perfil.email;
-    document.getElementById("perfilTelefono").textContent = perfil.telefono || "Sin telÃ©fono";
+    document.getElementById("perfilTelefono").textContent = perfil.telefono || "Sin teléfono";
     document.getElementById("perfilArea").textContent = areaVisible;
     document.getElementById("perfilPanel").textContent = panelRol(perfil.rol);
     document.getElementById("perfilPermisos").textContent = permisosRol(perfil.rol);
@@ -117,9 +117,9 @@ async function actualizarPerfil() {
     const email = document.getElementById("correoPerfil").value.trim().toLowerCase();
     const telefono = document.getElementById("telefonoPerfil").value.trim();
 
-    if (!nombre || !email || !telefono) return mostrarNotificacion("Completa nombre, correo y telÃ©fono.", "error");
-    if (!correoValido(email)) return mostrarNotificacion("Ingresa un correo valido.", "error");
-    if (!telefonoValido(telefono)) return mostrarNotificacion("Ingresa un telÃ©fono vÃ¡lido con formato 7777-8888.", "error");
+    if (!nombre || !email || !telefono) return mostrarNotificacion("Completa nombre, correo y teléfono.", "error");
+    if (!correoValido(email)) return mostrarNotificacion("Ingresa un correo válido.", "error");
+    if (!telefonoValido(telefono)) return mostrarNotificacion("Ingresa un teléfono válido con formato 7777-8888.", "error");
 
     const token = await obtenerCsrfToken();
     const respuesta = await fetch(`${API_BASE}/usuarios/perfil/actualizar/`, {
@@ -142,11 +142,11 @@ async function actualizarPerfil() {
 async function cambiarPassword() {
     const actual = document.getElementById("passwordActual").value;
     const nueva = document.getElementById("passwordNueva").value;
-    const confirmacion = document.getElementById("passwordConfirmar").value;
+    const confirmación = document.getElementById("passwordConfirmar").value;
 
-    if (!actual || !nueva || !confirmacion) return mostrarNotificacion("Completa todos los campos de contrasena.", "error");
-    if (nueva.length < 8) return mostrarNotificacion("La nueva contrasena debe tener al menos 8 caracteres.", "error");
-    if (nueva !== confirmacion) return mostrarNotificacion("La nueva contrasena y la confirmacion no coinciden.", "error");
+    if (!actual || !nueva || !confirmación) return mostrarNotificacion("Completa todos los campos de contraseña.", "error");
+    if (nueva.length < 8) return mostrarNotificacion("La nueva contraseña debe tener al menos 8 caracteres.", "error");
+    if (nueva !== confirmación) return mostrarNotificacion("La nueva contraseña y la confirmación no coinciden.", "error");
 
     const token = await obtenerCsrfToken();
     const respuesta = await fetch(`${API_BASE}/usuarios/password/cambiar/`, {
@@ -156,10 +156,10 @@ async function cambiarPassword() {
             "Content-Type": "application/json",
             "X-CSRFToken": token
         },
-        body: JSON.stringify({ actual, nueva, confirmacion })
+        body: JSON.stringify({ actual, nueva, confirmación })
     });
     const datos = await leerRespuestaJson(respuesta);
-    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo cambiar la contrasena.");
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo cambiar la contraseña.");
 
     document.getElementById("passwordActual").value = "";
     document.getElementById("passwordNueva").value = "";
@@ -178,7 +178,3 @@ document.getElementById("btnCambiarPassword").addEventListener("click", async ()
 document.getElementById("telefonoPerfil")?.addEventListener("input", event => formatearTelefono(event.target));
 
 cargarPerfil();
-
-
-
-

@@ -30,7 +30,7 @@ def obtener_datos_request(request):
         try:
             return json.loads(request.body.decode("utf-8")), None
         except json.JSONDecodeError:
-            return None, JsonResponse({"ok": False, "error": "Datos invalidos."}, status=400)
+            return None, JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
 
     return request.POST, None
 
@@ -146,7 +146,7 @@ def buscar_tecnico(username):
 @require_GET
 def listar_solicitudes(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     solicitudes = [serializar_solicitud(solicitud) for solicitud in queryset_por_rol(request.user)]
     return JsonResponse({"ok": True, "solicitudes": solicitudes, "total": len(solicitudes)})
@@ -155,7 +155,7 @@ def listar_solicitudes(request):
 @require_POST
 def crear_solicitud(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     datos, error = obtener_datos_request(request)
     if error:
@@ -201,7 +201,7 @@ def crear_solicitud(request):
 @require_POST
 def actualizar_solicitud(request, solicitud_id):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     try:
         solicitud = SolicitudServicio.objects.select_related("cliente__usuario", "tecnico__usuario").get(id=solicitud_id)
@@ -245,7 +245,7 @@ def actualizar_solicitud(request, solicitud_id):
 @require_POST
 def eliminar_solicitud(request, solicitud_id):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     if request.user.rol != Usuario.Rol.ADMIN:
         return JsonResponse({"ok": False, "error": "Solo admin puede eliminar órdenes."}, status=403)

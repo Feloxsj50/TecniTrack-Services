@@ -1,4 +1,4 @@
-﻿const API_BASE = (() => {
+const API_BASE = (() => {
     const origin = window.location.origin;
     const localStaticPorts = ["5500", "5501", "5173"];
 
@@ -25,7 +25,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
+        return { ok: false, error: "Django devolvió una respuesta no válida." };
     }
 }
 
@@ -60,7 +60,7 @@ function renderizarTrabajos(trabajos) {
                     <div class="empty-state">
                         <i class="fa-solid fa-clipboard-check"></i>
                         <strong>Sin trabajos completados</strong>
-                        <span>Cuando marques un servicio como completado, aparecerÃ¡ aquÃ­.</span>
+                        <span>Cuando marques un servicio como completado, aparecerá aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -96,7 +96,7 @@ async function cargarMisTrabajos() {
                     <div class="empty-state">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         <strong>No se pudieron cargar tus trabajos</strong>
-                        <span>${escaparHtml(error.message || "Verifica que Django estÃ© activo.")}</span>
+                        <span>${escaparHtml(error.message || "Verifica que Django esté activo.")}</span>
                     </div>
                 </td>
             </tr>

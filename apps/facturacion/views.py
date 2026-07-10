@@ -26,14 +26,14 @@ def obtener_datos_request(request):
         try:
             return json.loads(request.body.decode("utf-8")), None
         except json.JSONDecodeError:
-            return None, JsonResponse({"ok": False, "error": "Datos invalidos."}, status=400)
+            return None, JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
 
     return request.POST, None
 
 
 def validar_admin(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     if request.user.rol != Usuario.Rol.ADMIN:
         return JsonResponse({"ok": False, "error": "Solo admin puede generar facturas."}, status=403)
@@ -45,7 +45,7 @@ def decimal_desde(valor, campo):
     try:
         numero = Decimal(str(valor or "0"))
     except (InvalidOperation, TypeError):
-        raise ValueError(f"{campo} debe ser un monto valido.")
+        raise ValueError(f"{campo} debe ser un monto válido.")
 
     if numero < 0:
         raise ValueError(f"{campo} no puede ser negativo.")
@@ -61,7 +61,7 @@ def nombre_cliente(solicitud):
 
 def nombre_tecnico(solicitud):
     if not solicitud.tecnico:
-        return "Sin tecnico"
+        return "Sin técnico"
     return solicitud.tecnico.usuario.get_full_name() or solicitud.tecnico.usuario.username
 
 
@@ -122,7 +122,7 @@ def facturas_por_rol(usuario):
 @require_GET
 def listar_facturas(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesion activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     data = [serializar_factura(factura) for factura in facturas_por_rol(request.user)]
     return JsonResponse({"ok": True, "facturas": data, "total": len(data)})
@@ -179,7 +179,7 @@ def crear_factura(request):
             precio = decimal_desde(item.get("precio", 0), "El precio del repuesto")
 
             if not nombre or cantidad <= 0:
-                return JsonResponse({"ok": False, "error": "Cada repuesto necesita nombre y cantidad valida."}, status=400)
+                return JsonResponse({"ok": False, "error": "Cada repuesto necesita nombre y cantidad válida."}, status=400)
 
             subtotal = (precio * cantidad).quantize(Decimal("0.01"))
             repuestos_monto += subtotal
@@ -198,7 +198,7 @@ def crear_factura(request):
 
     metodo = METODOS_FRONT.get(datos.get("metodoPago", "Efectivo"), Factura.MetodoPago.EFECTIVO)
     estado = ESTADOS_FRONT.get(datos.get("estado", "Pagado"), Factura.Estado.PAGADO)
-    garantia = str(datos.get("garantia", "30 Dias")).strip() or "30 Dias"
+    garantia = str(datos.get("garantia", "30 Días")).strip() or "30 Días"
 
     factura, _ = Factura.objects.update_or_create(
         solicitud=solicitud,

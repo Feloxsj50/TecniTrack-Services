@@ -24,7 +24,7 @@ class Command(BaseCommand):
             username="tecnico",
             password="tec123",
             email="tecnico@tecnitrack.com",
-            first_name="Tecnico",
+            first_name="Técnico",
             last_name="Principal",
             rol=Usuario.Rol.TECNICO,
             telefono="8888-0001",
@@ -47,7 +47,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Datos demo listos."))
         self.stdout.write(f"Admin: {admin.username} / admin123")
-        self.stdout.write("Tecnico: tecnico / tec123")
+        self.stdout.write("Técnico: tecnico / tec123")
         self.stdout.write("Cliente: cliente / cli123")
 
     def crear_usuario(self, username, password, **datos):

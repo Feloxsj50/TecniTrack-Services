@@ -51,7 +51,7 @@ async function apiJson(url, opciones = {}) {
         ...opciones
     });
     const datos = await leerRespuestaJson(respuesta);
-    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo completar la accion.");
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo completar la acción.");
     return datos;
 }
 
@@ -79,7 +79,7 @@ async function cargarTaller() {
 }
 
 function nombreRol(rol) {
-    return { admin: "Admin", tecnico: "Tecnico", cliente: "Cliente" }[rol] || rol;
+    return { admin: "Admin", tecnico: "Técnico", cliente: "Cliente" }[rol] || rol;
 }
 
 function renderizarUsuarios() {
@@ -93,7 +93,7 @@ function renderizarUsuarios() {
                     <div class="empty-state">
                         <i class="fa-solid fa-users"></i>
                         <strong>Sin usuarios registrados</strong>
-                        <span>Cuando se registren clientes o admin cree tecnicos, apareceran aqui.</span>
+                        <span>Cuando se registren clientes o admin cree técnicos, aparecerán aquí.</span>
                     </div>
                 </td>
             </tr>
@@ -177,11 +177,11 @@ async function resetearPassword(usuarioId) {
     const usuario = usuariosConfig.find(item => item.id === usuarioId);
     if (!usuario) return;
 
-    const password = window.prompt(`Nueva contrasena temporal para ${usuario.username}:`);
+    const password = window.prompt(`Nueva contraseña temporal para ${usuario.username}:`);
     if (password === null) return;
 
     if (password.length < 8) {
-        mostrarNotificacion("La contrasena temporal debe tener al menos 8 caracteres.", "error");
+        mostrarNotificacion("La contraseña temporal debe tener al menos 8 caracteres.", "error");
         return;
     }
 
@@ -192,7 +192,7 @@ async function resetearPassword(usuarioId) {
         });
         mostrarNotificacion("Contrasena temporal actualizada correctamente.", "success");
     } catch (error) {
-        mostrarNotificacion(error.message || "No se pudo resetear la contrasena.", "error");
+        mostrarNotificacion(error.message || "No se pudo resetear la contraseña.", "error");
     }
 }
 

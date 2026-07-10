@@ -22,4 +22,4 @@ class Tecnico(models.Model):
 
     def __str__(self):
         nombre = self.usuario.get_full_name() or self.usuario.username
-        return f"{nombre} - {self.especialidad or 'Tecnico'}"
+        return f"{nombre} - {self.especialidad or 'Técnico'}"

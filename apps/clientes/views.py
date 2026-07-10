@@ -15,7 +15,7 @@ USERNAME_RE = r"[A-Za-z0-9._-]{4,30}"
 
 def validar_admin(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sesion Django no activa. Cierra sesion e inicia como admin nuevamente."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sesión Django no activa. Cierra sesión e inicia como admin nuevamente."}, status=401)
 
     if request.user.rol != Usuario.Rol.ADMIN:
         return JsonResponse({"ok": False, "error": "Solo admin puede modificar clientes."}, status=403)
@@ -41,7 +41,7 @@ def obtener_datos_request(request):
         try:
             return json.loads(request.body.decode("utf-8")), None
         except json.JSONDecodeError:
-            return None, JsonResponse({"ok": False, "error": "Datos invalidos."}, status=400)
+            return None, JsonResponse({"ok": False, "error": "Datos inválidos."}, status=400)
 
     return request.POST, None
 
@@ -64,31 +64,31 @@ def validar_campos_cliente(datos, requiere_usuario=False, requiere_password=Fals
     estado = datos.get("estado", "Activo").strip()
 
     if not all([nombre, correo, telefono, estado]):
-        return None, JsonResponse({"ok": False, "error": "Completa nombre, correo, telefono y estado."}, status=400)
+        return None, JsonResponse({"ok": False, "error": "Completa nombre, correo, teléfono y estado."}, status=400)
 
     if requiere_usuario and not username:
         return None, JsonResponse({"ok": False, "error": "Ingresa un nombre de usuario para el cliente."}, status=400)
 
     if requiere_password and not password:
-        return None, JsonResponse({"ok": False, "error": "Ingresa una contrasena temporal para el cliente."}, status=400)
+        return None, JsonResponse({"ok": False, "error": "Ingresa una contraseña temporal para el cliente."}, status=400)
 
     if len(nombre) < 3:
         return None, JsonResponse({"ok": False, "error": "El nombre debe tener al menos 3 caracteres."}, status=400)
 
     if username and not re.fullmatch(USERNAME_RE, username):
-        return None, JsonResponse({"ok": False, "error": "El usuario debe tener 4 a 30 caracteres validos."}, status=400)
+        return None, JsonResponse({"ok": False, "error": "El usuario debe tener 4 a 30 caracteres válidos."}, status=400)
 
     if "@" not in correo or "." not in correo:
-        return None, JsonResponse({"ok": False, "error": "Ingresa un correo valido."}, status=400)
+        return None, JsonResponse({"ok": False, "error": "Ingresa un correo válido."}, status=400)
 
     if not re.fullmatch(TELEFONO_RE, telefono):
-        return None, JsonResponse({"ok": False, "error": "El telefono debe tener el formato 7777-8888."}, status=400)
+        return None, JsonResponse({"ok": False, "error": "El teléfono debe tener el formato 7777-8888."}, status=400)
 
     if password and len(password) < 8:
-        return None, JsonResponse({"ok": False, "error": "La contrasena temporal debe tener al menos 8 caracteres."}, status=400)
+        return None, JsonResponse({"ok": False, "error": "La contraseña temporal debe tener al menos 8 caracteres."}, status=400)
 
     if estado not in ["Activo", "Inactivo"]:
-        return None, JsonResponse({"ok": False, "error": "Estado invalido."}, status=400)
+        return None, JsonResponse({"ok": False, "error": "Estado inválido."}, status=400)
 
     correo_query = Usuario.objects.filter(email=correo)
     if usuario_actual:
