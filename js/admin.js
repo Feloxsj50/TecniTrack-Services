@@ -30,7 +30,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
+        return { ok: false, error: "Django devolvi\u00f3 una respuesta no v\u00e1lida." };
     }
 }
 
@@ -160,7 +160,7 @@ function pintarSelectTecnicos(valorSeleccionado = "") {
     const select = document.getElementById("tecnicoServicio");
     if (!select) return;
 
-    select.innerHTML = `<option value="">Asignar tÃ©cnico</option>`;
+    select.innerHTML = `<option value="">Asignar t\u00e9cnico</option>`;
 
     tecnicosDisponibles.forEach(tecnico => {
         const option = document.createElement("option");
@@ -181,19 +181,19 @@ function pintarSelectTecnicos(valorSeleccionado = "") {
 
 async function cargarTecnicosDisponibles() {
     const select = document.getElementById("tecnicoServicio");
-    if (select) select.innerHTML = `<option value="">Cargando tÃ©cnicos...</option>`;
+    if (select) select.innerHTML = `<option value="">Cargando t\u00e9cnicos...</option>`;
 
     try {
         const respuesta = await fetch(`${API_BASE}/tecnicos/`, { credentials: "include" });
         const datos = await leerRespuestaJson(respuesta);
-        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los tÃ©cnicos.");
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los t\u00e9cnicos.");
 
         tecnicosDisponibles = datos.tecnicos.filter(tecnico => tecnico.estado === "Activo");
         pintarSelectTecnicos();
     } catch (error) {
         tecnicosDisponibles = [];
-        if (select) select.innerHTML = `<option value="">Sin tÃ©cnicos disponibles</option>`;
-        mostrarNotificacion(error.message || "No se pudieron cargar los tÃ©cnicos.", "error");
+        if (select) select.innerHTML = `<option value="">Sin t\u00e9cnicos disponibles</option>`;
+        mostrarNotificacion(error.message || "No se pudieron cargar los t\u00e9cnicos.", "error");
     }
 }
 
@@ -237,7 +237,7 @@ function actualizarContadorOrdenes(totalVisible) {
     const contador = document.getElementById("contadorOrdenes");
     if (!contador) return;
     const total = totalVisible ?? ordenesFiltradas().length;
-    contador.textContent = `${total} ${total === 1 ? "orden" : "Ã³rdenes"}`;
+    contador.textContent = `${total} ${total === 1 ? "orden" : "\u00f3rdenes"}`;
 }
 
 function irAFacturacion(dbId) {
@@ -262,8 +262,8 @@ function cargarServicios() {
                 <td colspan="9">
                     <div class="empty-state">
                         <i class="fa-solid fa-screwdriver-wrench"></i>
-                        <strong>Sin Ã³rdenes registradas</strong>
-                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecerÃ¡ aquÃ­.</span>
+                        <strong>Sin \u00f3rdenes registradas</strong>
+                        <span>Cuando un cliente solicite un servicio o el admin registre una orden presencial, aparecer\u00e1 aqu\u00ed.</span>
                     </div>
                 </td>
             </tr>
@@ -286,15 +286,15 @@ function cargarServicios() {
             <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(estadoNormalizado(solicitud.estado))}</span></td>
             <td>
                 <div class="table-actions">
-                    <button class="btn-editar-historial" type="button" data-editar="${solicitud.dbId}">
-                        <i class="fa-solid fa-pen"></i> Editar
+                    <button class="btn-editar-historial action-icon" type="button" data-editar="${solicitud.dbId}" title="Editar orden" aria-label="Editar orden">
+                        <i class="fa-solid fa-pen"></i>
                     </button>
-                    <button class="btn-eliminar-tabla" type="button" data-eliminar="${solicitud.dbId}">
-                        <i class="fa-solid fa-trash"></i> Eliminar
+                    <button class="btn-eliminar-tabla action-icon" type="button" data-eliminar="${solicitud.dbId}" title="Eliminar orden" aria-label="Eliminar orden">
+                        <i class="fa-solid fa-trash"></i>
                     </button>
                     ${estadoNormalizado(solicitud.estado) === "Completado" ? `
-                        <button class="btn-facturar-orden" type="button" data-facturar="${solicitud.dbId}" ${puedeFacturar ? "" : "disabled"}>
-                            <i class="fa-solid fa-file-invoice-dollar"></i> ${textoFacturar}
+                        <button class="btn-facturar-orden action-icon" type="button" data-facturar="${solicitud.dbId}" title="${textoFacturar}" aria-label="${textoFacturar}" ${puedeFacturar ? "" : "disabled"}>
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
                         </button>
                     ` : ""}
                 </div>
@@ -410,7 +410,7 @@ async function eliminarServicio(dbId) {
 
     const confirmado = await confirmarAccion({
         titulo: "Eliminar orden",
-        mensaje: `Seguro que quieres eliminar ${solicitud.id} de ${solicitud.cliente}? Esta acciÃ³n no se puede deshacer.`
+        mensaje: `Seguro que quieres eliminar ${solicitud.id} de ${solicitud.cliente}? Esta acci\u00f3n no se puede deshacer.`
     });
     if (!confirmado) return;
 

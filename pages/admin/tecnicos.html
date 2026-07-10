@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -58,15 +58,13 @@
             <button id="btnGuardarTecnico">Guardar Técnico</button>
         </div>
 
-       <h1>Técnicos</h1>
-
-<!-- BUSCADOR -->
-<div class="topbar tecnicos-bar">
+        <!-- BUSCADOR -->
+        <div class="topbar tecnicos-bar">
     <div class="buscador-box">
         <i class="fa-solid fa-search"></i>
         <input type="text" id="buscarTecnico" placeholder="Buscar técnico...">
     </div>
-</div>
+        </div>
 
         <!-- TABLA -->
         <div class="historial">
@@ -86,16 +84,8 @@
                 </thead>
 
                 <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>Carlos Ruiz</td>
-                        <td>Hardware</td>
-                        <td>8888-1234</td>
-                        <td><span class="estado activo">Activo</span></td>
-                        <td>
-                            <button class="btn-editar">Editar</button>
-                            <button class="btn-eliminar">Eliminar</button>
-                        </td>
+                    <tr class="empty-row">
+                        <td colspan="7">Cargando técnicos...</td>
                     </tr>
                 </tbody>
             </table>
@@ -110,6 +100,11 @@
 </body>
 
 </html>
+
+
+
+
+
 
 
 

@@ -622,7 +622,7 @@ body {
     width: 100%;
     border-collapse: collapse;
     color: var(--text-primary);
-    table-layout: auto;
+    table-layout: fixed;
 }
 
 #tablaTickets {
@@ -657,7 +657,7 @@ body {
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    padding: 10px 14px;
+    padding: 9px 8px;
     text-align: left;
     white-space: nowrap;
 }
@@ -685,12 +685,13 @@ body {
 }
 
 #tablaServicios td {
-    padding: 13px 14px;
+    padding: 11px 8px;
     border-bottom: 0.5px solid rgba(255, 255, 255, 0.04);
     font-size: 13px;
     color: var(--text-secondary);
     vertical-align: middle;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 #tablaTickets td {
@@ -1583,7 +1584,7 @@ body {
 
 .backup-panel p {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 12.5px;
 }
 
 .backup-summary {
@@ -1865,6 +1866,42 @@ body {
     white-space: nowrap;
 }
 
+#tablaServicios th:nth-child(1),
+#tablaServicios td:nth-child(1) {
+    width: 94px;
+    white-space: nowrap;
+}
+
+#tablaServicios th:nth-child(2),
+#tablaServicios td:nth-child(2) {
+    width: 72px;
+    white-space: nowrap;
+}
+
+#tablaServicios th:nth-child(3),
+#tablaServicios td:nth-child(3),
+#tablaServicios th:nth-child(4),
+#tablaServicios td:nth-child(4),
+#tablaServicios th:nth-child(5),
+#tablaServicios td:nth-child(5),
+#tablaServicios th:nth-child(6),
+#tablaServicios td:nth-child(6) {
+    width: 13%;
+}
+
+#tablaServicios th:nth-child(7),
+#tablaServicios td:nth-child(7),
+#tablaServicios th:nth-child(8),
+#tablaServicios td:nth-child(8) {
+    width: 108px;
+    text-align: center;
+}
+
+#tablaServicios th:nth-child(9),
+#tablaServicios td:nth-child(9) {
+    width: 124px;
+}
+
 .orders-toolbar {
     grid-template-columns: minmax(150px, 190px) minmax(150px, 190px) minmax(220px, 1fr);
     background: rgba(16, 22, 45, 0.72);
@@ -1880,6 +1917,36 @@ body {
 td .table-actions {
     align-items: center;
     justify-content: flex-end;
+}
+
+#tablaServicios .table-actions {
+    display: flex;
+    gap: 7px;
+    justify-content: flex-end;
+    white-space: nowrap;
+}
+
+#tablaServicios .btn-editar-historial,
+#tablaServicios .btn-eliminar-tabla,
+#tablaServicios .btn-facturar-orden {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 7px;
+}
+
+#tablaServicios .btn-editar-historial i,
+#tablaServicios .btn-eliminar-tabla i,
+#tablaServicios .btn-facturar-orden i {
+    margin-right: 0;
+}
+
+.historial #tablaServicios {
+    min-width: 0;
 }
 
 .empty-state {

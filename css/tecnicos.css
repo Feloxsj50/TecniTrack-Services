@@ -1,4 +1,4 @@
-/* =============================================
+﻿/* =============================================
    TecniTrack - Técnicos
    Igualado al sistema de admin.css
    ============================================= */
@@ -268,4 +268,84 @@
         width: 100%;
         min-width: 0;
     }
+}
+/* ===== AJUSTE LISTA DE TECNICOS ===== */
+.historial #tablaTecnicos {
+    min-width: 0;
+    width: 100%;
+    table-layout: fixed;
+}
+
+#tablaTecnicos th,
+#tablaTecnicos td {
+    padding: 11px 9px;
+    font-size: 12.5px;
+}
+
+#tablaTecnicos th:nth-child(1),
+#tablaTecnicos td:nth-child(1) {
+    width: 52px;
+}
+
+#tablaTecnicos th:nth-child(2),
+#tablaTecnicos td:nth-child(2) {
+    width: 18%;
+}
+
+#tablaTecnicos th:nth-child(3),
+#tablaTecnicos td:nth-child(3) {
+    width: 25%;
+}
+
+#tablaTecnicos th:nth-child(4),
+#tablaTecnicos td:nth-child(4) {
+    width: 15%;
+}
+
+#tablaTecnicos th:nth-child(5),
+#tablaTecnicos td:nth-child(5) {
+    width: 112px;
+    white-space: nowrap;
+}
+
+#tablaTecnicos th:nth-child(6),
+#tablaTecnicos td:nth-child(6) {
+    width: 108px;
+}
+
+#tablaTecnicos th:nth-child(7),
+#tablaTecnicos td:nth-child(7) {
+    width: 88px;
+}
+
+#tablaTecnicos td {
+    overflow-wrap: anywhere;
+}
+
+#tablaTecnicos td:last-child {
+    display: table-cell;
+    white-space: nowrap;
+}
+
+#tablaTecnicos .table-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+#tablaTecnicos .action-icon {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-radius: 8px;
+    gap: 0;
+}
+
+#tablaTecnicos .action-icon i {
+    margin: 0;
+    font-size: 13px;
 }

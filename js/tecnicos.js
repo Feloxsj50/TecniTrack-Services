@@ -59,7 +59,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida. Revisa que la sesion admin este activa." };
+        return { ok: false, error: "Django devolvi\u00f3 una respuesta no v\u00e1lida. Revisa que la sesi\u00f3n admin est\u00e9 activa." };
     }
 }
 
@@ -89,7 +89,7 @@ function renderizarTabla(lista) {
     if (!lista.length) {
         tablaTecnicos.innerHTML = `
             <tr class="empty-row">
-                <td colspan="7"><div class="empty-state"><strong>Sin tÃ©cnicos registrados</strong><span>Registra tÃ©cnicos usando el formulario de arriba.</span></div></td>
+                <td colspan="7"><div class="empty-state"><strong>Sin t\u00e9cnicos registrados</strong><span>Registra t\u00e9cnicos usando el formulario de arriba.</span></div></td>
             </tr>`;
         return;
     }
@@ -102,11 +102,13 @@ function renderizarTabla(lista) {
             <td>${escaparHtml(tecnico.nombre)}<br><small>@${escaparHtml(tecnico.username)}</small></td>
             <td>${escaparHtml(tecnico.correo || "Sin correo")}</td>
             <td>${escaparHtml(tecnico.especialidad)}</td>
-            <td>${escaparHtml(tecnico.telefono || "Sin telÃ©fono")}</td>
+            <td>${escaparHtml(tecnico.telefono || "Sin tel\u00e9fono")}</td>
             <td><span class="estado ${claseEstado}">${escaparHtml(tecnico.estado)}</span></td>
             <td>
-                <button class="btn-editar" type="button" data-editar="${tecnico.id}"><i class="fa fa-pen"></i> Editar</button>
-                <button class="btn-eliminar" type="button" data-eliminar="${tecnico.id}"><i class="fa fa-trash"></i> Eliminar</button>
+                <div class="table-actions">
+                    <button class="btn-editar action-icon" type="button" data-editar="${tecnico.id}" title="Editar técnico" aria-label="Editar técnico"><i class="fa fa-pen"></i></button>
+                    <button class="btn-eliminar action-icon" type="button" data-eliminar="${tecnico.id}" title="Eliminar técnico" aria-label="Eliminar técnico"><i class="fa fa-trash"></i></button>
+                </div>
             </td>`;
         tablaTecnicos.appendChild(tr);
     });
@@ -120,17 +122,17 @@ function renderizarTabla(lista) {
 }
 
 async function cargarTecnicos() {
-    tablaTecnicos.innerHTML = `<tr class="empty-row"><td colspan="7">Cargando tÃ©cnicos...</td></tr>`;
+    tablaTecnicos.innerHTML = `<tr class="empty-row"><td colspan="7">Cargando t\u00e9cnicos...</td></tr>`;
     try {
         const respuesta = await fetch(`${API_BASE}/tecnicos/`, { credentials: "include" });
         const datos = await leerRespuestaJson(respuesta);
-        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los tÃ©cnicos.");
+        if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los t\u00e9cnicos.");
         tecnicos = datos.tecnicos;
         renderizarTabla(tecnicos);
         actualizarResumen(tecnicos);
     } catch (error) {
         tablaTecnicos.innerHTML = `<tr class="empty-row"><td colspan="7">No se pudo conectar con Django.</td></tr>`;
-        mostrarNotificacion(error.message || "No se pudieron cargar los tÃ©cnicos.", "error");
+        mostrarNotificacion(error.message || "No se pudieron cargar los t\u00e9cnicos.", "error");
         actualizarResumen([]);
     }
 }
@@ -146,7 +148,7 @@ function cargarTecnicoEnFormulario(tecnicoId) {
     especialidadTecnico.value = t.especialidad;
     telefonoTecnico.value = t.telefono;
     passwordTecnico.value = "";
-    passwordTecnico.placeholder = "Nueva contraseÃ±a temporal (opcional)";
+    passwordTecnico.placeholder = "Nueva contrase\u00f1a temporal (opcional)";
     estadoTecnico.value = t.estado;
     btnGuardarTecnico.textContent = "Guardar cambios";
     btnGuardarTecnico.style.background = "rgba(34, 211, 238, 0.15)";
@@ -164,9 +166,9 @@ function limpiarFormulario() {
     especialidadTecnico.value = "";
     telefonoTecnico.value = "";
     passwordTecnico.value = "";
-    passwordTecnico.placeholder = "ContraseÃ±a temporal";
+    passwordTecnico.placeholder = "Contrase\u00f1a temporal";
     estadoTecnico.value = "Activo";
-    btnGuardarTecnico.textContent = "Guardar TÃ©cnico";
+    btnGuardarTecnico.textContent = "Guardar T\u00e9cnico";
     btnGuardarTecnico.style.background = "";
     btnGuardarTecnico.style.color = "";
     btnGuardarTecnico.style.borderColor = "";
@@ -185,12 +187,13 @@ async function guardarTecnico() {
         mostrarNotificacion("Completa todos los campos requeridos.", "error");
         return;
     }
-    if (!usuarioValido(username)) return mostrarNotificacion("El usuario debe tener 4 a 30 caracteres validos.", "error");
-    if (!correoValido(correo)) return mostrarNotificacion("Ingresa un correo valido.", "error");
-    if (!telefonoValido(telefono)) return mostrarNotificacion("Ingresa un telÃ©fono vÃ¡lido con formato 7777-8888.", "error");
-    if (password && password.length < 8) return mostrarNotificacion("La contraseÃ±a temporal debe tener al menos 8 caracteres.", "error");
+    if (!usuarioValido(username)) return mostrarNotificacion("El usuario debe tener 4 a 30 caracteres v\u00e1lidos.", "error");
+    if (!correoValido(correo)) return mostrarNotificacion("Ingresa un correo v\u00e1lido.", "error");
+    if (!telefonoValido(telefono)) return mostrarNotificacion("Ingresa un tel\u00e9fono v\u00e1lido con formato 7777-8888.", "error");
+    if (password && password.length < 8) return mostrarNotificacion("La contrase\u00f1a temporal debe tener al menos 8 caracteres.", "error");
 
     const url = tecnicoEditandoId ? `${API_BASE}/tecnicos/${tecnicoEditandoId}/actualizar/` : `${API_BASE}/tecnicos/crear/`;
+    const token = await obtenerCsrfToken();
     const respuesta = await fetch(url, {
         method: "POST",
         credentials: "include",
@@ -198,8 +201,8 @@ async function guardarTecnico() {
         body: JSON.stringify({ nombre, username, correo, especialidad, telefono, password, estado })
     });
     const datos = await leerRespuestaJson(respuesta);
-    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo guardar el tÃ©cnico.");
-    mostrarNotificacion(tecnicoEditandoId ? "TÃ©cnico actualizado correctamente." : "TÃ©cnico registrado correctamente.", "success");
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo guardar el t\u00e9cnico.");
+    mostrarNotificacion(tecnicoEditandoId ? "T\u00e9cnico actualizado correctamente." : "T\u00e9cnico registrado correctamente.", "success");
     limpiarFormulario();
     await cargarTecnicos();
 }
@@ -207,7 +210,7 @@ async function guardarTecnico() {
 async function eliminarTecnico(tecnicoId) {
     const t = tecnicos.find(item => item.id === tecnicoId);
     if (!t) return;
-    const confirmado = await confirmarAccion({ titulo: "Eliminar tÃ©cnico", mensaje: `Seguro que quieres eliminar a ${t.nombre}? Esta acciÃ³n borrarÃ¡ su usuario.` });
+    const confirmado = await confirmarAccion({ titulo: "Eliminar t\u00e9cnico", mensaje: `Seguro que quieres eliminar a ${t.nombre}? Esta acci\u00f3n borrar\u00e1 su usuario.` });
     if (!confirmado) return;
     const token = await obtenerCsrfToken();
     const respuesta = await fetch(`${API_BASE}/tecnicos/${tecnicoId}/eliminar/`, {
@@ -216,14 +219,14 @@ async function eliminarTecnico(tecnicoId) {
         headers: { "X-CSRFToken": token }
     });
     const datos = await leerRespuestaJson(respuesta);
-    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo eliminar el tÃ©cnico.");
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo eliminar el t\u00e9cnico.");
     if (tecnicoEditandoId === tecnicoId) limpiarFormulario();
-    mostrarNotificacion("TÃ©cnico eliminado correctamente.", "success");
+    mostrarNotificacion("T\u00e9cnico eliminado correctamente.", "success");
     await cargarTecnicos();
 }
 
 btnGuardarTecnico.addEventListener("click", async () => {
-    try { await guardarTecnico(); } catch (error) { mostrarNotificacion(error.message || "No se pudo guardar el tÃ©cnico.", "error"); }
+    try { await guardarTecnico(); } catch (error) { mostrarNotificacion(error.message || "No se pudo guardar el t\u00e9cnico.", "error"); }
 });
 
 buscarTecnico.addEventListener("keyup", () => {
@@ -241,5 +244,8 @@ buscarTecnico.addEventListener("keyup", () => {
 
 telefonoTecnico?.addEventListener("input", (event) => formatearTelefono(event.target));
 cargarTecnicos();
+
+
+
 
 

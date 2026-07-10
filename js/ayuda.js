@@ -25,10 +25,10 @@ const configuracionAyuda = {
         ticketsTitulo: "Tickets abiertos por usuarios"
     },
     tecnico: {
-        titulo: "Soporte TÃ©cnico",
+        titulo: "Soporte T\u00e9cnico",
         formTitulo: "Pedir Apoyo al Admin",
         boton: "Enviar Consulta",
-        areas: ["Trabajo asignado", "DiagnÃ³stico", "Inventario", "Estado del servicio"],
+        areas: ["Trabajo asignado", "Diagn\u00f3stico", "Inventario", "Estado del servicio"],
         ticketsTitulo: "Mis tickets de soporte"
     },
     cliente: {
@@ -61,7 +61,7 @@ async function leerRespuestaJson(respuesta) {
     try {
         return JSON.parse(texto);
     } catch {
-        return { ok: false, error: "Django devolviÃ³ una respuesta no vÃ¡lida." };
+        return { ok: false, error: "Django devolvi\u00f3 una respuesta no v\u00e1lida." };
     }
 }
 
@@ -86,7 +86,7 @@ async function apiJson(url, opciones = {}) {
         ...opciones
     });
     const datos = await leerRespuestaJson(respuesta);
-    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo completar la acciÃ³n.");
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo completar la acci\u00f3n.");
     return datos;
 }
 
@@ -141,11 +141,11 @@ function configurarCards(config) {
     if (rolAyuda === "cliente") {
         const taller = tallerActual || tallerDefault;
         document.getElementById("statPrincipal").textContent = taller.direccion || tallerDefault.direccion;
-        document.getElementById("statPrincipalTexto").textContent = "DirecciÃ³n del Taller";
+        document.getElementById("statPrincipalTexto").textContent = "Direcci\u00f3n del Taller";
         document.getElementById("statCanal").textContent = taller.telefono || tallerDefault.telefono;
-        document.getElementById("statCanalTexto").textContent = "TelÃ©fono Directo";
+        document.getElementById("statCanalTexto").textContent = "Tel\u00e9fono Directo";
         document.getElementById("statTickets").textContent = taller.horario || tallerDefault.horario;
-        document.getElementById("statTicketsTexto").textContent = "Horario de AtenciÃ³n";
+        document.getElementById("statTicketsTexto").textContent = "Horario de Atenci\u00f3n";
         document.getElementById("statTiempo").textContent = taller.whatsapp || tallerDefault.whatsapp;
         document.getElementById("statTiempoTexto").textContent = "WhatsApp";
         return;
@@ -193,7 +193,7 @@ function cargarFiltrosAdmin() {
     const valorActual = select.value || "todas";
 
     select.innerHTML = `
-        <option value="todas">Todas las Ã¡reas</option>
+        <option value="todas">Todas las \u00e1reas</option>
         ${areas.map(area => `<option value="${escaparHtml(area)}">${escaparHtml(area)}</option>`).join("")}
     `;
 
@@ -202,8 +202,8 @@ function cargarFiltrosAdmin() {
 
 function renderizarEncabezadoTickets() {
     const columnas = rolAyuda === "cliente"
-        ? ["Fecha", "ID", "Ãrea", "Asunto", "Respuesta", "Estado", "Acciones"]
-        : ["Fecha", "ID", "Usuario", "Ãrea", "Asunto", "Respuesta", "Estado", "Acciones"];
+        ? ["Fecha", "ID", "\u00c1rea", "Asunto", "Respuesta", "Estado", "Acciones"]
+        : ["Fecha", "ID", "Usuario", "\u00c1rea", "Asunto", "Respuesta", "Estado", "Acciones"];
 
     document.getElementById("ticketsHead").innerHTML = columnas
         .map(columna => `<th>${columna}</th>`)
@@ -239,7 +239,7 @@ function renderizarTickets() {
                     <div class="empty-state">
                         <i class="fa-solid fa-headset"></i>
                         <strong>Sin consultas registradas</strong>
-                        <span>Cuando envÃ­es una consulta de soporte, aparecerÃ¡ aquÃ­.</span>
+                        <span>Cuando env\u00edes una consulta de soporte, aparecer\u00e1 aqu\u00ed.</span>
                     </div>
                 </td>
             </tr>
