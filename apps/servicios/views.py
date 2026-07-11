@@ -6,7 +6,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.clientes.models import Cliente
 from apps.tecnicos.models import Tecnico
-from apps.usuarios.models import Usuario
+from apps.usuarios.models import Notificacion, Usuario
 from .models import SolicitudServicio
 
 
@@ -147,6 +147,13 @@ def buscar_tecnico(username):
     ).first()
 
 
+def notificar_usuarios(usuarios, titulo, mensaje, url):
+    Notificacion.objects.bulk_create([
+        Notificacion(usuario=usuario, titulo=titulo, mensaje=mensaje, url=url)
+        for usuario in usuarios if usuario and usuario.activo
+    ])
+
+
 @require_GET
 def listar_solicitudes(request):
     if not request.user.is_authenticated:
@@ -201,6 +208,21 @@ def crear_solicitud(request):
     )
     solicitud.refresh_from_db()
 
+    if solicitud.tecnico:
+        notificar_usuarios(
+            [solicitud.tecnico.usuario],
+            "Nuevo trabajo asignado",
+            f"La orden SOL-{solicitud.id:03d} fue asignada a tu panel.",
+            "tecnico/panel_tecnico.html",
+        )
+    else:
+        notificar_usuarios(
+            Usuario.objects.filter(rol=Usuario.Rol.ADMIN, activo=True),
+            "Nueva solicitud de servicio",
+            f"Se recibió la orden SOL-{solicitud.id:03d}.",
+            "admin/panel_admin.html",
+        )
+
     return JsonResponse({"ok": True, "solicitud": serializar_solicitud(solicitud)}, status=201)
 
 
@@ -217,6 +239,9 @@ def actualizar_solicitud(request, solicitud_id):
     datos, error = obtener_datos_request(request)
     if error:
         return error
+
+    estado_anterior = solicitud.estado
+    tecnico_anterior = solicitud.tecnico_id
 
     if request.user.rol == Usuario.Rol.ADMIN:
         cliente_nombre = datos.get("cliente", "").strip()
@@ -253,6 +278,20 @@ def actualizar_solicitud(request, solicitud_id):
 
     solicitud.save()
     solicitud.refresh_from_db()
+    if request.user.rol == Usuario.Rol.ADMIN and solicitud.tecnico_id and solicitud.tecnico_id != tecnico_anterior:
+        notificar_usuarios(
+            [solicitud.tecnico.usuario],
+            "Trabajo actualizado",
+            f"La orden SOL-{solicitud.id:03d} está asignada a tu panel.",
+            "tecnico/panel_tecnico.html",
+        )
+    if solicitud.cliente and solicitud.estado != estado_anterior:
+        notificar_usuarios(
+            [solicitud.cliente.usuario],
+            "Estado de servicio actualizado",
+            f"La orden SOL-{solicitud.id:03d} ahora está en {solicitud.get_estado_display()}.",
+            "cliente/panel_cliente.html",
+        )
     return JsonResponse({"ok": True, "solicitud": serializar_solicitud(solicitud)})
 
 

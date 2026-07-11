@@ -10,7 +10,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.clientes.models import Cliente
-from apps.usuarios.models import ConfiguracionTaller, Usuario
+from apps.usuarios.models import ConfiguracionTaller, Notificacion, Usuario
 
 
 def serializar_usuario(usuario):
@@ -187,6 +187,33 @@ def usuario_actual(request):
         return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     return JsonResponse({"ok": True, "usuario": serializar_usuario(request.user)})
+
+
+@require_GET
+def listar_notificaciones(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesiÃ³n activa."}, status=401)
+    notificaciones = Notificacion.objects.filter(usuario=request.user)[:30]
+    data = [{
+        "id": item.id,
+        "titulo": item.titulo,
+        "mensaje": item.mensaje,
+        "tipo": item.tipo,
+        "url": item.url,
+        "leida": item.leida,
+        "creadoEn": item.creado_en.isoformat(),
+    } for item in notificaciones]
+    return JsonResponse({"ok": True, "notificaciones": data, "noLeidas": sum(not item.leida for item in notificaciones)})
+
+
+@require_POST
+def marcar_notificacion_leida(request, notificacion_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesiÃ³n activa."}, status=401)
+    actualizada = Notificacion.objects.filter(id=notificacion_id, usuario=request.user).update(leida=True)
+    if not actualizada:
+        return JsonResponse({"ok": False, "error": "Notificación no encontrada."}, status=404)
+    return JsonResponse({"ok": True})
 
 
 @require_POST

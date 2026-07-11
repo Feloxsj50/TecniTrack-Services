@@ -34,3 +34,16 @@ class ConfiguracionTaller(models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class Notificacion(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="notificaciones")
+    titulo = models.CharField(max_length=120)
+    mensaje = models.CharField(max_length=240)
+    tipo = models.CharField(max_length=20, default="info")
+    url = models.CharField(max_length=240, blank=True)
+    leida = models.BooleanField(default=False)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en"]

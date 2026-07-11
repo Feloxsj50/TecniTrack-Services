@@ -30,7 +30,10 @@ let reporteActual = {
         ventasSemanales: { labels: ["Semana 1", "Semana 2", "Semana 3", "Semana 4"], data: [0, 0, 0, 0] },
         metodosPago: { labels: ["Sin datos"], data: [0] },
         ingresosDia: { labels: ["0"], data: [0] },
-        servicios: { labels: ["Sin datos"], data: [0] }
+        servicios: { labels: ["Sin datos"], data: [0] },
+        ordenes: { labels: ["Sin datos"], data: [0] },
+        tecnicos: { labels: ["Sin datos"], data: [0] },
+        inventario: { labels: ["Sin datos"], data: [0] }
     },
     ordenes: {
         total: 0,
@@ -157,6 +160,21 @@ function pintarGraficos() {
         },
         options: { ...opcionesBase(), indexAxis: "y" }
     }));
+
+    const graficasExtra = [
+        ["graficaOrdenes", "ordenes", "Órdenes por estado", [coloresTecniTrack.naranja, coloresTecniTrack.cyan, coloresTecniTrack.verde, "#f87171"]],
+        ["graficaTecnicos", "tecnicos", "Trabajos por técnico", [coloresTecniTrack.morado, coloresTecniTrack.cyan, coloresTecniTrack.verde, coloresTecniTrack.naranja]],
+        ["graficaInventario", "inventario", "Inventario utilizado", [coloresTecniTrack.cyan, coloresTecniTrack.verde, coloresTecniTrack.naranja, coloresTecniTrack.morado]]
+    ];
+    graficasExtra.forEach(([id, clave, etiqueta, colores]) => {
+        const canvas = document.getElementById(id);
+        if (!canvas) return;
+        charts.push(new Chart(canvas, {
+            type: "bar",
+            data: { labels: graficos[clave].labels, datasets: [{ label: etiqueta, data: graficos[clave].data, backgroundColor: colores, borderRadius: 8 }] },
+            options: opcionesBase()
+        }));
+    });
 }
 
 function exportarCsv() {

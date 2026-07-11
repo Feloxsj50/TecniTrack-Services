@@ -240,6 +240,7 @@ body {
 
 /* ===== LOGO ===== */
 .logo {
+    position: relative;
     padding: 0 10px 24px;
     border-bottom: 0.5px solid var(--border);
     margin-bottom: 12px;
@@ -624,6 +625,63 @@ body {
     color: var(--text-primary);
     table-layout: fixed;
 }
+
+.notification-trigger {
+    position: absolute;
+    right: 0;
+    top: 2px;
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.notification-trigger span {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    min-width: 17px;
+    padding: 1px 4px;
+    border-radius: 10px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+}
+
+.notifications-panel {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 9998;
+    width: min(360px, calc(100vw - 32px));
+    background: #10162d;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 10px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.notifications-panel-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.notifications-panel-header button {
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.notifications-list { display: grid; max-height: 420px; overflow: auto; }
+.notification-item { display: grid; gap: 4px; padding: 13px 16px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: var(--text-primary); text-align: left; cursor: pointer; }
+.notification-item:hover { background: rgba(139, 92, 246, 0.1); }
+.notification-item.read { opacity: 0.58; }
+.notification-item span, .notifications-empty { color: var(--text-secondary); font-size: 12px; }
+.notifications-empty { padding: 18px; }
 
 #tablaTickets {
     width: 100%;

@@ -42,6 +42,7 @@ def reportes(request):
         for solicitud in solicitudes
         if solicitud.tecnico
     )
+    inventario_usado = Counter()
 
     for factura in facturas:
         total = factura.total or Decimal("0.00")
@@ -72,6 +73,9 @@ def reportes(request):
             "estado": factura.get_estado_display(),
             "total": moneda_decimal(total),
         })
+        for producto in factura.productos or []:
+            nombre = producto.get("producto") or producto.get("nombre") or "Repuesto"
+            inventario_usado[nombre] += int(producto.get("cantidad", 0) or 0)
 
     servicios_counter = Counter(solicitud.problema or "Sin servicio" for solicitud in solicitudes)
     top_servicios = servicios_counter.most_common(5) or [("Sin datos", 0)]
@@ -99,6 +103,23 @@ def reportes(request):
             "servicios": {
                 "labels": [item[0] for item in top_servicios],
                 "data": [item[1] for item in top_servicios],
+            },
+            "ordenes": {
+                "labels": ["Pendientes", "En proceso", "Completadas", "Canceladas"],
+                "data": [
+                    estados_ordenes.get("Pendiente", 0),
+                    estados_ordenes.get("En proceso", 0),
+                    estados_ordenes.get("Completado", 0),
+                    estados_ordenes.get("Cancelado", 0),
+                ],
+            },
+            "tecnicos": {
+                "labels": list(tecnicos_ordenes.keys()) or ["Sin datos"],
+                "data": list(tecnicos_ordenes.values()) or [0],
+            },
+            "inventario": {
+                "labels": list(inventario_usado.keys()) or ["Sin datos"],
+                "data": list(inventario_usado.values()) or [0],
             },
         },
         "ordenes": {

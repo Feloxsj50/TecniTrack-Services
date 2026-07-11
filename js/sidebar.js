@@ -65,6 +65,9 @@ if (sidebars.length > 0) {
             <div class="logo">
                 <h2>Tecni<span>Track</span></h2>
                 <small>Services</small>
+                <button type="button" class="notification-trigger" id="btnNotificaciones" title="Notificaciones" aria-label="Notificaciones">
+                    <i class="fa-solid fa-bell"></i><span id="contadorNotificaciones" hidden>0</span>
+                </button>
             </div>
 
             ${grupos.map(grupo => `
@@ -87,6 +90,69 @@ if (sidebars.length > 0) {
     sidebars.forEach(sidebar => {
         sidebar.innerHTML = crearMenu(menu);
     });
+
+    const API_BASE = ["5500", "5501", "5173"].includes(window.location.port)
+        ? (window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000")
+        : window.location.origin;
+    let notificaciones = [];
+
+    function pintarNotificaciones() {
+        const noLeidas = notificaciones.filter(item => !item.leida).length;
+        const contador = document.getElementById("contadorNotificaciones");
+        if (contador) {
+            contador.textContent = noLeidas;
+            contador.hidden = noLeidas === 0;
+        }
+    }
+
+    function abrirNotificaciones() {
+        let panel = document.getElementById("panelNotificaciones");
+        if (!panel) {
+            panel = document.createElement("section");
+            panel.id = "panelNotificaciones";
+            panel.className = "notifications-panel";
+            document.body.appendChild(panel);
+        }
+        panel.innerHTML = `
+            <div class="notifications-panel-header"><strong>Notificaciones</strong><button type="button" data-cerrar-notificaciones aria-label="Cerrar">&times;</button></div>
+            <div class="notifications-list">
+                ${notificaciones.length ? notificaciones.map(item => `
+                    <button type="button" class="notification-item ${item.leida ? "read" : ""}" data-notificacion="${item.id}">
+                        <strong>${item.titulo}</strong><span>${item.mensaje}</span>
+                    </button>
+                `).join("") : `<p class="notifications-empty">No tienes notificaciones nuevas.</p>`}
+            </div>
+        `;
+        panel.hidden = false;
+        panel.querySelector("[data-cerrar-notificaciones]").addEventListener("click", () => { panel.hidden = true; });
+        panel.querySelectorAll("[data-notificacion]").forEach(item => item.addEventListener("click", async () => {
+            const id = item.dataset.notificacion;
+            await fetch(`${API_BASE}/usuarios/notificaciones/${id}/leer/`, { method: "POST", credentials: "include", headers: { "X-CSRFToken": getCookie("csrftoken") } });
+            const encontrada = notificaciones.find(notification => String(notification.id) === String(id));
+            if (encontrada) encontrada.leida = true;
+            pintarNotificaciones();
+            item.classList.add("read");
+        }));
+    }
+
+    function getCookie(nombre) {
+        return document.cookie.split("; ").find(item => item.startsWith(`${nombre}=`))?.split("=")[1] || "";
+    }
+
+    async function cargarNotificaciones() {
+        try {
+            const respuesta = await fetch(`${API_BASE}/usuarios/notificaciones/`, { credentials: "include" });
+            const datos = await respuesta.json();
+            if (!respuesta.ok || !datos.ok) return;
+            notificaciones = datos.notificaciones || [];
+            pintarNotificaciones();
+        } catch {
+            // Las notificaciones no deben bloquear la navegación.
+        }
+    }
+
+    document.getElementById("btnNotificaciones")?.addEventListener("click", abrirNotificaciones);
+    cargarNotificaciones();
 
     document.getElementById("logoutBtn")?.addEventListener("click", event => {
         event.preventDefault();
