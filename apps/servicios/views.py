@@ -140,7 +140,11 @@ def buscar_tecnico(username):
     username = username.strip()
     if not username:
         return None
-    return Tecnico.objects.select_related("usuario").filter(usuario__username__iexact=username).first()
+    return Tecnico.objects.select_related("usuario").filter(
+        usuario__username__iexact=username,
+        usuario__activo=True,
+        estado=Tecnico.Estado.ACTIVO,
+    ).first()
 
 
 @require_GET

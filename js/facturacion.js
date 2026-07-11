@@ -14,6 +14,7 @@ let facturas = [];
 let serviciosCompletados = [];
 let facturaEditando = null;
 let servicioSeleccionado = null;
+let nombreTaller = "TecniTrack Services";
 
 const tbodyDetalle = document.querySelector("#tablaDetalleFactura tbody");
 const tbodyFacturas = document.querySelector("#tablaFacturas tbody");
@@ -442,7 +443,7 @@ function imprimirFactura(factura = null) {
             </style>
         </head>
         <body>
-            <h1>TecniTrack Services</h1>
+            <h1>${escaparHtml(nombreTaller)}</h1>
             <p class="muted">Factura ${escaparHtml(data.numero)}</p>
             <div class="info">
                 <div><strong>Fecha:</strong> ${escaparHtml(data.fecha)}</div>
@@ -469,13 +470,15 @@ function imprimirFactura(factura = null) {
 }
 
 async function cargarDatosFacturacion() {
-    const [serviciosData, facturasData] = await Promise.all([
+    const [serviciosData, facturasData, tallerData] = await Promise.all([
         apiJson("/facturacion/servicios-completados/"),
-        apiJson("/facturacion/")
+        apiJson("/facturacion/"),
+        apiJson("/usuarios/taller/")
     ]);
 
     serviciosCompletados = serviciosData.servicios || [];
     facturas = facturasData.facturas || [];
+    nombreTaller = tallerData.taller?.nombre || nombreTaller;
     pintarServiciosCompletados();
     generarNumeroFactura();
     renderHistorialFacturas(facturas);
