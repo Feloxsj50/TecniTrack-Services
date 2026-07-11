@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.usuarios.models import Usuario
-from .models import ProductoInventario
+from .models import MovimientoInventario, ProductoInventario
 
 
 CATEGORIAS_VALIDAS = {valor for valor, _ in ProductoInventario.Categoria.choices}
@@ -72,6 +72,20 @@ def serializar_producto(producto):
     }
 
 
+def serializar_movimiento(movimiento):
+    return {
+        "id": movimiento.id,
+        "producto": movimiento.producto.codigo,
+        "productoNombre": movimiento.producto.nombre,
+        "tipo": movimiento.get_tipo_display(),
+        "cantidad": movimiento.cantidad,
+        "stockAnterior": movimiento.stock_anterior,
+        "stockNuevo": movimiento.stock_nuevo,
+        "usuario": movimiento.usuario.username if movimiento.usuario else "Sistema",
+        "creadoEn": movimiento.creado_en.isoformat(),
+    }
+
+
 def validar_producto(datos):
     nombre = str(datos.get("nombre", "")).strip()
     categoria = str(datos.get("categoria", "")).strip()
@@ -127,6 +141,18 @@ def listar_productos(request):
     return JsonResponse({"ok": True, "productos": data, "total": len(data)})
 
 
+@require_GET
+def listar_movimientos(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesiÃ³n activa."}, status=401)
+
+    if request.user.rol not in [Usuario.Rol.ADMIN, Usuario.Rol.TECNICO]:
+        return JsonResponse({"ok": False, "error": "No tienes permiso para consultar movimientos."}, status=403)
+
+    movimientos = MovimientoInventario.objects.select_related("producto", "usuario")[:100]
+    return JsonResponse({"ok": True, "movimientos": [serializar_movimiento(item) for item in movimientos]})
+
+
 @require_POST
 def crear_producto(request):
     permiso = validar_admin(request)
@@ -142,6 +168,14 @@ def crear_producto(request):
         return error
 
     producto = ProductoInventario.objects.create(**limpio)
+    MovimientoInventario.objects.create(
+        producto=producto,
+        usuario=request.user,
+        tipo=MovimientoInventario.Tipo.REGISTRO,
+        cantidad=producto.stock,
+        stock_anterior=0,
+        stock_nuevo=producto.stock,
+    )
     return JsonResponse({"ok": True, "producto": serializar_producto(producto)}, status=201)
 
 
@@ -164,9 +198,19 @@ def actualizar_producto(request, producto_id):
     if error:
         return error
 
+    stock_anterior = producto.stock
     for campo, valor in limpio.items():
         setattr(producto, campo, valor)
     producto.save()
+    if stock_anterior != producto.stock:
+        MovimientoInventario.objects.create(
+            producto=producto,
+            usuario=request.user,
+            tipo=MovimientoInventario.Tipo.AJUSTE,
+            cantidad=producto.stock - stock_anterior,
+            stock_anterior=stock_anterior,
+            stock_nuevo=producto.stock,
+        )
     return JsonResponse({"ok": True, "producto": serializar_producto(producto)})
 
 

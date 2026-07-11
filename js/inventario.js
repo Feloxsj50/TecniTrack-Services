@@ -10,8 +10,11 @@ const API_BASE = (() => {
     return origin;
 })();
 let productos = [];
+let movimientos = [];
 let productoEditandoId = null;
 let csrfToken = "";
+const sesionInventario = TecniAuth.obtenerSesion();
+const puedeEditarInventario = sesionInventario?.rol === "admin";
 
 const tbody = document.querySelector("#tablaInventario tbody");
 const busqueda = document.getElementById("busquedaProducto");
@@ -119,6 +122,16 @@ function renderizarTabla(lista) {
     lista.forEach(producto => {
         const estado = producto.estado || obtenerEstado(producto.stock, producto.stockMinimo);
         const tr = document.createElement("tr");
+        const acciones = puedeEditarInventario ? `
+            <div class="table-actions">
+                <button class="btn-editar-historial" type="button" data-editar="${producto.dbId}">
+                    <i class="fa fa-pen"></i> Editar
+                </button>
+                <button class="btn-eliminar-tabla" type="button" data-eliminar="${producto.dbId}">
+                    <i class="fa fa-trash"></i> Eliminar
+                </button>
+            </div>
+        ` : `<span class="estado disponible">Consulta</span>`;
         tr.innerHTML = `
             <td>${escaparHtml(producto.id)}</td>
             <td>${escaparHtml(producto.nombre)}</td>
@@ -128,16 +141,7 @@ function renderizarTabla(lista) {
             <td>$${Number(producto.venta).toFixed(2)}</td>
             <td>${escaparHtml(producto.ubicacion)}</td>
             <td><span class="${claseEstado(estado)}">${escaparHtml(estado)}</span></td>
-            <td>
-                <div class="table-actions">
-                    <button class="btn-editar-historial" type="button" data-editar="${producto.dbId}">
-                        <i class="fa fa-pen"></i> Editar
-                    </button>
-                    <button class="btn-eliminar-tabla" type="button" data-eliminar="${producto.dbId}">
-                        <i class="fa fa-trash"></i> Eliminar
-                    </button>
-                </div>
-            </td>
+            <td>${acciones}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -312,11 +316,17 @@ function filtrarProductos() {
 
 async function cargarInventario() {
     try {
-        const respuesta = await fetch(`${API_BASE}/inventario/`, { credentials: "include" });
+        const [respuesta, respuestaMovimientos] = await Promise.all([
+            fetch(`${API_BASE}/inventario/`, { credentials: "include" }),
+            fetch(`${API_BASE}/inventario/movimientos/`, { credentials: "include" })
+        ]);
         const datos = await leerRespuestaJson(respuesta);
+        const datosMovimientos = await leerRespuestaJson(respuestaMovimientos);
         if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo cargar el inventario.");
+        if (!respuestaMovimientos.ok || !datosMovimientos.ok) throw new Error(datosMovimientos.error || "No se pudo cargar el historial.");
 
         productos = datos.productos || [];
+        movimientos = datosMovimientos.movimientos || [];
         actualizarCards();
         filtrarProductos();
     } catch (error) {
@@ -356,15 +366,29 @@ function exportarInventario() {
     mostrarNotificacion("Reporte de inventario exportado correctamente.", "success");
 }
 
+function mostrarHistorialMovimientos() {
+    const resumen = movimientos.length
+        ? movimientos.slice(0, 12).map(movimiento => {
+            const signo = movimiento.cantidad > 0 ? "+" : "";
+            return `${movimiento.producto} - ${movimiento.tipo}: ${signo}${movimiento.cantidad} (${movimiento.stockAnterior} → ${movimiento.stockNuevo})`;
+        }).join("\n")
+        : "Todavía no hay movimientos registrados.";
+
+    mostrarNotificacion(`Historial de inventario:\n\n${resumen}`, "info");
+}
+
 function conectarEventos() {
     document.getElementById("btnAgregarProducto").addEventListener("click", guardarProducto);
     document.getElementById("btnCancelarProducto").addEventListener("click", limpiarFormulario);
-    document.getElementById("btnHistorial").addEventListener("click", mostrarHistorialInventario);
+    document.getElementById("btnHistorial").addEventListener("click", mostrarHistorialMovimientos);
     document.getElementById("btnExportar").addEventListener("click", exportarInventario);
     busqueda.addEventListener("input", filtrarProductos);
 }
 
 function iniciarInventario() {
+    if (!puedeEditarInventario) {
+        document.querySelector(".form-container")?.setAttribute("hidden", "hidden");
+    }
     conectarEventos();
     cargarInventario();
 }

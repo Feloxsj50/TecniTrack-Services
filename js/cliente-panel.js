@@ -78,7 +78,7 @@ function ordenarSolicitudes(lista) {
 }
 
 function solicitudesActivas() {
-    return solicitudesCliente.filter(solicitud => estadoNormalizado(solicitud.estado) !== "Completado");
+    return solicitudesCliente.filter(solicitud => !["Completado", "Cancelado"].includes(estadoNormalizado(solicitud.estado)));
 }
 
 function solicitudesFiltradas() {
