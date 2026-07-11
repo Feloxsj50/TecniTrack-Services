@@ -124,6 +124,9 @@ def listar_facturas(request):
     if not request.user.is_authenticated:
         return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
+    if request.user.rol not in [Usuario.Rol.ADMIN, Usuario.Rol.CLIENTE]:
+        return JsonResponse({"ok": False, "error": "No tienes permiso para consultar recibos."}, status=403)
+
     data = [serializar_factura(factura) for factura in facturas_por_rol(request.user)]
     return JsonResponse({"ok": True, "facturas": data, "total": len(data)})
 

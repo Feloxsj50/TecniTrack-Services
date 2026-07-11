@@ -32,6 +32,14 @@ let reporteActual = {
         ingresosDia: { labels: ["0"], data: [0] },
         servicios: { labels: ["Sin datos"], data: [0] }
     },
+    ordenes: {
+        total: 0,
+        pendientes: 0,
+        enProceso: 0,
+        completadas: 0,
+        canceladas: 0,
+        tecnicos: { labels: ["Sin datos"], data: [0] }
+    },
     exportacion: []
 };
 let charts = [];
@@ -157,6 +165,11 @@ function exportarCsv() {
     csv += `Facturas Emitidas,${reporteActual.cards.facturas || 0}\n`;
     csv += `Pagos Pendientes,${Number(reporteActual.cards.pendientes || 0).toFixed(2)}\n`;
     csv += `Clientes Atendidos,${reporteActual.cards.clientes || 0}\n`;
+    csv += `Ordenes Totales,${reporteActual.ordenes?.total || 0}\n`;
+    csv += `Ordenes Pendientes,${reporteActual.ordenes?.pendientes || 0}\n`;
+    csv += `Ordenes En Proceso,${reporteActual.ordenes?.enProceso || 0}\n`;
+    csv += `Ordenes Completadas,${reporteActual.ordenes?.completadas || 0}\n`;
+    csv += `Ordenes Canceladas,${reporteActual.ordenes?.canceladas || 0}\n`;
     csv += "\nServicio,Cantidad\n";
     reporteActual.graficos.servicios.labels.forEach((servicio, index) => {
         csv += `${servicio},${reporteActual.graficos.servicios.data[index] || 0}\n`;

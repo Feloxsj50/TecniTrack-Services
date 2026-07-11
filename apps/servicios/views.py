@@ -177,6 +177,8 @@ def crear_solicitud(request):
     elif request.user.rol == Usuario.Rol.ADMIN:
         cliente_nombre = datos.get("cliente", "").strip()
         cliente = buscar_cliente_por_id(datos.get("clienteId")) or buscar_cliente(cliente_nombre)
+        if tecnico and estado == SolicitudServicio.Estado.PENDIENTE:
+            estado = SolicitudServicio.Estado.EN_PROCESO
     else:
         return JsonResponse({"ok": False, "error": "No tienes permiso para crear solicitudes."}, status=403)
 
@@ -224,9 +226,17 @@ def actualizar_solicitud(request, solicitud_id):
         solicitud.tecnico = buscar_tecnico(datos.get("tecnico", ""))
         solicitud.prioridad = prioridad_db(datos.get("prioridad", solicitud.get_prioridad_display()))
         solicitud.estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
+        if solicitud.tecnico and solicitud.estado == SolicitudServicio.Estado.PENDIENTE:
+            solicitud.estado = SolicitudServicio.Estado.EN_PROCESO
+        if solicitud.estado in [SolicitudServicio.Estado.EN_PROCESO, SolicitudServicio.Estado.COMPLETADO] and not solicitud.tecnico:
+            return JsonResponse({"ok": False, "error": "Asigna un técnico antes de iniciar o completar la orden."}, status=400)
     elif request.user.rol == Usuario.Rol.TECNICO and hasattr(request.user, "perfil_tecnico") and solicitud.tecnico_id == request.user.perfil_tecnico.id:
+        if solicitud.estado in [SolicitudServicio.Estado.COMPLETADO, SolicitudServicio.Estado.CANCELADO]:
+            return JsonResponse({"ok": False, "error": "Esta orden ya no puede ser modificada."}, status=400)
         diagnostico = datos.get("diagnostico", "").strip()
         estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
+        if estado == SolicitudServicio.Estado.PENDIENTE:
+            return JsonResponse({"ok": False, "error": "Un trabajo asignado debe estar en proceso o completado."}, status=400)
 
         if estado == SolicitudServicio.Estado.COMPLETADO and len(diagnostico) < 10:
             return JsonResponse({"ok": False, "error": "Para completar el trabajo, agrega un diagnostico claro."}, status=400)

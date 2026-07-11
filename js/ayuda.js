@@ -56,6 +56,10 @@ function escaparHtml(valor) {
         .replaceAll("'", "&#039;");
 }
 
+function obtenerControl(id, selectorAlternativo) {
+    return document.getElementById(id) || document.querySelector(selectorAlternativo);
+}
+
 async function leerRespuestaJson(respuesta) {
     const texto = await respuesta.text();
     try {
@@ -180,7 +184,7 @@ function configurarVista() {
     document.getElementById("formSoporte").hidden = rolAyuda === "admin";
     document.getElementById("filtrosSoporte").hidden = rolAyuda !== "admin";
 
-    document.getElementById("soporteArea").innerHTML = config.areas
+    obtenerControl("soporteArea", 'select[id^="soporte"]').innerHTML = config.areas
         .map(area => `<option value="${escaparHtml(area)}">${escaparHtml(area)}</option>`)
         .join("");
 
@@ -189,7 +193,7 @@ function configurarVista() {
 
 function cargarFiltrosAdmin() {
     const areas = [...new Set(ticketsSoporte.map(ticket => ticket.area).filter(Boolean))];
-    const select = document.getElementById("filtroAreaTicket");
+    const select = obtenerControl("filtroAreaTicket", 'select[id^="filtro"]:not(#filtroEstadoTicket)');
     const valorActual = select.value || "todas";
 
     select.innerHTML = `
@@ -419,7 +423,7 @@ document.getElementById("formSoporte").addEventListener("submit", async event =>
         nombre: document.getElementById("soporteNombre").value.trim(),
         correo: document.getElementById("soporteCorreo").value.trim(),
         asunto: document.getElementById("soporteAsunto").value.trim(),
-        area: document.getElementById("soporteArea").value,
+        area: obtenerControl("soporteArea", 'select[id^="soporte"]').value,
         detalle: document.getElementById("soporteDetalle").value.trim()
     };
 
@@ -446,7 +450,7 @@ document.getElementById("formSoporte").addEventListener("submit", async event =>
 });
 
 document.getElementById("filtroEstadoTicket")?.addEventListener("change", renderizarTickets);
-document.getElementById("filtroAreaTicket")?.addEventListener("change", renderizarTickets);
+obtenerControl("filtroAreaTicket", 'select[id^="filtro"]:not(#filtroEstadoTicket)')?.addEventListener("change", renderizarTickets);
 
 async function iniciarAyuda() {
     try {

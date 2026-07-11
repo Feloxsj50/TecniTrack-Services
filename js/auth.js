@@ -89,6 +89,9 @@
     }
 
     window.TecniAuth = {
+        iniciarSesion: login,
+        cerrarSesion: logout,
+        obtenerSesion: getSession,
         iniciarSesión: login,
         cerrarSesión: logout,
         obtenerSesión: getSession,

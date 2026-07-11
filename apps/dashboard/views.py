@@ -36,6 +36,12 @@ def reportes(request):
     ventas_semanales = [Decimal("0.00"), Decimal("0.00"), Decimal("0.00"), Decimal("0.00")]
     clientes_atendidos = set()
     exportacion = []
+    estados_ordenes = Counter(solicitud.get_estado_display() for solicitud in solicitudes)
+    tecnicos_ordenes = Counter(
+        solicitud.tecnico.usuario.get_full_name() or solicitud.tecnico.usuario.username
+        for solicitud in solicitudes
+        if solicitud.tecnico
+    )
 
     for factura in facturas:
         total = factura.total or Decimal("0.00")
@@ -93,6 +99,17 @@ def reportes(request):
             "servicios": {
                 "labels": [item[0] for item in top_servicios],
                 "data": [item[1] for item in top_servicios],
+            },
+        },
+        "ordenes": {
+            "total": solicitudes.count(),
+            "pendientes": estados_ordenes.get("Pendiente", 0),
+            "enProceso": estados_ordenes.get("En proceso", 0),
+            "completadas": estados_ordenes.get("Completado", 0),
+            "canceladas": estados_ordenes.get("Cancelado", 0),
+            "tecnicos": {
+                "labels": list(tecnicos_ordenes.keys()) or ["Sin datos"],
+                "data": list(tecnicos_ordenes.values()) or [0],
             },
         },
         "exportacion": exportacion,
