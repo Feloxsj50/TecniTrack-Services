@@ -67,6 +67,15 @@ function moneda(valor) {
     return `$${Number(valor || 0).toFixed(2)}`;
 }
 
+function escaparHtml(valor) {
+    return String(valor ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
 function destruirCharts() {
     charts.forEach(chart => chart.destroy());
     charts = [];
@@ -205,6 +214,84 @@ function exportarCsv() {
     URL.revokeObjectURL(enlace.href);
 }
 
+function fechaReporte() {
+    return new Intl.DateTimeFormat("es-NI", { dateStyle: "medium" }).format(new Date());
+}
+
+function filaReporte(celdas) {
+    return `<tr>${celdas.map(celda => `<td>${escaparHtml(celda)}</td>`).join("")}</tr>`;
+}
+
+function contenidoReporte() {
+    const ordenes = reporteActual.ordenes || {};
+    const facturas = reporteActual.exportacion || [];
+    const servicios = reporteActual.graficos.servicios || { labels: [], data: [] };
+    const inventario = reporteActual.graficos.inventario || { labels: [], data: [] };
+
+    return {
+        ordenes,
+        facturas,
+        servicios,
+        inventario,
+        resumen: [
+            ["Ingresos pagados", moneda(reporteActual.cards.ingresos)],
+            ["Facturas emitidas", reporteActual.cards.facturas],
+            ["Pagos pendientes", moneda(reporteActual.cards.pendientes)],
+            ["Clientes atendidos", reporteActual.cards.clientes],
+            ["Órdenes totales", ordenes.total || 0],
+            ["Órdenes completadas", ordenes.completadas || 0]
+        ]
+    };
+}
+
+function exportarExcel() {
+    const datos = contenidoReporte();
+    const filasResumen = datos.resumen.map(item => filaReporte(item)).join("");
+    const filasFacturas = datos.facturas.length
+        ? datos.facturas.map(factura => filaReporte([factura.numero, factura.fecha, factura.cliente, factura.servicio, factura.metodoPago, factura.estado, factura.total])).join("")
+        : filaReporte(["Sin facturas registradas"]);
+    const filasServicios = datos.servicios.labels.map((label, index) => filaReporte([label, datos.servicios.data[index] || 0])).join("");
+    const filasInventario = datos.inventario.labels.map((label, index) => filaReporte([label, datos.inventario.data[index] || 0])).join("");
+    const html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+        <head><meta charset="UTF-8"><style>
+            body{font-family:Arial;color:#172033}h1{color:#512da8}h2{background:#512da8;color:white;padding:8px}table{border-collapse:collapse;width:100%;margin-bottom:20px}th{background:#22a6b3;color:white;padding:8px;text-align:left}td{border:1px solid #d7dce5;padding:7px}.number{font-weight:bold;color:#512da8}
+        </style></head><body>
+        <h1>TecniTrack Services - Reporte general</h1><p>Generado el ${escaparHtml(fechaReporte())}</p>
+        <h2>Resumen</h2><table><tr><th>Indicador</th><th>Valor</th></tr>${filasResumen}</table>
+        <h2>Facturas</h2><table><tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Método</th><th>Estado</th><th>Total</th></tr>${filasFacturas}</table>
+        <h2>Servicios más solicitados</h2><table><tr><th>Servicio</th><th>Cantidad</th></tr>${filasServicios}</table>
+        <h2>Inventario utilizado</h2><table><tr><th>Producto</th><th>Cantidad</th></tr>${filasInventario}</table>
+        </body></html>`;
+    const blob = new Blob(["\ufeff", html], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const enlace = document.createElement("a");
+    enlace.href = URL.createObjectURL(blob);
+    enlace.download = "reporte_tecnitrack.xls";
+    enlace.style.display = "none";
+    document.body.appendChild(enlace);
+    enlace.click();
+    setTimeout(() => {
+        URL.revokeObjectURL(enlace.href);
+        enlace.remove();
+    }, 1000);
+    mostrarNotificacion("Reporte de Excel generado correctamente.", "success");
+}
+
+function imprimirReportePdf() {
+    const datos = contenidoReporte();
+    const ventana = window.open("", "_blank");
+    if (!ventana) return mostrarNotificacion("El navegador bloqueó la ventana del reporte.", "error");
+    const resumen = datos.resumen.map(item => `<div class="metric"><span>${escaparHtml(item[0])}</span><strong>${escaparHtml(item[1])}</strong></div>`).join("");
+    const facturas = datos.facturas.map(factura => filaReporte([factura.numero, factura.fecha, factura.cliente, factura.servicio, factura.estado, moneda(factura.total)])).join("");
+    ventana.document.open();
+    ventana.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte TecniTrack</title><style>
+        @page{size:A4;margin:16mm}body{font-family:Arial,sans-serif;color:#172033;margin:0}header{border-bottom:4px solid #8b5cf6;padding-bottom:14px;margin-bottom:22px}h1{margin:0;color:#33206f;font-size:26px}h2{margin:22px 0 9px;color:#33206f;font-size:16px}.meta{color:#64748b;font-size:12px}.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.metric{border:1px solid #dbe1ea;border-top:3px solid #22d3ee;padding:10px}.metric span{display:block;color:#64748b;font-size:10px}.metric strong{display:block;margin-top:4px;font-size:16px}table{width:100%;border-collapse:collapse;font-size:10px}th{background:#33206f;color:white;text-align:left;padding:7px}td{border-bottom:1px solid #dbe1ea;padding:7px}footer{margin-top:25px;color:#64748b;font-size:10px}@media print{.no-print{display:none}}
+        </style></head><body><header><h1>TecniTrack Services</h1><p class="meta">Reporte general · ${escaparHtml(fechaReporte())}</p></header><div class="metrics">${resumen}</div><h2>Órdenes</h2><p>${datos.ordenes.total || 0} totales · ${datos.ordenes.pendientes || 0} pendientes · ${datos.ordenes.enProceso || 0} en proceso · ${datos.ordenes.completadas || 0} completadas</p><h2>Facturas emitidas</h2><table><tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Estado</th><th>Total</th></tr>${facturas || filaReporte(["Sin facturas registradas"])}</table><footer>Documento generado por TecniTrack Services</footer></body></html>`);
+    ventana.document.close();
+    ventana.focus();
+    setTimeout(() => ventana.print(), 500);
+}
+
 async function iniciarReportes() {
     try {
         const datos = await cargarJson("/dashboard/reportes/");
@@ -218,8 +305,8 @@ async function iniciarReportes() {
     }
 }
 
-document.querySelector(".btn-pdf")?.addEventListener("click", () => window.print());
+document.querySelector(".btn-pdf")?.addEventListener("click", imprimirReportePdf);
 document.querySelector(".btn-print")?.addEventListener("click", () => window.print());
-document.querySelector(".btn-excel")?.addEventListener("click", exportarCsv);
+document.querySelector(".btn-excel")?.addEventListener("click", exportarExcel);
 
 iniciarReportes();
