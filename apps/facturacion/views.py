@@ -217,3 +217,18 @@ def crear_factura(request):
     )
 
     return JsonResponse({"ok": True, "factura": serializar_factura(factura)}, status=201)
+
+
+@require_POST
+def eliminar_factura(request, factura_id):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
+    try:
+        factura = Factura.objects.get(id=factura_id)
+    except Factura.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Factura no encontrada."}, status=404)
+
+    factura.delete()
+    return JsonResponse({"ok": True, "mensaje": "Factura eliminada correctamente."})

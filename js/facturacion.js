@@ -15,6 +15,7 @@ let serviciosCompletados = [];
 let facturaEditando = null;
 let servicioSeleccionado = null;
 let nombreTaller = "TecniTrack Services";
+let csrfToken = "";
 
 const tbodyDetalle = document.querySelector("#tablaDetalleFactura tbody");
 const tbodyFacturas = document.querySelector("#tablaFacturas tbody");
@@ -24,6 +25,15 @@ function obtenerCookie(nombre) {
     const partes = valor.split(`; ${nombre}=`);
     if (partes.length === 2) return partes.pop().split(";").shift();
     return "";
+}
+
+async function obtenerCsrfToken() {
+    if (csrfToken) return csrfToken;
+    const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+    const datos = await leerRespuestaJson(respuesta);
+    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo preparar la seguridad de Django.");
+    csrfToken = datos.csrfToken;
+    return csrfToken;
 }
 
 async function leerRespuestaJson(respuesta) {
@@ -40,7 +50,7 @@ async function apiJson(url, opciones = {}) {
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
-            "X-CSRFToken": obtenerCookie("csrftoken"),
+            "X-CSRFToken": await obtenerCsrfToken(),
             ...(opciones.headers || {})
         },
         ...opciones
@@ -235,6 +245,9 @@ function renderHistorialFacturas(lista) {
                     <button class="btn-imprimir-fila" data-id="${factura.id}">
                         <i class="fa fa-print"></i> Imprimir
                     </button>
+                    <button class="btn-eliminar-tabla" data-id="${factura.id}">
+                        <i class="fa fa-trash"></i> Eliminar
+                    </button>
                 </div>
             </td>
         `;
@@ -251,6 +264,38 @@ function renderHistorialFacturas(lista) {
             imprimirFactura(factura);
         });
     });
+
+    tbodyFacturas.querySelectorAll(".btn-eliminar-tabla").forEach(btn => {
+        btn.addEventListener("click", () => eliminarFactura(Number(btn.dataset.id)));
+    });
+}
+
+async function eliminarFactura(facturaId) {
+    const factura = facturas.find(item => Number(item.id) === facturaId);
+    if (!factura) return;
+
+    const confirmado = await confirmarAccion({
+        titulo: "Eliminar factura",
+        mensaje: `¿Quieres eliminar ${factura.numero}? La orden se conservará y volverá a quedar disponible para facturar.`
+    });
+    if (!confirmado) return;
+
+    try {
+        await apiJson(`/facturacion/${facturaId}/eliminar/`, {
+            method: "POST",
+            body: JSON.stringify({})
+        });
+        facturas = facturas.filter(item => Number(item.id) !== facturaId);
+        serviciosCompletados = serviciosCompletados.map(servicio =>
+            servicio.id === factura.solicitudId ? { ...servicio, facturada: false } : servicio
+        );
+        limpiarFactura();
+        pintarServiciosCompletados();
+        renderHistorialFacturas(facturas);
+        mostrarNotificacion("Factura eliminada. La orden quedó disponible nuevamente.", "success");
+    } catch (error) {
+        mostrarNotificacion(error.message || "No se pudo eliminar la factura.", "error");
+    }
 }
 
 function cargarFacturaEnFormulario(id) {
