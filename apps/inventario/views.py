@@ -144,7 +144,7 @@ def listar_productos(request):
 @require_GET
 def listar_movimientos(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesiÃ³n activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
     if request.user.rol not in [Usuario.Rol.ADMIN, Usuario.Rol.TECNICO]:
         return JsonResponse({"ok": False, "error": "No tienes permiso para consultar movimientos."}, status=403)

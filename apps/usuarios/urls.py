@@ -12,6 +12,7 @@ urlpatterns = [
     path("me/", views.usuario_actual, name="me"),
     path("notificaciones/", views.listar_notificaciones, name="notificaciones"),
     path("notificaciones/<int:notificacion_id>/leer/", views.marcar_notificacion_leida, name="notificacion_leer"),
+    path("notificaciones/leer-todas/", views.marcar_todas_notificaciones_leidas, name="notificaciones_leer_todas"),
     path("perfil/actualizar/", views.actualizar_perfil, name="actualizar_perfil"),
     path("password/cambiar/", views.cambiar_password, name="cambiar_password"),
     path("admin/usuarios/", views.listar_usuarios_admin, name="listar_usuarios_admin"),

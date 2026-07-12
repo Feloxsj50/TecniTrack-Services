@@ -192,7 +192,7 @@ def usuario_actual(request):
 @require_GET
 def listar_notificaciones(request):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesiÃ³n activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
     notificaciones = Notificacion.objects.filter(usuario=request.user)[:30]
     data = [{
         "id": item.id,
@@ -209,10 +209,18 @@ def listar_notificaciones(request):
 @require_POST
 def marcar_notificacion_leida(request, notificacion_id):
     if not request.user.is_authenticated:
-        return JsonResponse({"ok": False, "error": "Sin sesiÃ³n activa."}, status=401)
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
     actualizada = Notificacion.objects.filter(id=notificacion_id, usuario=request.user).update(leida=True)
     if not actualizada:
         return JsonResponse({"ok": False, "error": "Notificación no encontrada."}, status=404)
+    return JsonResponse({"ok": True})
+
+
+@require_POST
+def marcar_todas_notificaciones_leidas(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
+    Notificacion.objects.filter(usuario=request.user, leida=False).update(leida=True)
     return JsonResponse({"ok": True})
 
 

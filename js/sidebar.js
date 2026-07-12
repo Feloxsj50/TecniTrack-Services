@@ -91,6 +91,13 @@ if (sidebars.length > 0) {
         sidebar.innerHTML = crearMenu(menu);
     });
 
+    if (!document.getElementById("mobileSidebarToggle")) {
+        document.body.insertAdjacentHTML("afterbegin", `<button type="button" id="mobileSidebarToggle" class="mobile-sidebar-toggle" aria-label="Abrir menú"><i class="fa-solid fa-bars"></i></button>`);
+    }
+    document.getElementById("mobileSidebarToggle")?.addEventListener("click", () => {
+        document.body.classList.toggle("sidebar-open");
+    });
+
     const API_BASE = ["5500", "5501", "5173"].includes(window.location.port)
         ? (window.location.hostname === "localhost" ? "http://localhost:8000" : "http://127.0.0.1:8000")
         : window.location.origin;
@@ -114,7 +121,7 @@ if (sidebars.length > 0) {
             document.body.appendChild(panel);
         }
         panel.innerHTML = `
-            <div class="notifications-panel-header"><strong>Notificaciones</strong><button type="button" data-cerrar-notificaciones aria-label="Cerrar">&times;</button></div>
+            <div class="notifications-panel-header"><strong>Notificaciones</strong><div><button type="button" data-leer-todas>Marcar todas</button><button type="button" data-cerrar-notificaciones aria-label="Cerrar">&times;</button></div></div>
             <div class="notifications-list">
                 ${notificaciones.length ? notificaciones.map(item => `
                     <button type="button" class="notification-item ${item.leida ? "read" : ""}" data-notificacion="${item.id}">
@@ -125,9 +132,15 @@ if (sidebars.length > 0) {
         `;
         panel.hidden = false;
         panel.querySelector("[data-cerrar-notificaciones]").addEventListener("click", () => { panel.hidden = true; });
+        panel.querySelector("[data-leer-todas]").addEventListener("click", async () => {
+            await fetch(`${API_BASE}/usuarios/notificaciones/leer-todas/`, { method: "POST", credentials: "include", headers: { "X-CSRFToken": await obtenerCsrfNotificaciones() } });
+            notificaciones = notificaciones.map(item => ({ ...item, leida: true }));
+            pintarNotificaciones();
+            abrirNotificaciones();
+        });
         panel.querySelectorAll("[data-notificacion]").forEach(item => item.addEventListener("click", async () => {
             const id = item.dataset.notificacion;
-            await fetch(`${API_BASE}/usuarios/notificaciones/${id}/leer/`, { method: "POST", credentials: "include", headers: { "X-CSRFToken": getCookie("csrftoken") } });
+            await fetch(`${API_BASE}/usuarios/notificaciones/${id}/leer/`, { method: "POST", credentials: "include", headers: { "X-CSRFToken": await obtenerCsrfNotificaciones() } });
             const encontrada = notificaciones.find(notification => String(notification.id) === String(id));
             if (encontrada) encontrada.leida = true;
             pintarNotificaciones();
@@ -139,6 +152,33 @@ if (sidebars.length > 0) {
         return document.cookie.split("; ").find(item => item.startsWith(`${nombre}=`))?.split("=")[1] || "";
     }
 
+    let csrfNotificaciones = "";
+    async function obtenerCsrfNotificaciones() {
+        if (csrfNotificaciones) return csrfNotificaciones;
+        const respuesta = await fetch(`${API_BASE}/usuarios/csrf/`, { credentials: "include" });
+        const datos = await respuesta.json();
+        if (!respuesta.ok || !datos.ok) throw new Error("No se pudo preparar la seguridad de las notificaciones.");
+        csrfNotificaciones = datos.csrfToken;
+        return csrfNotificaciones;
+    }
+
+    let ultimoNoLeidas = 0;
+    function emitirSonidoNotificacion() {
+        try {
+            const contexto = new AudioContext();
+            const oscilador = contexto.createOscillator();
+            const ganancia = contexto.createGain();
+            oscilador.frequency.value = 660;
+            ganancia.gain.setValueAtTime(0.04, contexto.currentTime);
+            ganancia.gain.exponentialRampToValueAtTime(0.001, contexto.currentTime + 0.16);
+            oscilador.connect(ganancia).connect(contexto.destination);
+            oscilador.start();
+            oscilador.stop(contexto.currentTime + 0.16);
+        } catch {
+            // El sonido puede ser bloqueado por el navegador.
+        }
+    }
+
     async function cargarNotificaciones() {
         try {
             const respuesta = await fetch(`${API_BASE}/usuarios/notificaciones/`, { credentials: "include" });
@@ -146,6 +186,8 @@ if (sidebars.length > 0) {
             if (!respuesta.ok || !datos.ok) return;
             notificaciones = datos.notificaciones || [];
             pintarNotificaciones();
+            if (ultimoNoLeidas && datos.noLeidas > ultimoNoLeidas) emitirSonidoNotificacion();
+            ultimoNoLeidas = datos.noLeidas || 0;
         } catch {
             // Las notificaciones no deben bloquear la navegación.
         }
@@ -153,6 +195,7 @@ if (sidebars.length > 0) {
 
     document.getElementById("btnNotificaciones")?.addEventListener("click", abrirNotificaciones);
     cargarNotificaciones();
+    window.setInterval(cargarNotificaciones, 30000);
 
     document.getElementById("logoutBtn")?.addEventListener("click", event => {
         event.preventDefault();
