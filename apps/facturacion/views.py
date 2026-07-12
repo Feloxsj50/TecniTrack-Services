@@ -1,10 +1,15 @@
 import json
 from decimal import Decimal, InvalidOperation
+from collections import Counter
+
+from django.db import transaction
+from django.db.models import Q
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.servicios.models import SolicitudServicio
+from apps.inventario.models import MovimientoInventario, ProductoInventario
 from apps.usuarios.models import Usuario
 from .models import Factura
 
@@ -203,18 +208,29 @@ def crear_factura(request):
     estado = ESTADOS_FRONT.get(datos.get("estado", "Pagado"), Factura.Estado.PAGADO)
     garantia = str(datos.get("garantia", "30 Días")).strip() or "30 Días"
 
-    factura, _ = Factura.objects.update_or_create(
-        solicitud=solicitud,
-        defaults={
-            "servicio_monto": servicio_monto,
-            "repuestos_monto": repuestos_monto,
-            "total": total,
-            "metodo_pago": metodo,
-            "estado": estado,
-            "garantia": garantia,
-            "productos": productos_limpios,
-        },
-    )
+    try:
+        with transaction.atomic():
+            factura = Factura.objects.select_for_update().filter(solicitud=solicitud).first()
+            if factura and factura.inventario_descontado:
+                restaurar_stock_factura(factura)
+
+            productos_inventario = resolver_productos_inventario(productos_limpios)
+            descontar_stock(productos_inventario, solicitud, request.user)
+            factura, _ = Factura.objects.update_or_create(
+                solicitud=solicitud,
+                defaults={
+                    "servicio_monto": servicio_monto,
+                    "repuestos_monto": repuestos_monto,
+                    "total": total,
+                    "metodo_pago": metodo,
+                    "estado": estado,
+                    "garantia": garantia,
+                    "productos": productos_limpios,
+                    "inventario_descontado": bool(productos_inventario),
+                },
+            )
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
 
     return JsonResponse({"ok": True, "factura": serializar_factura(factura)}, status=201)
 
@@ -230,5 +246,74 @@ def eliminar_factura(request, factura_id):
     except Factura.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Factura no encontrada."}, status=404)
 
-    factura.delete()
+    with transaction.atomic():
+        factura = Factura.objects.select_for_update().get(id=factura_id)
+        if factura.inventario_descontado:
+            restaurar_stock_factura(factura)
+        factura.delete()
     return JsonResponse({"ok": True, "mensaje": "Factura eliminada correctamente."})
+
+
+def resolver_productos_inventario(productos):
+    encontrados = []
+    for item in productos:
+        nombre = item["producto"]
+        producto = ProductoInventario.objects.select_for_update().filter(
+            Q(codigo__iexact=nombre) | Q(nombre__iexact=nombre), activo=True
+        ).first()
+        if not producto:
+            raise ValueError(f"El repuesto '{nombre}' no existe en el inventario.")
+        encontrados.append((producto, item["cantidad"]))
+    return encontrados
+
+
+def descontar_stock(productos, solicitud, usuario):
+    cantidades = Counter()
+    referencias = {}
+    for producto, cantidad in productos:
+        cantidades[producto.id] += cantidad
+        referencias[producto.id] = producto
+
+    for producto_id, cantidad in cantidades.items():
+        producto = referencias[producto_id]
+        if producto.stock < cantidad:
+            raise ValueError(f"No hay stock suficiente de '{producto.nombre}'. Disponible: {producto.stock}.")
+        anterior = producto.stock
+        producto.stock -= cantidad
+        producto.save(update_fields=["stock", "actualizado_en"])
+        MovimientoInventario.objects.create(
+            producto=producto,
+            solicitud=solicitud,
+            usuario=usuario,
+            tipo=MovimientoInventario.Tipo.SALIDA,
+            cantidad=-cantidad,
+            stock_anterior=anterior,
+            stock_nuevo=producto.stock,
+        )
+
+
+def restaurar_stock_factura(factura):
+    cantidades = Counter()
+    for item in factura.productos or []:
+        nombre = str(item.get("producto") or item.get("nombre") or "").strip()
+        cantidad = int(item.get("cantidad", 0) or 0)
+        producto = ProductoInventario.objects.select_for_update().filter(
+            Q(codigo__iexact=nombre) | Q(nombre__iexact=nombre)
+        ).first()
+        if producto and cantidad > 0:
+            cantidades[producto.id] += cantidad
+
+    for producto_id, cantidad in cantidades.items():
+        producto = ProductoInventario.objects.select_for_update().get(id=producto_id)
+        anterior = producto.stock
+        producto.stock += cantidad
+        producto.save(update_fields=["stock", "actualizado_en"])
+        MovimientoInventario.objects.create(
+            producto=producto,
+            solicitud=factura.solicitud,
+            usuario=None,
+            tipo=MovimientoInventario.Tipo.AJUSTE,
+            cantidad=cantidad,
+            stock_anterior=anterior,
+            stock_nuevo=producto.stock,
+        )

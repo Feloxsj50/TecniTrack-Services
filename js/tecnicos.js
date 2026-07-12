@@ -27,6 +27,7 @@ const API_BASE = (() => {
 let tecnicos = [];
 let tecnicoEditandoId = null;
 let csrfToken = "";
+let paginaTecnicos = 1;
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -94,7 +95,7 @@ function renderizarTabla(lista) {
         return;
     }
 
-    lista.forEach((tecnico) => {
+    obtenerPagina(lista, paginaTecnicos).forEach((tecnico) => {
         const claseEstado = tecnico.estado === "Activo" ? "activo" : "inactivo";
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -119,6 +120,10 @@ function renderizarTabla(lista) {
     tablaTecnicos.querySelectorAll("[data-eliminar]").forEach(boton => {
         boton.addEventListener("click", () => eliminarTecnico(Number(boton.dataset.eliminar)));
     });
+    renderizarPaginacion("paginacionTecnicos", lista.length, paginaTecnicos, pagina => {
+        paginaTecnicos = pagina;
+        renderizarTabla(lista);
+    });
 }
 
 async function cargarTecnicos() {
@@ -128,6 +133,7 @@ async function cargarTecnicos() {
         const datos = await leerRespuestaJson(respuesta);
         if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar los t\u00e9cnicos.");
         tecnicos = datos.tecnicos;
+        paginaTecnicos = 1;
         renderizarTabla(tecnicos);
         actualizarResumen(tecnicos);
     } catch (error) {

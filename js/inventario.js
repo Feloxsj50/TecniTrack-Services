@@ -13,6 +13,7 @@ let productos = [];
 let movimientos = [];
 let productoEditandoId = null;
 let csrfToken = "";
+let paginaInventario = 1;
 const sesionInventario = TecniAuth.obtenerSesion();
 const puedeEditarInventario = sesionInventario?.rol === "admin";
 
@@ -119,7 +120,7 @@ function renderizarTabla(lista) {
         return;
     }
 
-    lista.forEach(producto => {
+    obtenerPagina(lista, paginaInventario).forEach(producto => {
         const estado = producto.estado || obtenerEstado(producto.stock, producto.stockMinimo);
         const tr = document.createElement("tr");
         const acciones = puedeEditarInventario ? `
@@ -152,6 +153,10 @@ function renderizarTabla(lista) {
 
     tbody.querySelectorAll("[data-eliminar]").forEach(btn => {
         btn.addEventListener("click", () => eliminarProducto(Number(btn.dataset.eliminar)));
+    });
+    renderizarPaginacion("paginacionInventario", lista.length, paginaInventario, pagina => {
+        paginaInventario = pagina;
+        renderizarTabla(lista);
     });
 }
 
@@ -326,6 +331,7 @@ async function cargarInventario() {
         if (!respuestaMovimientos.ok || !datosMovimientos.ok) throw new Error(datosMovimientos.error || "No se pudo cargar el historial.");
 
         productos = datos.productos || [];
+        paginaInventario = 1;
         movimientos = datosMovimientos.movimientos || [];
         actualizarCards();
         filtrarProductos();

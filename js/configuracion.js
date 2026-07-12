@@ -12,6 +12,7 @@ const API_BASE = (() => {
 let csrfToken = "";
 let usuariosConfig = [];
 let backupCache = null;
+let paginaUsuarios = 1;
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -101,7 +102,7 @@ function renderizarUsuarios() {
         return;
     }
 
-    tbody.innerHTML = usuariosConfig.map(usuario => `
+    tbody.innerHTML = obtenerPagina(usuariosConfig, paginaUsuarios).map(usuario => `
         <tr>
             <td>${escaparHtml(usuario.username)}</td>
             <td>${escaparHtml(usuario.nombre)}</td>
@@ -129,11 +130,16 @@ function renderizarUsuarios() {
     tbody.querySelectorAll("[data-reset]").forEach(boton => {
         boton.addEventListener("click", () => resetearPassword(Number(boton.dataset.reset)));
     });
+    renderizarPaginacion("paginacionUsuarios", usuariosConfig.length, paginaUsuarios, pagina => {
+        paginaUsuarios = pagina;
+        renderizarUsuarios();
+    });
 }
 
 async function cargarUsuarios() {
     const datos = await apiJson("/usuarios/admin/usuarios/");
     usuariosConfig = datos.usuarios || [];
+    paginaUsuarios = 1;
     renderizarUsuarios();
 }
 

@@ -15,6 +15,7 @@ let usuarioActual = null;
 let tallerActual = null;
 let ticketsSoporte = [];
 let csrfToken = "";
+let paginaTickets = 1;
 
 const configuracionAyuda = {
     admin: {
@@ -251,7 +252,7 @@ function renderizarTickets() {
         return;
     }
 
-    tbody.innerHTML = tickets.map(ticket => {
+    tbody.innerHTML = obtenerPagina(tickets, paginaTickets).map(ticket => {
         const respuesta = ticket.respuesta || "Pendiente de respuesta";
         const usuario = rolAyuda === "cliente" ? "" : `<td>${escaparHtml(ticket.nombre)}</td>`;
         const acciones = accionesTicket(ticket);
@@ -280,6 +281,10 @@ function renderizarTickets() {
 
     tbody.querySelectorAll("[data-ver-respuesta]").forEach(boton => {
         boton.addEventListener("click", () => verRespuesta(Number(boton.dataset.verRespuesta)));
+    });
+    renderizarPaginacion("paginacionTickets", tickets.length, paginaTickets, pagina => {
+        paginaTickets = pagina;
+        renderizarTickets();
     });
 }
 

@@ -31,6 +31,7 @@ const API_BASE = (() => {
 let clientes = [];
 let clienteEditandoId = null;
 let csrfToken = "";
+let paginaClientes = 1;
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -122,7 +123,7 @@ function renderizarTabla(lista) {
         return;
     }
 
-    lista.forEach((cliente) => {
+    obtenerPagina(lista, paginaClientes).forEach((cliente) => {
         const claseEstado = cliente.estado === "Activo" ? "activo" : "inactivo";
         const tr = document.createElement("tr");
 
@@ -148,6 +149,10 @@ function renderizarTabla(lista) {
     tablaClientes.querySelectorAll("[data-eliminar]").forEach(boton => {
         boton.addEventListener("click", () => eliminarCliente(Number(boton.dataset.eliminar)));
     });
+    renderizarPaginacion("paginacionClientes", lista.length, paginaClientes, pagina => {
+        paginaClientes = pagina;
+        renderizarTabla(lista);
+    });
 }
 
 async function cargarClientes() {
@@ -168,6 +173,7 @@ async function cargarClientes() {
         }
 
         clientes = datos.clientes;
+        paginaClientes = 1;
         renderizarTabla(clientes);
         actualizarResumenClientes(clientes);
     } catch (error) {

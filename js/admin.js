@@ -14,6 +14,7 @@ let clientesDisponibles = [];
 let solicitudes = [];
 let csrfToken = "";
 let clienteSeleccionado = null;
+let paginaOrdenes = 1;
 const filtrosOrdenes = { estado: "Todos", prioridad: "Todas", busqueda: "" };
 
 function escaparHtml(valor) {
@@ -271,7 +272,7 @@ function cargarServicios() {
         return;
     }
 
-    visibles.forEach(solicitud => {
+    obtenerPagina(visibles, paginaOrdenes).forEach(solicitud => {
         const puedeFacturar = ordenListaParaFacturar(solicitud);
         const textoFacturar = solicitud.facturada ? "Facturada" : "Facturar";
         const fila = document.createElement("tr");
@@ -313,6 +314,10 @@ function cargarServicios() {
 
     tabla.querySelectorAll("[data-eliminar]").forEach(boton => {
         boton.addEventListener("click", () => eliminarServicio(Number(boton.dataset.eliminar)));
+    });
+    renderizarPaginacion("paginacionOrdenes", visibles.length, paginaOrdenes, pagina => {
+        paginaOrdenes = pagina;
+        cargarServicios();
     });
 }
 async function obtenerSolicitudes() {
@@ -452,16 +457,19 @@ function conectarFiltrosOrdenes() {
 
     filtroEstado?.addEventListener("change", () => {
         filtrosOrdenes.estado = filtroEstado.value;
+        paginaOrdenes = 1;
         cargarServicios();
     });
 
     filtroPrioridad?.addEventListener("change", () => {
         filtrosOrdenes.prioridad = filtroPrioridad.value;
+        paginaOrdenes = 1;
         cargarServicios();
     });
 
     buscarOrden?.addEventListener("input", () => {
         filtrosOrdenes.busqueda = buscarOrden.value;
+        paginaOrdenes = 1;
         cargarServicios();
     });
 }

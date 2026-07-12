@@ -51,11 +51,19 @@ class MovimientoInventario(models.Model):
     class Tipo(models.TextChoices):
         REGISTRO = "registro", "Registro"
         AJUSTE = "ajuste", "Ajuste"
+        SALIDA = "salida", "Salida por reparación"
 
     producto = models.ForeignKey(
         ProductoInventario,
         on_delete=models.CASCADE,
         related_name="movimientos",
+    )
+    solicitud = models.ForeignKey(
+        "servicios.SolicitudServicio",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="movimientos_inventario",
     )
     usuario = models.ForeignKey(
         "usuarios.Usuario",

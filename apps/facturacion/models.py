@@ -27,6 +27,7 @@ class Factura(models.Model):
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.PAGADO)
     garantia = models.CharField(max_length=40, default="30 Días")
     productos = models.JSONField(default=list, blank=True)
+    inventario_descontado = models.BooleanField(default=False)
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
 

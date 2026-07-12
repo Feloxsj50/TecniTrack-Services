@@ -17,6 +17,7 @@ const panelBackdrop = document.getElementById("panelServicioBackdrop");
 const filtrosCliente = { estado: "Todos", busqueda: "" };
 let solicitudesCliente = [];
 let csrfToken = "";
+let paginaServiciosCliente = 1;
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -158,7 +159,7 @@ function renderizarSolicitudesCliente() {
         return;
     }
 
-    visibles.forEach(solicitud => {
+    obtenerPagina(visibles, paginaServiciosCliente).forEach(solicitud => {
         const estado = estadoNormalizado(solicitud.estado);
         const puedeVerRecibo = estado === "Completado" && solicitud.facturada;
         const fila = document.createElement("tr");
@@ -194,6 +195,10 @@ function renderizarSolicitudesCliente() {
             window.location.href = "mis-pagos.html";
         });
     });
+    renderizarPaginacion("paginacionServiciosCliente", visibles.length, paginaServiciosCliente, pagina => {
+        paginaServiciosCliente = pagina;
+        renderizarSolicitudesCliente();
+    });
 }
 
 async function cargarSolicitudesCliente() {
@@ -203,6 +208,7 @@ async function cargarSolicitudesCliente() {
         if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudieron cargar tus servicios.");
 
         solicitudesCliente = datos.solicitudes;
+        paginaServiciosCliente = 1;
         renderizarSolicitudesCliente();
     } catch (error) {
         solicitudesCliente = [];
@@ -290,11 +296,13 @@ function conectarFiltrosCliente() {
 
     filtroEstado?.addEventListener("change", () => {
         filtrosCliente.estado = filtroEstado.value;
+        paginaServiciosCliente = 1;
         renderizarSolicitudesCliente();
     });
 
     buscar?.addEventListener("input", () => {
         filtrosCliente.busqueda = buscar.value;
+        paginaServiciosCliente = 1;
         renderizarSolicitudesCliente();
     });
 }

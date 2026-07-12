@@ -10,6 +10,7 @@ const API_BASE = (() => {
     return origin;
 })();
 const tbodyTrabajos = document.querySelector("#tablaServicios tbody");
+let paginaTrabajos = 1;
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -68,7 +69,7 @@ function renderizarTrabajos(trabajos) {
         return;
     }
 
-    tbodyTrabajos.innerHTML = trabajos.map(trabajo => `
+    tbodyTrabajos.innerHTML = obtenerPagina(trabajos, paginaTrabajos).map(trabajo => `
         <tr>
             <td>${escaparHtml(trabajo.fecha)}</td>
             <td>${escaparHtml(trabajo.id)}</td>
@@ -80,6 +81,10 @@ function renderizarTrabajos(trabajos) {
             <td><span class="estado completado">Completado</span></td>
         </tr>
     `).join("");
+    renderizarPaginacion("paginacionTrabajos", trabajos.length, paginaTrabajos, pagina => {
+        paginaTrabajos = pagina;
+        renderizarTrabajos(trabajos);
+    });
 }
 
 async function cargarMisTrabajos() {

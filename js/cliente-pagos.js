@@ -10,6 +10,7 @@
     return origin;
 })();
 let pagosCliente = [];
+let paginaPagos = 1;
 
 const tablaPagos = document.querySelector("#tablaPagosCliente tbody");
 const modalRecibo = document.getElementById("reciboModal");
@@ -132,7 +133,7 @@ function renderizarHistorial(lista) {
         `;
     }
 
-    pagados.forEach(pago => {
+    obtenerPagina(pagados, paginaPagos).forEach(pago => {
         const fila = document.createElement("tr");
         fila.innerHTML = `
             <td>${escaparHtml(pago.recibo)}</td>
@@ -159,6 +160,10 @@ function renderizarHistorial(lista) {
             const pago = pagosCliente.find(item => item.recibo === boton.dataset.recibo);
             abrirRecibo(pago);
         });
+    });
+    renderizarPaginacion("paginacionPagos", pagados.length, paginaPagos, pagina => {
+        paginaPagos = pagina;
+        renderizarHistorial(lista);
     });
 }
 
@@ -244,6 +249,7 @@ function imprimirRecibo() {
 function conectarEventos() {
     document.getElementById("buscarPago").addEventListener("input", event => {
         const texto = event.target.value.trim().toLowerCase();
+        paginaPagos = 1;
         const filtrados = pagosCliente.filter(pago =>
             pago.recibo.toLowerCase().includes(texto) ||
             pago.servicio.toLowerCase().includes(texto) ||

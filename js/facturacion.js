@@ -16,6 +16,7 @@ let facturaEditando = null;
 let servicioSeleccionado = null;
 let nombreTaller = "TecniTrack Services";
 let csrfToken = "";
+let paginaFacturas = 1;
 
 const tbodyDetalle = document.querySelector("#tablaDetalleFactura tbody");
 const tbodyFacturas = document.querySelector("#tablaFacturas tbody");
@@ -227,7 +228,7 @@ function renderHistorialFacturas(lista) {
         return;
     }
 
-    lista.forEach(factura => {
+    obtenerPagina(lista, paginaFacturas).forEach(factura => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${escaparHtml(factura.numero)}</td>
@@ -267,6 +268,10 @@ function renderHistorialFacturas(lista) {
 
     tbodyFacturas.querySelectorAll(".btn-eliminar-tabla").forEach(btn => {
         btn.addEventListener("click", () => eliminarFactura(Number(btn.dataset.id)));
+    });
+    renderizarPaginacion("paginacionFacturas", lista.length, paginaFacturas, pagina => {
+        paginaFacturas = pagina;
+        renderHistorialFacturas(lista);
     });
 }
 
@@ -523,6 +528,7 @@ async function cargarDatosFacturacion() {
 
     serviciosCompletados = serviciosData.servicios || [];
     facturas = facturasData.facturas || [];
+    paginaFacturas = 1;
     nombreTaller = tallerData.taller?.nombre || nombreTaller;
     pintarServiciosCompletados();
     generarNumeroFactura();
@@ -598,6 +604,7 @@ function conectarEventos() {
 
     document.getElementById("buscarFactura").addEventListener("input", event => {
         const texto = event.target.value.toLowerCase();
+        paginaFacturas = 1;
         const filtradas = facturas.filter(factura =>
             factura.numero.toLowerCase().includes(texto) ||
             factura.cliente.toLowerCase().includes(texto) ||
