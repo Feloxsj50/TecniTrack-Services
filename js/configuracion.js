@@ -271,20 +271,6 @@ async function obtenerBackupCompleto() {
     return backupCache;
 }
 
-async function exportarBackup() {
-    try {
-        const backup = await obtenerBackupCompleto();
-        descargarArchivo(
-            JSON.stringify(backup, null, 2),
-            `tecnitrack-backup-completo-${new Date().toISOString().slice(0, 10)}.json`,
-            "application/json;charset=utf-8;"
-        );
-        mostrarNotificacion("Respaldo JSON completo exportado correctamente.", "success");
-    } catch (error) {
-        mostrarNotificacion(error.message || "No se pudo exportar el backup.", "error");
-    }
-}
-
 async function exportarCsvPorModulo() {
     try {
         const backup = await obtenerBackupCompleto();
@@ -307,7 +293,6 @@ async function exportarCsvPorModulo() {
 
 function conectarEventos() {
     document.getElementById("formTaller").addEventListener("submit", guardarTaller);
-    document.getElementById("btnExportarBackup").addEventListener("click", exportarBackup);
     document.getElementById("btnExportarCsv").addEventListener("click", exportarCsvPorModulo);
     document.getElementById("telefonoTaller")?.addEventListener("input", event => formatearTelefono(event.target));
     document.getElementById("whatsappTaller")?.addEventListener("input", event => formatearTelefono(event.target));
