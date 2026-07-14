@@ -10,7 +10,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.clientes.models import Cliente
-from apps.usuarios.models import ConfiguracionTaller, Notificacion, Usuario
+from apps.usuarios.models import ConfiguracionTaller, Notificacion, RegistroAuditoria, Usuario
+from apps.usuarios.auditoria import registrar_auditoria
 
 
 def serializar_usuario(usuario):
@@ -303,6 +304,28 @@ def listar_usuarios_admin(request):
     return JsonResponse({"ok": True, "usuarios": data, "total": len(data)})
 
 
+@require_GET
+def listar_auditoria(request):
+    permiso = validar_admin(request)
+    if permiso:
+        return permiso
+
+    registros = RegistroAuditoria.objects.select_related("usuario").all()[:100]
+    data = [
+        {
+            "id": registro.id,
+            "usuario": registro.usuario.username if registro.usuario else "Sistema",
+            "accion": registro.accion,
+            "modulo": registro.modulo,
+            "objetoId": registro.objeto_id,
+            "descripcion": registro.descripcion,
+            "creadoEn": registro.creado_en.isoformat(),
+        }
+        for registro in registros
+    ]
+    return JsonResponse({"ok": True, "registros": data, "total": len(data)})
+
+
 @require_POST
 def cambiar_estado_usuario(request, usuario_id):
     permiso = validar_admin(request)
@@ -327,6 +350,7 @@ def cambiar_estado_usuario(request, usuario_id):
 
     usuario.activo = activo
     usuario.save(update_fields=["activo", "actualizado_en"])
+    registrar_auditoria(request, "activar" if activo else "desactivar", "usuarios", f"Usuario {usuario.username} actualizado.", usuario.id)
     return JsonResponse({"ok": True, "usuario": serializar_usuario(usuario)})
 
 
@@ -351,6 +375,7 @@ def resetear_password_usuario(request, usuario_id):
 
     usuario.set_password(password)
     usuario.save()
+    registrar_auditoria(request, "resetear_password", "usuarios", f"Contraseña temporal actualizada para {usuario.username}.", usuario.id)
     return JsonResponse({"ok": True})
 
 

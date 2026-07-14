@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.usuarios.models import Usuario
+from apps.usuarios.auditoria import registrar_auditoria
 from .models import Tecnico
 
 
@@ -139,6 +140,7 @@ def crear_tecnico(request):
         especialidad=especialidad,
         estado="activo" if estado == "Activo" else "inactivo",
     )
+    registrar_auditoria(request, "crear", "tecnicos", f"Tecnico creado: {usuario.username}.", tecnico.id)
 
     return JsonResponse({"ok": True, "tecnico": serializar_tecnico(tecnico)}, status=201)
 
@@ -203,6 +205,7 @@ def actualizar_tecnico(request, tecnico_id):
     tecnico.especialidad = especialidad
     tecnico.estado = "activo" if estado == "Activo" else "inactivo"
     tecnico.save()
+    registrar_auditoria(request, "actualizar", "tecnicos", f"Tecnico actualizado: {usuario.username}.", tecnico.id)
 
     return JsonResponse({"ok": True, "tecnico": serializar_tecnico(tecnico)})
 
@@ -218,5 +221,6 @@ def eliminar_tecnico(request, tecnico_id):
     except Tecnico.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Técnico no encontrado."}, status=404)
 
+    registrar_auditoria(request, "eliminar", "tecnicos", f"Tecnico eliminado: {tecnico.usuario.username}.", tecnico.id)
     tecnico.usuario.delete()
     return JsonResponse({"ok": True})

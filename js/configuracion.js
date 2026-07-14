@@ -13,6 +13,7 @@ let csrfToken = "";
 let usuariosConfig = [];
 let backupCache = null;
 let paginaUsuarios = 1;
+let registrosAuditoria = [];
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -157,6 +158,31 @@ function pintarResumenBackup(resumen = {}) {
     document.getElementById("totalTickets").textContent = resumen.tickets || 0;
 }
 
+function renderizarAuditoria() {
+    const tbody = document.querySelector("#tablaAuditoria tbody");
+    if (!tbody) return;
+    if (!registrosAuditoria.length) {
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Sin cambios registrados.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = registrosAuditoria.map(registro => `
+        <tr>
+            <td>${escaparHtml(new Date(registro.creadoEn).toLocaleString("es-NI"))}</td>
+            <td>${escaparHtml(registro.usuario)}</td>
+            <td>${escaparHtml(registro.modulo)}</td>
+            <td>${escaparHtml(registro.accion)}</td>
+            <td>${escaparHtml(registro.descripcion)}</td>
+        </tr>
+    `).join("");
+}
+
+async function cargarAuditoria() {
+    const datos = await apiJson("/usuarios/admin/auditoria/");
+    registrosAuditoria = datos.registros || [];
+    renderizarAuditoria();
+}
+
 async function cargarResumenBackup() {
     const datos = await apiJson("/usuarios/backup/?resumen=1");
     pintarResumenBackup(datos.resumen || {});
@@ -256,11 +282,11 @@ function valorCsv(valor) {
 }
 
 function filasACsv(filas) {
-    if (!filas?.length) return "Sin datos\n";
+    if (!filas?.length) return "\ufeffSin datos\n";
     const columnas = Object.keys(filas[0]);
     const encabezado = columnas.map(valorCsv).join(",");
     const cuerpo = filas.map(fila => columnas.map(columna => valorCsv(fila[columna])).join(",")).join("\n");
-    return `${encabezado}\n${cuerpo}\n`;
+    return `\ufeff${encabezado}\n${cuerpo}\n`;
 }
 
 async function obtenerBackupCompleto() {
@@ -302,7 +328,7 @@ async function iniciarConfiguracion() {
     conectarEventos();
     actualizarResumen();
     try {
-        await Promise.all([cargarTaller(), cargarUsuarios(), cargarResumenBackup()]);
+        await Promise.all([cargarTaller(), cargarUsuarios(), cargarResumenBackup(), cargarAuditoria()]);
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo cargar configuracion.", "error");
     }

@@ -11,6 +11,7 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.servicios.models import SolicitudServicio
 from apps.inventario.models import MovimientoInventario, ProductoInventario
 from apps.usuarios.models import Usuario
+from apps.usuarios.auditoria import registrar_auditoria
 from .models import Factura
 
 
@@ -232,6 +233,7 @@ def crear_factura(request):
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
 
+    registrar_auditoria(request, "crear_o_actualizar", "facturacion", f"Factura {factura.numero} guardada.", factura.id)
     return JsonResponse({"ok": True, "factura": serializar_factura(factura)}, status=201)
 
 
@@ -248,9 +250,11 @@ def eliminar_factura(request, factura_id):
 
     with transaction.atomic():
         factura = Factura.objects.select_for_update().get(id=factura_id)
+        numero = factura.numero
         if factura.inventario_descontado:
             restaurar_stock_factura(factura)
         factura.delete()
+    registrar_auditoria(request, "eliminar", "facturacion", f"Factura {numero} eliminada.", factura_id)
     return JsonResponse({"ok": True, "mensaje": "Factura eliminada correctamente."})
 
 

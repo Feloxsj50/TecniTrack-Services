@@ -47,3 +47,21 @@ class Notificacion(models.Model):
 
     class Meta:
         ordering = ["-creado_en"]
+
+
+class RegistroAuditoria(models.Model):
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="registros_auditoria",
+    )
+    accion = models.CharField(max_length=40)
+    modulo = models.CharField(max_length=40)
+    objeto_id = models.CharField(max_length=40, blank=True)
+    descripcion = models.CharField(max_length=240)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en"]

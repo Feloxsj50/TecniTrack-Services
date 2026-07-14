@@ -6,6 +6,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.servicios.models import SolicitudServicio
 from apps.usuarios.models import Usuario
+from apps.usuarios.auditoria import registrar_auditoria
 from .models import Cliente
 
 
@@ -155,6 +156,7 @@ def crear_cliente(request):
         activo=limpio["estado"] == "Activo",
     )
     cliente = Cliente.objects.create(usuario=usuario)
+    registrar_auditoria(request, "crear", "clientes", f"Cliente creado: {usuario.username}.", cliente.id)
 
     return JsonResponse({"ok": True, "cliente": serializar_cliente(cliente)}, status=201)
 
@@ -188,6 +190,7 @@ def actualizar_cliente(request, cliente_id):
         usuario.set_password(limpio["password"])
 
     usuario.save()
+    registrar_auditoria(request, "actualizar", "clientes", f"Cliente actualizado: {usuario.username}.", cliente.id)
 
     return JsonResponse({"ok": True, "cliente": serializar_cliente(cliente)})
 
@@ -209,6 +212,7 @@ def eliminar_cliente(request, cliente_id):
 
     eliminar_solicitudes = bool(datos.get("eliminarSolicitudes"))
     nombre_cliente = cliente.usuario.get_full_name() or cliente.usuario.username
+    registrar_auditoria(request, "eliminar", "clientes", f"Cliente eliminado: {nombre_cliente}.", cliente.id)
     if eliminar_solicitudes:
         SolicitudServicio.objects.filter(cliente=cliente, factura__isnull=True).delete()
 

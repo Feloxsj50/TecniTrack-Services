@@ -10,3 +10,4 @@ venv/
 .venv/
 media/
 staticfiles/
+backups/*.sql

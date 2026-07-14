@@ -7,6 +7,7 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.clientes.models import Cliente
 from apps.tecnicos.models import Tecnico
 from apps.usuarios.models import Notificacion, Usuario
+from apps.usuarios.auditoria import registrar_auditoria
 from .models import SolicitudServicio
 
 
@@ -207,6 +208,13 @@ def crear_solicitud(request):
         estado=estado,
     )
     solicitud.refresh_from_db()
+    registrar_auditoria(
+        request,
+        "crear",
+        "servicios",
+        f"Orden SOL-{solicitud.id:03d} creada.",
+        solicitud.id,
+    )
 
     if solicitud.tecnico:
         notificar_usuarios(
@@ -278,6 +286,13 @@ def actualizar_solicitud(request, solicitud_id):
 
     solicitud.save()
     solicitud.refresh_from_db()
+    registrar_auditoria(
+        request,
+        "actualizar",
+        "servicios",
+        f"Orden SOL-{solicitud.id:03d} actualizada a {solicitud.get_estado_display()}.",
+        solicitud.id,
+    )
     if request.user.rol == Usuario.Rol.ADMIN and solicitud.tecnico_id and solicitud.tecnico_id != tecnico_anterior:
         notificar_usuarios(
             [solicitud.tecnico.usuario],
@@ -314,5 +329,6 @@ def eliminar_solicitud(request, solicitud_id):
             status=400,
         )
 
+    registrar_auditoria(request, "eliminar", "servicios", f"Orden SOL-{solicitud.id:03d} eliminada.", solicitud.id)
     solicitud.delete()
     return JsonResponse({"ok": True})
