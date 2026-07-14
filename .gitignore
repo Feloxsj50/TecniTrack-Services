@@ -4,6 +4,8 @@ __pycache__/
 db.sqlite3
 tmp_migration_check.sqlite3
 .env
+.env.*
+!.env.example
 venv/
 .venv/
 media/
