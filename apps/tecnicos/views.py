@@ -6,6 +6,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.usuarios.models import Usuario
 from apps.usuarios.auditoria import registrar_auditoria
+from apps.usuarios.api import validar_admin as validar_admin_comun, obtener_datos_request as obtener_datos_request_comun
 from .models import Tecnico
 
 
@@ -59,7 +60,7 @@ def serializar_tecnico(tecnico):
 
 @require_GET
 def listar_tecnicos(request):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede consultar tecnicos.")
     if permiso:
         return permiso
 
@@ -76,11 +77,11 @@ def listar_tecnicos(request):
 
 @require_POST
 def crear_tecnico(request):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede crear tecnicos.")
     if permiso:
         return permiso
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
@@ -147,7 +148,7 @@ def crear_tecnico(request):
 
 @require_POST
 def actualizar_tecnico(request, tecnico_id):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede actualizar tecnicos.")
     if permiso:
         return permiso
 
@@ -156,7 +157,7 @@ def actualizar_tecnico(request, tecnico_id):
     except Tecnico.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Técnico no encontrado."}, status=404)
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
@@ -212,7 +213,7 @@ def actualizar_tecnico(request, tecnico_id):
 
 @require_POST
 def eliminar_tecnico(request, tecnico_id):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede eliminar tecnicos.")
     if permiso:
         return permiso
 

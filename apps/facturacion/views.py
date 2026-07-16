@@ -12,6 +12,7 @@ from apps.servicios.models import SolicitudServicio
 from apps.inventario.models import MovimientoInventario, ProductoInventario
 from apps.usuarios.models import Usuario
 from apps.usuarios.auditoria import registrar_auditoria
+from apps.usuarios.api import obtener_datos_request as obtener_datos_request_comun, validar_admin as validar_admin_comun
 from .models import Factura
 
 
@@ -139,7 +140,7 @@ def listar_facturas(request):
 
 @require_GET
 def listar_servicios_completados(request):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede consultar facturas.")
     if permiso:
         return permiso
 
@@ -154,11 +155,11 @@ def listar_servicios_completados(request):
 
 @require_POST
 def crear_factura(request):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede generar facturas.")
     if permiso:
         return permiso
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
@@ -239,7 +240,7 @@ def crear_factura(request):
 
 @require_POST
 def eliminar_factura(request, factura_id):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede eliminar facturas.")
     if permiso:
         return permiso
 

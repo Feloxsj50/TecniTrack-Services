@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.usuarios.models import Usuario
+from apps.usuarios.api import obtener_datos_request as obtener_datos_request_comun, validar_admin as validar_admin_comun
 from .models import MovimientoInventario, ProductoInventario
 
 
@@ -155,11 +156,11 @@ def listar_movimientos(request):
 
 @require_POST
 def crear_producto(request):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede modificar inventario.")
     if permiso:
         return permiso
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
@@ -181,7 +182,7 @@ def crear_producto(request):
 
 @require_POST
 def actualizar_producto(request, producto_id):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede modificar inventario.")
     if permiso:
         return permiso
 
@@ -216,7 +217,7 @@ def actualizar_producto(request, producto_id):
 
 @require_POST
 def eliminar_producto(request, producto_id):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede modificar inventario.")
     if permiso:
         return permiso
 

@@ -7,6 +7,7 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.servicios.models import SolicitudServicio
 from apps.usuarios.models import Usuario
 from apps.usuarios.auditoria import registrar_auditoria
+from apps.usuarios.api import validar_admin as validar_admin_comun, obtener_datos_request as obtener_datos_request_comun
 from .models import Cliente
 
 
@@ -116,7 +117,7 @@ def validar_campos_cliente(datos, requiere_usuario=False, requiere_password=Fals
 
 @require_GET
 def listar_clientes(request):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede consultar clientes.")
     if permiso:
         return permiso
 
@@ -132,11 +133,11 @@ def listar_clientes(request):
 
 @require_POST
 def crear_cliente(request):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede crear clientes.")
     if permiso:
         return permiso
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
@@ -163,11 +164,11 @@ def crear_cliente(request):
 
 @require_POST
 def actualizar_cliente(request, cliente_id):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede actualizar clientes.")
     if permiso:
         return permiso
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
@@ -197,11 +198,11 @@ def actualizar_cliente(request, cliente_id):
 
 @require_POST
 def eliminar_cliente(request, cliente_id):
-    permiso = validar_admin(request)
+    permiso = validar_admin_comun(request, "Solo el administrador puede eliminar clientes.")
     if permiso:
         return permiso
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 

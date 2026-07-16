@@ -8,6 +8,7 @@ from apps.clientes.models import Cliente
 from apps.tecnicos.models import Tecnico
 from apps.usuarios.models import Notificacion, Usuario
 from apps.usuarios.auditoria import registrar_auditoria
+from apps.usuarios.api import obtener_datos_request as obtener_datos_request_comun
 from .models import SolicitudServicio
 
 
@@ -169,7 +170,7 @@ def crear_solicitud(request):
     if not request.user.is_authenticated:
         return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
@@ -244,7 +245,7 @@ def actualizar_solicitud(request, solicitud_id):
     except SolicitudServicio.DoesNotExist:
         return JsonResponse({"ok": False, "error": "Solicitud no encontrada."}, status=404)
 
-    datos, error = obtener_datos_request(request)
+    datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
