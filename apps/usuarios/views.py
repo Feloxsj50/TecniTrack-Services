@@ -419,6 +419,7 @@ def actualizar_taller(request):
     taller.whatsapp = whatsapp
     taller.horario = horario
     taller.save()
+    registrar_auditoria(request, "actualizar", "taller", "Datos del taller actualizados.", taller.id)
     return JsonResponse({"ok": True, "taller": serializar_taller(taller)})
 
 

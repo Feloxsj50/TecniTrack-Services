@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.usuarios.models import Usuario
+from apps.usuarios.auditoria import registrar_auditoria
 from apps.usuarios.api import obtener_datos_request as obtener_datos_request_comun, validar_admin as validar_admin_comun
 from .models import MovimientoInventario, ProductoInventario
 
@@ -177,6 +178,7 @@ def crear_producto(request):
         stock_anterior=0,
         stock_nuevo=producto.stock,
     )
+    registrar_auditoria(request, "crear", "inventario", f"Producto {producto.codigo} creado.", producto.id)
     return JsonResponse({"ok": True, "producto": serializar_producto(producto)}, status=201)
 
 
@@ -212,6 +214,7 @@ def actualizar_producto(request, producto_id):
             stock_anterior=stock_anterior,
             stock_nuevo=producto.stock,
         )
+    registrar_auditoria(request, "actualizar", "inventario", f"Producto {producto.codigo} actualizado.", producto.id)
     return JsonResponse({"ok": True, "producto": serializar_producto(producto)})
 
 
@@ -228,4 +231,5 @@ def eliminar_producto(request, producto_id):
 
     producto.activo = False
     producto.save(update_fields=["activo", "actualizado_en"])
+    registrar_auditoria(request, "eliminar", "inventario", f"Producto {producto.codigo} desactivado.", producto.id)
     return JsonResponse({"ok": True})

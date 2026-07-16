@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.usuarios.models import Usuario
+from apps.usuarios.auditoria import registrar_auditoria
 from apps.usuarios.api import obtener_datos_request as obtener_datos_request_comun, validar_admin as validar_admin_comun
 from .models import TicketSoporte
 
@@ -94,6 +95,7 @@ def crear_ticket(request):
         area=area,
         detalle=detalle,
     )
+    registrar_auditoria(request, "crear", "soporte", f"Ticket TK-{ticket.id:03d} creado.", ticket.id)
     return JsonResponse({"ok": True, "ticket": serializar_ticket(ticket)}, status=201)
 
 
@@ -120,4 +122,5 @@ def responder_ticket(request, ticket_id):
     ticket.estado = TicketSoporte.Estado.RESPONDIDO
     ticket.respondido_en = timezone.now()
     ticket.save()
+    registrar_auditoria(request, "responder", "soporte", f"Ticket TK-{ticket.id:03d} respondido.", ticket.id)
     return JsonResponse({"ok": True, "ticket": serializar_ticket(ticket)})
