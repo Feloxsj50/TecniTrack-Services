@@ -10,6 +10,7 @@ from apps.usuarios.models import Notificacion, Usuario
 from apps.usuarios.auditoria import registrar_auditoria
 from apps.usuarios.api import obtener_datos_request as obtener_datos_request_comun
 from .models import SolicitudServicio
+from .history import registrar_cambio_solicitud
 
 
 ESTADOS_FRONT = {
@@ -209,6 +210,13 @@ def crear_solicitud(request):
         estado=estado,
     )
     solicitud.refresh_from_db()
+    registrar_cambio_solicitud(
+        solicitud,
+        request.user,
+        "creacion",
+        estado_nuevo=solicitud.estado,
+        detalle=f"Orden creada para {solicitud.dispositivo}: {solicitud.problema}.",
+    )
     registrar_auditoria(
         request,
         "crear",
@@ -251,6 +259,8 @@ def actualizar_solicitud(request, solicitud_id):
 
     estado_anterior = solicitud.estado
     tecnico_anterior = solicitud.tecnico_id
+    diagnostico_anterior = solicitud.diagnostico
+    repuesto_anterior = solicitud.repuesto_usado
 
     if request.user.rol == Usuario.Rol.ADMIN:
         cliente_nombre = datos.get("cliente", "").strip()
@@ -287,6 +297,24 @@ def actualizar_solicitud(request, solicitud_id):
 
     solicitud.save()
     solicitud.refresh_from_db()
+    if (
+        estado_anterior != solicitud.estado
+        or tecnico_anterior != solicitud.tecnico_id
+        or diagnostico_anterior != solicitud.diagnostico
+        or repuesto_anterior != solicitud.repuesto_usado
+    ):
+        registrar_cambio_solicitud(
+            solicitud,
+            request.user,
+            "actualizacion",
+            estado_anterior=estado_anterior,
+            estado_nuevo=solicitud.estado,
+            detalle=(
+                f"Técnico: {solicitud.tecnico.usuario.username if solicitud.tecnico else 'Sin asignar'}. "
+                f"Diagnóstico: {solicitud.diagnostico or 'Pendiente'}. "
+                f"Repuesto: {solicitud.repuesto_usado or 'Ninguno'}."
+            ),
+        )
     registrar_auditoria(
         request,
         "actualizar",
@@ -331,5 +359,48 @@ def eliminar_solicitud(request, solicitud_id):
         )
 
     registrar_auditoria(request, "eliminar", "servicios", f"Orden SOL-{solicitud.id:03d} eliminada.", solicitud.id)
+    registrar_cambio_solicitud(
+        solicitud,
+        request.user,
+        "eliminacion",
+        estado_anterior=solicitud.estado,
+        detalle="La orden fue eliminada por el administrador.",
+    )
     solicitud.delete()
     return JsonResponse({"ok": True})
+
+
+@require_GET
+def historial_solicitud(request, solicitud_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
+
+    solicitud = SolicitudServicio.objects.filter(id=solicitud_id).first()
+    if not solicitud:
+        return JsonResponse({"ok": False, "error": "Solicitud no encontrada."}, status=404)
+
+    puede_ver = request.user.rol == Usuario.Rol.ADMIN
+    puede_ver = puede_ver or (
+        request.user.rol == Usuario.Rol.CLIENTE
+        and getattr(request.user, "perfil_cliente", None)
+        and solicitud.cliente_id == request.user.perfil_cliente.id
+    )
+    puede_ver = puede_ver or (
+        request.user.rol == Usuario.Rol.TECNICO
+        and getattr(request.user, "perfil_tecnico", None)
+        and solicitud.tecnico_id == request.user.perfil_tecnico.id
+    )
+    if not puede_ver:
+        return JsonResponse({"ok": False, "error": "No tienes permiso para ver este historial."}, status=403)
+
+    return JsonResponse({
+        "ok": True,
+        "historial": [{
+            "accion": cambio.accion,
+            "estadoAnterior": cambio.estado_anterior,
+            "estadoNuevo": cambio.estado_nuevo,
+            "detalle": cambio.detalle,
+            "usuario": cambio.usuario.username if cambio.usuario else "Sistema",
+            "fecha": cambio.creado_en.isoformat(),
+        } for cambio in solicitud.historial.select_related("usuario")],
+    })

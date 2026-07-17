@@ -6,7 +6,7 @@ from django.test import Client, TestCase
 from apps.clientes.models import Cliente
 from apps.tecnicos.models import Tecnico
 from apps.usuarios.models import Notificacion, Usuario
-from .models import SolicitudServicio
+from .models import HistorialSolicitud, SolicitudServicio
 
 
 class FlujoOrdenesTests(TestCase):
@@ -110,3 +110,24 @@ class FlujoOrdenesTests(TestCase):
         self.assertEqual(solicitud.tecnico, self.tecnico)
         self.assertEqual(solicitud.estado, SolicitudServicio.Estado.COMPLETADO)
         self.assertEqual(solicitud.diagnostico, "Se reviso el equipo y se reparo correctamente.")
+        self.assertGreaterEqual(HistorialSolicitud.objects.filter(solicitud=solicitud).count(), 2)
+
+    def test_cliente_no_puede_ver_historial_de_otra_orden(self):
+        otra_orden = SolicitudServicio.objects.create(
+            cliente=self.cliente,
+            dispositivo="Equipo ajeno",
+            problema="No enciende",
+            fecha_preferida=date.today(),
+        )
+        otro_usuario = Usuario.objects.create_user(
+            username="otro_cliente", password="OtroCliente123!", rol=Usuario.Rol.CLIENTE,
+            email="otro@test.local",
+        )
+        otro_cliente = Cliente.objects.create(usuario=otro_usuario)
+        otra_orden.cliente = otro_cliente
+        otra_orden.save(update_fields=["cliente"])
+
+        cliente_client = Client()
+        self.assertTrue(cliente_client.login(username="cliente_test", password="ClienteTest123!"))
+        respuesta = cliente_client.get(f"/servicios/{otra_orden.id}/historial/")
+        self.assertEqual(respuesta.status_code, 403)

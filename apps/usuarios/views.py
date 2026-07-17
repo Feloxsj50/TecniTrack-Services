@@ -2,6 +2,7 @@ import json
 import re
 
 from django.contrib.auth import authenticate, login, logout
+from django.core.cache import cache
 from django.contrib.auth import update_session_auth_hash
 from django.middleware.csrf import get_token
 from django.http import JsonResponse
@@ -12,6 +13,15 @@ from django.views.decorators.http import require_GET, require_POST
 from apps.clientes.models import Cliente
 from apps.usuarios.models import ConfiguracionTaller, Notificacion, RegistroAuditoria, Usuario
 from apps.usuarios.auditoria import registrar_auditoria
+
+
+LOGIN_MAX_INTENTOS = 5
+LOGIN_BLOQUEO_SEGUNDOS = 600
+
+
+def clave_intentos_login(request, username):
+    ip = request.META.get("REMOTE_ADDR", "unknown")
+    return f"login-intentos:{ip}:{username.lower()}"
 
 
 def serializar_usuario(usuario):
@@ -108,11 +118,21 @@ def iniciar_sesion(request):
     if not username or not password:
         return JsonResponse({"ok": False, "error": "Completa usuario y contraseña."}, status=400)
 
+    clave = clave_intentos_login(request, username)
+    intentos = cache.get(clave, 0)
+    if intentos >= LOGIN_MAX_INTENTOS:
+        return JsonResponse(
+            {"ok": False, "error": "Demasiados intentos. Espera unos minutos e intenta de nuevo."},
+            status=429,
+        )
+
     usuario = authenticate(request, username=username, password=password)
 
     if not usuario or not usuario.activo:
+        cache.set(clave, intentos + 1, LOGIN_BLOQUEO_SEGUNDOS)
         return JsonResponse({"ok": False, "error": "Usuario o contraseña incorrectos."}, status=401)
 
+    cache.delete(clave)
     login(request, usuario)
     return JsonResponse({"ok": True, "usuario": serializar_usuario(usuario)})
 

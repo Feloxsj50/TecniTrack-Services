@@ -48,3 +48,23 @@ class SolicitudServicio(models.Model):
     def __str__(self):
         cliente = self.cliente_nombre or self.cliente or "Cliente sin cuenta"
         return f"{cliente} - {self.dispositivo} ({self.get_estado_display()})"
+
+
+class HistorialSolicitud(models.Model):
+    solicitud = models.ForeignKey(
+        SolicitudServicio, on_delete=models.SET_NULL, null=True, blank=True, related_name="historial"
+    )
+    usuario = models.ForeignKey(
+        "usuarios.Usuario", on_delete=models.SET_NULL, null=True, blank=True, related_name="cambios_solicitudes"
+    )
+    accion = models.CharField(max_length=40)
+    estado_anterior = models.CharField(max_length=20, blank=True)
+    estado_nuevo = models.CharField(max_length=20, blank=True)
+    detalle = models.TextField(blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        return f"{self.accion} - SOL-{self.solicitud_id or 'eliminada'}"
