@@ -76,3 +76,32 @@ class FacturacionInventarioTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(respuesta.status_code, 403)
+
+    def test_no_permite_usar_stock_insuficiente(self):
+        self.producto.stock = 0
+        self.producto.save(update_fields=["stock"])
+        admin_client = Client()
+        self.assertTrue(admin_client.login(username="admin_fact", password="AdminFact123!"))
+        respuesta = admin_client.post(
+            "/facturacion/crear/",
+            data=json.dumps({
+                "solicitudId": self.orden.id,
+                "montoServicio": "45.00",
+                "productos": [{"producto": self.producto.nombre, "cantidad": 1, "precio": "35.00"}],
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertFalse(Factura.objects.filter(solicitud=self.orden).exists())
+
+    def test_repetir_factura_no_crea_registros_duplicados(self):
+        admin_client = Client()
+        self.assertTrue(admin_client.login(username="admin_fact", password="AdminFact123!"))
+        datos = json.dumps({
+            "solicitudId": self.orden.id,
+            "montoServicio": "45.00",
+            "productos": [],
+        })
+        self.assertEqual(admin_client.post("/facturacion/crear/", data=datos, content_type="application/json").status_code, 201)
+        self.assertEqual(admin_client.post("/facturacion/crear/", data=datos, content_type="application/json").status_code, 201)
+        self.assertEqual(Factura.objects.filter(solicitud=self.orden).count(), 1)

@@ -25,4 +25,33 @@ class SeguridadLoginTests(TestCase):
         respuesta = cliente.post("/usuarios/login/", data=datos, content_type="application/json")
         self.assertEqual(respuesta.status_code, 429)
 
+
+class ValidacionRegistroTests(TestCase):
+    def test_rechaza_telefono_con_formato_invalido(self):
+        respuesta = Client().post(
+            "/usuarios/registro/",
+            data=json.dumps({
+                "nombres": "Cliente", "apellidos": "Prueba", "username": "cliente_nuevo",
+                "email": "nuevo@test.local", "telefono": "77778888",
+                "password": "ClienteNuevo123!", "confirmPassword": "ClienteNuevo123!",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(respuesta.status_code, 400)
+
+    def test_rechaza_usuario_duplicado(self):
+        Usuario.objects.create_user(
+            username="cliente_existente", password="Cliente123!", email="existente@test.local",
+        )
+        respuesta = Client().post(
+            "/usuarios/registro/",
+            data=json.dumps({
+                "nombres": "Otro", "apellidos": "Cliente", "username": "cliente_existente",
+                "email": "otro@test.local", "telefono": "7777-1234",
+                "password": "ClienteNuevo123!", "confirmPassword": "ClienteNuevo123!",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(respuesta.status_code, 409)
+
 # Create your tests here.

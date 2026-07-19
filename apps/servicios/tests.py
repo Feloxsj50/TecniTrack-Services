@@ -131,3 +131,24 @@ class FlujoOrdenesTests(TestCase):
         self.assertTrue(cliente_client.login(username="cliente_test", password="ClienteTest123!"))
         respuesta = cliente_client.get(f"/servicios/{otra_orden.id}/historial/")
         self.assertEqual(respuesta.status_code, 403)
+
+    def test_no_crea_orden_incompleta(self):
+        cliente_client = Client()
+        self.assertTrue(cliente_client.login(username="cliente_test", password="ClienteTest123!"))
+        respuesta = cliente_client.post(
+            "/servicios/crear/",
+            data=json.dumps({"dispositivo": "Laptop", "servicio": ""}),
+            content_type="application/json",
+        )
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertFalse(SolicitudServicio.objects.exists())
+
+    def test_cliente_no_puede_eliminar_orden(self):
+        solicitud = SolicitudServicio.objects.create(
+            cliente=self.cliente, dispositivo="Laptop", problema="No enciende", fecha_preferida=date.today(),
+        )
+        cliente_client = Client()
+        self.assertTrue(cliente_client.login(username="cliente_test", password="ClienteTest123!"))
+        respuesta = cliente_client.post(f"/servicios/{solicitud.id}/eliminar/")
+        self.assertEqual(respuesta.status_code, 403)
+        self.assertTrue(SolicitudServicio.objects.filter(id=solicitud.id).exists())
