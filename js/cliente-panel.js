@@ -15,6 +15,10 @@ const tablaServiciosCliente = document.querySelector("#tablaServicios tbody");
 const panelServicio = document.getElementById("panelServicioCliente");
 const panelBackdrop = document.getElementById("panelServicioBackdrop");
 const filtrosCliente = { estado: "Todos", busqueda: "" };
+const historialOrdenCliente = window.OrderTimeline.create({
+    container: document.getElementById("historialOrdenCliente"),
+    apiBase: API_BASE
+});
 let solicitudesCliente = [];
 let csrfToken = "";
 let paginaServiciosCliente = 1;
@@ -282,12 +286,14 @@ function abrirDetalleServicio(dbId) {
     panelServicio.hidden = false;
     panelBackdrop.hidden = false;
     document.body.classList.add("modal-open");
+    historialOrdenCliente.load(dbId);
 }
 
 function cerrarDetalleServicio() {
     panelServicio.hidden = true;
     panelBackdrop.hidden = true;
     document.body.classList.remove("modal-open");
+    historialOrdenCliente.clear();
 }
 
 function conectarFiltrosCliente() {

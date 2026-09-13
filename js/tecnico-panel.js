@@ -15,6 +15,10 @@ const tablaTecnico = document.querySelector("#tablaServicios tbody");
 const panelTrabajo = document.getElementById("panelTrabajo");
 const panelBackdrop = document.getElementById("panelTrabajoBackdrop");
 const filtrosTrabajo = { estado: "Todos", prioridad: "Todas", busqueda: "" };
+const historialOrdenTecnico = window.OrderTimeline.create({
+    container: document.getElementById("historialOrdenTecnico"),
+    apiBase: API_BASE
+});
 let solicitudesAsignadasLista = [];
 let trabajoActivoPanel = null;
 let csrfToken = "";
@@ -286,10 +290,7 @@ function renderizarMetaPanel(solicitud) {
     `;
 }
 
-function abrirPanelTrabajo(dbId) {
-    const solicitud = solicitudesAsignadasLista.find(item => item.dbId === dbId);
-    if (!solicitud) return;
-
+function renderizarContenidoPanelTrabajo(solicitud) {
     trabajoActivoPanel = solicitud;
     const completado = estadoNormalizado(solicitud.estado) === "Completado";
 
@@ -306,11 +307,21 @@ function abrirPanelTrabajo(dbId) {
     document.getElementById("repuestoTecnico").readOnly = completado;
     document.getElementById("estadoTecnico").disabled = completado;
     document.getElementById("btnGuardarTrabajo").hidden = completado;
+}
+
+function abrirPanelTrabajo(dbId) {
+    const solicitud = solicitudesAsignadasLista.find(item => item.dbId === dbId);
+    if (!solicitud) return;
+
+    renderizarContenidoPanelTrabajo(solicitud);
 
     panelTrabajo.hidden = false;
     panelBackdrop.hidden = false;
     document.body.classList.add("modal-open");
-    document.getElementById("diagnosticoTecnico").focus();
+    historialOrdenTecnico.load(dbId);
+    if (estadoNormalizado(solicitud.estado) !== "Completado") {
+        document.getElementById("diagnosticoTecnico").focus();
+    }
 }
 
 function cerrarPanelTrabajo() {
@@ -318,6 +329,7 @@ function cerrarPanelTrabajo() {
     panelBackdrop.hidden = true;
     trabajoActivoPanel = null;
     document.body.classList.remove("modal-open");
+    historialOrdenTecnico.clear();
     formTecnico.classList.remove("is-readonly");
     document.getElementById("diagnosticoTecnico").readOnly = false;
     document.getElementById("repuestoTecnico").readOnly = false;
@@ -327,6 +339,7 @@ function cerrarPanelTrabajo() {
 }
 
 async function actualizarTrabajo(id, payload, mensajeExito) {
+    const actualizarPanelAbierto = !panelTrabajo.hidden && trabajoActivoPanel?.dbId === Number(id);
     const token = await obtenerCsrfToken();
     const respuesta = await fetch(`${API_BASE}/servicios/${id}/actualizar/`, {
         method: "POST",
@@ -341,6 +354,13 @@ async function actualizarTrabajo(id, payload, mensajeExito) {
     if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo actualizar el trabajo.");
 
     await cargarSolicitudesAsignadas();
+    if (actualizarPanelAbierto) {
+        const solicitudActualizada = solicitudesAsignadasLista.find(item => item.dbId === Number(id));
+        if (solicitudActualizada) {
+            renderizarContenidoPanelTrabajo(solicitudActualizada);
+            await historialOrdenTecnico.refresh(id);
+        }
+    }
     mostrarNotificacion(mensajeExito, "success");
 }
 
@@ -374,7 +394,6 @@ formTecnico.addEventListener("submit", async event => {
 
     try {
         await actualizarTrabajo(id, { diagnostico, repuesto, estado }, "Trabajo actualizado correctamente.");
-        cerrarPanelTrabajo();
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo actualizar el trabajo.", "error");
     }

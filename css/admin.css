@@ -2116,3 +2116,378 @@ td .table-actions {
 #tablaServicios.tabla-servicios-cliente .btn-facturar-orden i {
     margin-right: 0;
 }
+
+/* ===== HISTORIAL VISUAL DE ORDENES ===== */
+.work-panel {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.order-detail-panel {
+    width: min(480px, 100%);
+}
+
+.order-timeline-section {
+    min-width: 0;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 0.5px solid var(--border);
+}
+
+.order-timeline-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.order-timeline-heading h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.order-timeline-eyebrow {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--accent-cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.order-timeline-refresh,
+.order-timeline-retry {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 34px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    font: inherit;
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition), color var(--transition);
+}
+
+.order-timeline-refresh {
+    width: 34px;
+    min-width: 34px;
+    padding: 0;
+}
+
+.order-timeline-retry {
+    padding: 7px 10px;
+    color: var(--accent-cyan);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.order-timeline-refresh:hover:not(:disabled),
+.order-timeline-retry:hover {
+    border-color: rgba(34, 211, 238, 0.35);
+    background: rgba(34, 211, 238, 0.10);
+    color: var(--accent-cyan);
+}
+
+.order-timeline-refresh:disabled {
+    cursor: wait;
+    opacity: 0.6;
+}
+
+.order-timeline-refresh.is-loading i {
+    animation: timelineRotate 0.8s linear infinite;
+}
+
+@keyframes timelineRotate {
+    to { transform: rotate(360deg); }
+}
+
+.order-timeline-content {
+    min-height: 126px;
+}
+
+.order-timeline-state {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 8px;
+    min-height: 126px;
+    padding: 18px;
+    border: 0.5px dashed rgba(148, 163, 184, 0.18);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.order-timeline-state > i {
+    color: var(--accent-cyan);
+    font-size: 18px;
+}
+
+.order-timeline-state strong {
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.order-timeline-state span {
+    max-width: 300px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.order-timeline-state.is-error {
+    border-color: rgba(248, 113, 113, 0.26);
+}
+
+.order-timeline-state.is-error > i {
+    color: #f87171;
+}
+
+.order-timeline-inline-error {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 10px;
+    padding: 9px 10px;
+    border: 0.5px solid rgba(248, 113, 113, 0.26);
+    border-radius: var(--radius-sm);
+    background: rgba(127, 29, 29, 0.14);
+    color: #fca5a5;
+    font-size: 11px;
+}
+
+.order-timeline-list {
+    position: relative;
+    display: grid;
+    gap: 0;
+    max-height: min(44vh, 420px);
+    margin: 0;
+    padding: 2px 8px 2px 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.28) transparent;
+    list-style: none;
+}
+
+.order-timeline-list::before {
+    content: "";
+    position: absolute;
+    top: 16px;
+    bottom: 22px;
+    left: 15px;
+    width: 1px;
+    background: rgba(148, 163, 184, 0.20);
+}
+
+.order-timeline-event {
+    --timeline-color: var(--accent-cyan);
+    position: relative;
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 11px;
+}
+
+.order-timeline-event.is-asignacion { --timeline-color: var(--accent-purple); }
+.order-timeline-event.is-inicio { --timeline-color: #38bdf8; }
+.order-timeline-event.is-diagnostico { --timeline-color: #f59e0b; }
+.order-timeline-event.is-finalizacion { --timeline-color: #22c55e; }
+.order-timeline-event.is-cancelacion { --timeline-color: #f87171; }
+.order-timeline-event.is-cambio-estado { --timeline-color: #a78bfa; }
+
+.order-timeline-marker {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    margin-top: 1px;
+    border: 1px solid color-mix(in srgb, var(--timeline-color) 50%, transparent);
+    border-radius: 50%;
+    background: #10162d;
+    color: var(--timeline-color);
+    font-size: 11px;
+}
+
+.order-timeline-event-content {
+    min-width: 0;
+    padding: 0 0 17px;
+    margin-bottom: 14px;
+    border-bottom: 0.5px solid rgba(148, 163, 184, 0.12);
+}
+
+.order-timeline-event:last-child .order-timeline-event-content {
+    margin-bottom: 0;
+    border-bottom: 0;
+}
+
+.order-timeline-event-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.order-timeline-event-heading h4 {
+    min-width: 0;
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.order-timeline-visibility {
+    flex: 0 0 auto;
+    padding: 3px 7px;
+    border: 0.5px solid rgba(245, 158, 11, 0.30);
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.10);
+    color: #fbbf24;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.order-timeline-description {
+    margin: 6px 0 0;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.order-timeline-changes {
+    display: grid;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+.order-timeline-change {
+    display: grid;
+    gap: 5px;
+}
+
+.order-timeline-change-label {
+    color: var(--text-muted);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.order-timeline-change-values {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.order-timeline-value {
+    max-width: 100%;
+    padding: 3px 7px;
+    border: 0.5px solid rgba(148, 163, 184, 0.18);
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.08);
+    color: var(--text-secondary);
+    font-size: 9.5px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.order-timeline-value.is-pendiente { color: #fbbf24; }
+.order-timeline-value.is-en-proceso { color: var(--accent-cyan); }
+.order-timeline-value.is-completado { color: #4ade80; }
+.order-timeline-value.is-cancelado { color: #f87171; }
+
+.order-timeline-change-arrow {
+    color: var(--text-muted);
+    font-size: 9px;
+}
+
+.order-timeline-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 10px;
+    color: var(--text-muted);
+    font-size: 9.5px;
+}
+
+.order-timeline-meta span,
+.order-timeline-meta time {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    gap: 5px;
+}
+
+#tablaServicios .btn-ver-historial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    padding: 0;
+    border: 0.5px solid rgba(34, 211, 238, 0.28);
+    border-radius: 7px;
+    background: rgba(34, 211, 238, 0.10);
+    color: var(--accent-cyan);
+    cursor: pointer;
+}
+
+#tablaServicios .btn-ver-historial:hover {
+    border-color: rgba(34, 211, 238, 0.48);
+    background: rgba(34, 211, 238, 0.18);
+}
+
+#tablaServicios.tabla-servicios-admin th:nth-child(9),
+#tablaServicios.tabla-servicios-admin td:nth-child(9) {
+    width: 158px;
+}
+
+#tablaServicios.tabla-servicios-admin .table-actions {
+    gap: 6px;
+}
+
+#tablaServicios.tabla-servicios-admin .btn-ver-historial,
+#tablaServicios.tabla-servicios-admin .btn-editar-historial,
+#tablaServicios.tabla-servicios-admin .btn-eliminar-tabla,
+#tablaServicios.tabla-servicios-admin .btn-facturar-orden {
+    width: 32px;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+@media (max-width: 580px) {
+    .work-panel {
+        padding: 18px;
+    }
+
+    .order-timeline-list {
+        max-height: 360px;
+    }
+
+    .order-timeline-inline-error {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .order-timeline-inline-error .order-timeline-retry {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+}

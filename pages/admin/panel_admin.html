@@ -104,7 +104,7 @@
                     </label>
                 </div>
 
-                <table id="tablaServicios">
+                <table id="tablaServicios" class="tabla-servicios-admin">
                     <thead>
                         <tr>
                             <th>Fecha</th>
@@ -153,10 +153,28 @@
         </section>
     </div>
 
+    <aside class="work-panel order-detail-panel" id="panelOrdenAdmin" aria-labelledby="panelOrdenAdminTitulo" hidden>
+        <div class="work-panel-header">
+            <div>
+                <span id="panelOrdenAdminId">Orden</span>
+                <h2 id="panelOrdenAdminTitulo">Detalle de la orden</h2>
+            </div>
+            <button type="button" id="cerrarPanelOrdenAdmin" aria-label="Cerrar panel">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="work-panel-meta" id="panelOrdenAdminMeta"></div>
+        <div id="historialOrdenAdmin" data-testid="historial-orden-admin"></div>
+    </aside>
+
+    <div class="work-panel-backdrop" id="panelOrdenAdminBackdrop" hidden></div>
+
     <script src="../../js/notifications.js"></script>
     <script src="../../js/sidebar.js"></script>
     <script src="../../js/confirm-dialog.js"></script>
     <script src="../../js/pagination.js"></script>
+    <script src="../../js/order-timeline.js"></script>
     <script src="../../js/admin.js"></script>
 </body>
 

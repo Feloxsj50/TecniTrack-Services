@@ -16,6 +16,13 @@ let csrfToken = "";
 let clienteSeleccionado = null;
 let paginaOrdenes = 1;
 const filtrosOrdenes = { estado: "Todos", prioridad: "Todas", busqueda: "" };
+const panelOrdenAdmin = document.getElementById("panelOrdenAdmin");
+const panelOrdenAdminBackdrop = document.getElementById("panelOrdenAdminBackdrop");
+const historialOrdenAdmin = window.OrderTimeline.create({
+    container: document.getElementById("historialOrdenAdmin"),
+    apiBase: API_BASE
+});
+let disparadorDetalleAdmin = null;
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -249,6 +256,52 @@ function nombreTecnico(valor) {
     return tecnico ? tecnico.nombre : valor;
 }
 
+function renderizarDetalleOrdenAdmin(solicitud) {
+    const tecnico = solicitud.tecnicoNombre || (solicitud.tecnico ? nombreTecnico(solicitud.tecnico) : "Sin asignar");
+    document.getElementById("panelOrdenAdminId").textContent = solicitud.id;
+    document.getElementById("panelOrdenAdminTitulo").textContent = `${solicitud.cliente} - ${solicitud.dispositivo}`;
+    document.getElementById("panelOrdenAdminMeta").innerHTML = `
+        <div><span>Fecha preferida</span><strong>${escaparHtml(solicitud.fecha || "-")}</strong></div>
+        <div><span>Cliente</span><strong>${escaparHtml(solicitud.cliente)}</strong></div>
+        <div><span>Equipo</span><strong>${escaparHtml(solicitud.dispositivo)}</strong></div>
+        <div><span>Servicio</span><strong>${escaparHtml(solicitud.servicio)}</strong></div>
+        <div><span>Técnico</span><strong>${escaparHtml(tecnico)}</strong></div>
+        <div><span>Prioridad</span><strong>${escaparHtml(solicitud.prioridad || "Media")}</strong></div>
+        <div><span>Estado</span><strong>${escaparHtml(estadoNormalizado(solicitud.estado))}</strong></div>
+    `;
+}
+
+function abrirDetalleOrdenAdmin(dbId, disparador = null) {
+    const solicitud = solicitudes.find(item => item.dbId === dbId);
+    if (!solicitud) return;
+
+    disparadorDetalleAdmin = disparador;
+    renderizarDetalleOrdenAdmin(solicitud);
+    panelOrdenAdmin.hidden = false;
+    panelOrdenAdminBackdrop.hidden = false;
+    document.body.classList.add("modal-open");
+    historialOrdenAdmin.load(dbId);
+    document.getElementById("cerrarPanelOrdenAdmin").focus();
+}
+
+function cerrarDetalleOrdenAdmin() {
+    panelOrdenAdmin.hidden = true;
+    panelOrdenAdminBackdrop.hidden = true;
+    document.body.classList.remove("modal-open");
+    historialOrdenAdmin.clear();
+    disparadorDetalleAdmin?.focus();
+    disparadorDetalleAdmin = null;
+}
+
+async function refrescarDetalleOrdenAdmin(dbId) {
+    if (historialOrdenAdmin.getOrderId() !== Number(dbId)) return;
+    const solicitud = solicitudes.find(item => item.dbId === Number(dbId));
+    if (solicitud) {
+        renderizarDetalleOrdenAdmin(solicitud);
+    }
+    await historialOrdenAdmin.refresh(dbId);
+}
+
 function cargarServicios() {
     const tabla = document.querySelector("#tablaServicios tbody");
     if (!tabla) return;
@@ -287,6 +340,9 @@ function cargarServicios() {
             <td><span class="estado ${claseEstado(solicitud.estado)}">${escaparHtml(estadoNormalizado(solicitud.estado))}</span></td>
             <td>
                 <div class="table-actions">
+                    <button class="btn-ver-historial action-icon" type="button" data-historial="${solicitud.dbId}" title="Ver detalle e historial" aria-label="Ver detalle e historial de ${escaparHtml(solicitud.id)}">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
                     <button class="btn-editar-historial action-icon" type="button" data-editar="${solicitud.dbId}" title="Editar orden" aria-label="Editar orden">
                         <i class="fa-solid fa-pen"></i>
                     </button>
@@ -302,6 +358,13 @@ function cargarServicios() {
             </td>
         `;
         tabla.appendChild(fila);
+    });
+
+    tabla.querySelectorAll("[data-historial]").forEach(boton => {
+        boton.addEventListener("click", () => abrirDetalleOrdenAdmin(
+            Number(boton.dataset.historial),
+            boton
+        ));
     });
 
     tabla.querySelectorAll("[data-editar]").forEach(boton => {
@@ -404,6 +467,7 @@ document.getElementById("btnGuardar")?.addEventListener("click", async () => {
         mostrarNotificacion(idEditar ? "Orden actualizada correctamente." : "Orden creada correctamente.", "success");
         limpiarFormulario();
         await obtenerSolicitudes();
+        if (idEditar) await refrescarDetalleOrdenAdmin(Number(idEditar));
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo guardar la orden.", "error");
     }
@@ -475,6 +539,11 @@ function conectarFiltrosOrdenes() {
 }
 async function iniciarDashboardAdmin() {
     conectarFiltrosOrdenes();
+    document.getElementById("cerrarPanelOrdenAdmin").addEventListener("click", cerrarDetalleOrdenAdmin);
+    panelOrdenAdminBackdrop.addEventListener("click", cerrarDetalleOrdenAdmin);
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !panelOrdenAdmin.hidden) cerrarDetalleOrdenAdmin();
+    });
     await Promise.all([cargarClientesDisponibles(), cargarTecnicosDisponibles()]);
     await obtenerSolicitudes();
 }
