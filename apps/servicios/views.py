@@ -9,8 +9,16 @@ from apps.tecnicos.models import Tecnico
 from apps.usuarios.models import Notificacion, Usuario
 from apps.usuarios.auditoria import registrar_auditoria
 from apps.usuarios.api import obtener_datos_request as obtener_datos_request_comun
-from .models import SolicitudServicio
-from .history import registrar_cambio_solicitud
+from .history import (
+    registrar_asignacion,
+    registrar_cambio_estado,
+    registrar_cancelacion,
+    registrar_creacion,
+    registrar_diagnostico,
+    registrar_finalizacion,
+    registrar_inicio,
+)
+from .models import HistorialSolicitud, SolicitudServicio
 
 
 ESTADOS_FRONT = {
@@ -91,6 +99,59 @@ def serializar_solicitud(solicitud):
         "creadoEn": solicitud.creado_en.isoformat(),
         "actualizadoEn": solicitud.actualizado_en.isoformat(),
         "facturada": hasattr(solicitud, "factura"),
+    }
+
+
+def serializar_actor_historial(evento, incluir_datos_internos):
+    actor = {
+        "nombre": evento.usuario_nombre or "Sistema",
+        "rol": evento.usuario_rol or "sistema",
+    }
+    if incluir_datos_internos:
+        actor.update({
+            "id": evento.usuario_id,
+            "username": evento.usuario_username,
+        })
+    return actor
+
+
+def serializar_tecnico_historial(evento, prefijo, incluir_datos_internos):
+    tecnico_id = getattr(evento, f"{prefijo}_id")
+    username = getattr(evento, f"{prefijo}_username")
+    nombre = getattr(evento, f"{prefijo}_nombre")
+    if not tecnico_id and not username and not nombre:
+        return None
+
+    tecnico = {"nombre": nombre or username}
+    if incluir_datos_internos:
+        tecnico.update({"id": tecnico_id, "username": username})
+    return tecnico
+
+
+def serializar_evento_historial(evento, incluir_datos_internos):
+    estados = dict(SolicitudServicio.Estado.choices)
+    return {
+        "id": evento.id,
+        "accion": evento.accion,
+        "accionNombre": evento.get_accion_display(),
+        "descripcion": evento.descripcion,
+        "visibilidad": evento.visibilidad,
+        "estadoAnterior": evento.estado_anterior,
+        "estadoAnteriorNombre": estados.get(evento.estado_anterior, ""),
+        "estadoNuevo": evento.estado_nuevo,
+        "estadoNuevoNombre": estados.get(evento.estado_nuevo, ""),
+        "tecnicoAnterior": serializar_tecnico_historial(
+            evento,
+            "tecnico_anterior",
+            incluir_datos_internos,
+        ),
+        "tecnicoNuevo": serializar_tecnico_historial(
+            evento,
+            "tecnico_nuevo",
+            incluir_datos_internos,
+        ),
+        "usuario": serializar_actor_historial(evento, incluir_datos_internos),
+        "fecha": evento.creado_en.isoformat(),
     }
 
 
@@ -191,8 +252,6 @@ def crear_solicitud(request):
     elif request.user.rol == Usuario.Rol.ADMIN:
         cliente_nombre = datos.get("cliente", "").strip()
         cliente = buscar_cliente_por_id(datos.get("clienteId")) or buscar_cliente(cliente_nombre)
-        if tecnico and estado == SolicitudServicio.Estado.PENDIENTE:
-            estado = SolicitudServicio.Estado.EN_PROCESO
     else:
         return JsonResponse({"ok": False, "error": "No tienes permiso para crear solicitudes."}, status=403)
 
@@ -210,13 +269,15 @@ def crear_solicitud(request):
         estado=estado,
     )
     solicitud.refresh_from_db()
-    registrar_cambio_solicitud(
-        solicitud,
-        request.user,
-        "creacion",
-        estado_nuevo=solicitud.estado,
-        detalle=f"Orden creada para {solicitud.dispositivo}: {solicitud.problema}.",
-    )
+    registrar_creacion(solicitud, request.user)
+    if solicitud.tecnico:
+        registrar_asignacion(solicitud, request.user, None, solicitud.tecnico)
+    if solicitud.estado == SolicitudServicio.Estado.EN_PROCESO:
+        registrar_inicio(solicitud, request.user, SolicitudServicio.Estado.PENDIENTE)
+    elif solicitud.estado == SolicitudServicio.Estado.COMPLETADO:
+        registrar_finalizacion(solicitud, request.user, SolicitudServicio.Estado.PENDIENTE)
+    elif solicitud.estado == SolicitudServicio.Estado.CANCELADO:
+        registrar_cancelacion(solicitud, request.user, SolicitudServicio.Estado.PENDIENTE)
     registrar_auditoria(
         request,
         "crear",
@@ -258,7 +319,8 @@ def actualizar_solicitud(request, solicitud_id):
         return error
 
     estado_anterior = solicitud.estado
-    tecnico_anterior = solicitud.tecnico_id
+    tecnico_anterior = solicitud.tecnico
+    tecnico_anterior_id = solicitud.tecnico_id
     diagnostico_anterior = solicitud.diagnostico
     repuesto_anterior = solicitud.repuesto_usado
 
@@ -274,8 +336,6 @@ def actualizar_solicitud(request, solicitud_id):
         solicitud.tecnico = buscar_tecnico(datos.get("tecnico", ""))
         solicitud.prioridad = prioridad_db(datos.get("prioridad", solicitud.get_prioridad_display()))
         solicitud.estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
-        if solicitud.tecnico and solicitud.estado == SolicitudServicio.Estado.PENDIENTE:
-            solicitud.estado = SolicitudServicio.Estado.EN_PROCESO
         if solicitud.estado in [SolicitudServicio.Estado.EN_PROCESO, SolicitudServicio.Estado.COMPLETADO] and not solicitud.tecnico:
             return JsonResponse({"ok": False, "error": "Asigna un técnico antes de iniciar o completar la orden."}, status=400)
     elif request.user.rol == Usuario.Rol.TECNICO and hasattr(request.user, "perfil_tecnico") and solicitud.tecnico_id == request.user.perfil_tecnico.id:
@@ -288,6 +348,14 @@ def actualizar_solicitud(request, solicitud_id):
 
         if estado == SolicitudServicio.Estado.COMPLETADO and len(diagnostico) < 10:
             return JsonResponse({"ok": False, "error": "Para completar el trabajo, agrega un diagnostico claro."}, status=400)
+        if (
+            estado == SolicitudServicio.Estado.COMPLETADO
+            and estado_anterior != SolicitudServicio.Estado.EN_PROCESO
+        ):
+            return JsonResponse(
+                {"ok": False, "error": "Inicia el trabajo antes de marcarlo como completado."},
+                status=400,
+            )
 
         solicitud.diagnostico = diagnostico
         solicitud.repuesto_usado = datos.get("repuesto", "").strip()
@@ -297,24 +365,33 @@ def actualizar_solicitud(request, solicitud_id):
 
     solicitud.save()
     solicitud.refresh_from_db()
-    if (
-        estado_anterior != solicitud.estado
-        or tecnico_anterior != solicitud.tecnico_id
-        or diagnostico_anterior != solicitud.diagnostico
-        or repuesto_anterior != solicitud.repuesto_usado
-    ):
-        registrar_cambio_solicitud(
+    if tecnico_anterior_id != solicitud.tecnico_id:
+        registrar_asignacion(
             solicitud,
             request.user,
-            "actualizacion",
-            estado_anterior=estado_anterior,
-            estado_nuevo=solicitud.estado,
-            detalle=(
-                f"Técnico: {solicitud.tecnico.usuario.username if solicitud.tecnico else 'Sin asignar'}. "
-                f"Diagnóstico: {solicitud.diagnostico or 'Pendiente'}. "
-                f"Repuesto: {solicitud.repuesto_usado or 'Ninguno'}."
-            ),
+            tecnico_anterior,
+            solicitud.tecnico,
         )
+    if (
+        estado_anterior != solicitud.estado
+        and solicitud.estado == SolicitudServicio.Estado.EN_PROCESO
+    ):
+        registrar_inicio(solicitud, request.user, estado_anterior)
+    if (
+        diagnostico_anterior != solicitud.diagnostico
+        or repuesto_anterior != solicitud.repuesto_usado
+    ):
+        registrar_diagnostico(solicitud, request.user)
+    if (
+        estado_anterior != solicitud.estado
+        and solicitud.estado != SolicitudServicio.Estado.EN_PROCESO
+    ):
+        if solicitud.estado == SolicitudServicio.Estado.COMPLETADO:
+            registrar_finalizacion(solicitud, request.user, estado_anterior)
+        elif solicitud.estado == SolicitudServicio.Estado.CANCELADO:
+            registrar_cancelacion(solicitud, request.user, estado_anterior)
+        else:
+            registrar_cambio_estado(solicitud, request.user, estado_anterior)
     registrar_auditoria(
         request,
         "actualizar",
@@ -322,7 +399,7 @@ def actualizar_solicitud(request, solicitud_id):
         f"Orden SOL-{solicitud.id:03d} actualizada a {solicitud.get_estado_display()}.",
         solicitud.id,
     )
-    if request.user.rol == Usuario.Rol.ADMIN and solicitud.tecnico_id and solicitud.tecnico_id != tecnico_anterior:
+    if request.user.rol == Usuario.Rol.ADMIN and solicitud.tecnico_id and solicitud.tecnico_id != tecnico_anterior_id:
         notificar_usuarios(
             [solicitud.tecnico.usuario],
             "Trabajo actualizado",
@@ -359,13 +436,6 @@ def eliminar_solicitud(request, solicitud_id):
         )
 
     registrar_auditoria(request, "eliminar", "servicios", f"Orden SOL-{solicitud.id:03d} eliminada.", solicitud.id)
-    registrar_cambio_solicitud(
-        solicitud,
-        request.user,
-        "eliminacion",
-        estado_anterior=solicitud.estado,
-        detalle="La orden fue eliminada por el administrador.",
-    )
     solicitud.delete()
     return JsonResponse({"ok": True})
 
@@ -393,14 +463,23 @@ def historial_solicitud(request, solicitud_id):
     if not puede_ver:
         return JsonResponse({"ok": False, "error": "No tienes permiso para ver este historial."}, status=403)
 
+    incluir_datos_internos = request.user.rol in [Usuario.Rol.ADMIN, Usuario.Rol.TECNICO]
+    eventos = solicitud.historial.select_related(
+        "usuario",
+        "tecnico_anterior__usuario",
+        "tecnico_nuevo__usuario",
+    )
+    if request.user.rol == Usuario.Rol.CLIENTE:
+        eventos = eventos.filter(visibilidad=HistorialSolicitud.Visibilidad.PUBLICO)
+
     return JsonResponse({
         "ok": True,
-        "historial": [{
-            "accion": cambio.accion,
-            "estadoAnterior": cambio.estado_anterior,
-            "estadoNuevo": cambio.estado_nuevo,
-            "detalle": cambio.detalle,
-            "usuario": cambio.usuario.username if cambio.usuario else "Sistema",
-            "fecha": cambio.creado_en.isoformat(),
-        } for cambio in solicitud.historial.select_related("usuario")],
+        "solicitud": {
+            "id": solicitud.id,
+            "codigo": f"SOL-{solicitud.id:03d}",
+        },
+        "historial": [
+            serializar_evento_historial(evento, incluir_datos_internos)
+            for evento in eventos
+        ],
     })
