@@ -81,6 +81,14 @@ def serializar_solicitud(solicitud):
     tecnico_usuario = tecnico.usuario.username if tecnico else ""
     tecnico_nombre = tecnico.usuario.get_full_name() if tecnico else ""
     usuario_cliente = solicitud.cliente.usuario.username if solicitud.cliente else ""
+    reingreso = getattr(solicitud, "reingreso_garantia", None)
+    orden_original_garantia = None
+    if reingreso:
+        original = reingreso.garantia.solicitud_original
+        orden_original_garantia = {
+            "id": original.id,
+            "codigo": f"SOL-{original.id:03d}",
+        }
 
     return {
         "id": f"SOL-{solicitud.id:03d}",
@@ -99,6 +107,8 @@ def serializar_solicitud(solicitud):
         "creadoEn": solicitud.creado_en.isoformat(),
         "actualizadoEn": solicitud.actualizado_en.isoformat(),
         "facturada": hasattr(solicitud, "factura"),
+        "esReingresoGarantia": reingreso is not None,
+        "ordenOriginalGarantia": orden_original_garantia,
     }
 
 
@@ -159,6 +169,8 @@ def queryset_por_rol(usuario):
     solicitudes = SolicitudServicio.objects.select_related(
         "cliente__usuario",
         "tecnico__usuario",
+        "factura",
+        "reingreso_garantia__garantia__solicitud_original",
     )
 
     if usuario.rol == Usuario.Rol.ADMIN:

@@ -11,6 +11,7 @@
 })();
 let pagosCliente = [];
 let paginaPagos = 1;
+let solicitudReciboActual = 0;
 
 const tablaPagos = document.querySelector("#tablaPagosCliente tbody");
 const modalRecibo = document.getElementById("reciboModal");
@@ -35,6 +36,7 @@ async function cargarRecibosCliente() {
 
     pagosCliente = (datos.facturas || []).map(factura => ({
         recibo: factura.numero,
+        solicitudId: factura.solicitudId,
         fecha: factura.fecha,
         cliente: factura.cliente,
         dispositivo: factura.dispositivo,
@@ -42,6 +44,7 @@ async function cargarRecibosCliente() {
         tecnico: factura.tecnico,
         metodo: factura.metodoPago,
         garantia: factura.garantia,
+        garantiaEstructurada: undefined,
         estado: factura.estado,
         montoServicio: Number(factura.montoServicio || 0),
         total: Number(factura.total || 0),
@@ -82,7 +85,21 @@ function estadoFacturaNormalizado(estado) {
     if (valor === "pendiente" || valor === "pending") return "Pendiente";
     return estado || "Pendiente";
 }
-function actualizarResumen() {
+async function obtenerGarantiaPago(pago) {
+    if (!pago?.solicitudId) return null;
+    if (pago.garantiaEstructurada !== undefined) return pago.garantiaEstructurada;
+    try {
+        pago.garantiaEstructurada = await window.OrderWarranty.fetchByOrder(
+            API_BASE,
+            pago.solicitudId
+        );
+    } catch {
+        pago.garantiaEstructurada = null;
+    }
+    return pago.garantiaEstructurada;
+}
+
+async function actualizarResumen() {
     const pagados = pagosCliente.filter(pago => estadoFacturaNormalizado(pago.estado) === "Pagado");
     const pendientes = pagosCliente.filter(pago => estadoFacturaNormalizado(pago.estado) === "Pendiente");
     const totalPagado = pagados.reduce((total, pago) => total + pago.total, 0);
@@ -92,7 +109,10 @@ function actualizarResumen() {
     document.getElementById("totalPagado").textContent = moneda(totalPagado);
     document.getElementById("saldoPendiente").textContent = moneda(saldoPendiente);
     document.getElementById("pagosRealizados").textContent = pagados.length;
-    document.getElementById("ultimaGarantia").textContent = ultimoPago?.garantia || "-";
+    const garantia = ultimoPago ? await obtenerGarantiaPago(ultimoPago) : null;
+    document.getElementById("ultimaGarantia").textContent = garantia
+        ? `${garantia.estadoNombre} · ${window.OrderWarranty.legacySnapshot(garantia)}`
+        : ultimoPago?.garantia || "-";
 }
 
 function cargarPagoPendiente() {
@@ -168,6 +188,10 @@ function renderizarHistorial(lista) {
 }
 
 function contenidoRecibo(pago) {
+    const garantiaVisible = window.OrderWarranty.documentLabel(
+        pago.garantiaEstructurada,
+        pago.garantia
+    );
     const repuestos = pago.repuestos.length
         ? pago.repuestos.map(item => `
             <div class="recibo-linea">
@@ -188,7 +212,7 @@ function contenidoRecibo(pago) {
             <div><span>Dispositivo</span><strong>${escaparHtml(pago.dispositivo)}</strong></div>
             <div><span>T\u00e9cnico</span><strong>${escaparHtml(pago.tecnico)}</strong></div>
             <div><span>M\u00e9todo</span><strong>${escaparHtml(pago.metodo)}</strong></div>
-            <div><span>Garant\u00eda</span><strong>${escaparHtml(pago.garantia)}</strong></div>
+            <div><span>Garant\u00eda</span><strong>${escaparHtml(garantiaVisible)}</strong></div>
         </div>
         <div class="recibo-lineas">
             <div class="recibo-linea">
@@ -201,16 +225,31 @@ function contenidoRecibo(pago) {
     `;
 }
 
-function abrirRecibo(pago) {
+async function abrirRecibo(pago) {
     if (!pago) return;
+    const solicitud = ++solicitudReciboActual;
     reciboActual = pago;
-    document.getElementById("reciboContenido").innerHTML = contenidoRecibo(pago);
+    const contenido = document.getElementById("reciboContenido");
+    const botonImprimir = document.getElementById("btnImprimirRecibo");
+    botonImprimir.disabled = true;
+    contenido.replaceChildren();
+    const carga = document.createElement("p");
+    carga.className = "recibo-cargando";
+    carga.textContent = "Cargando recibo...";
+    contenido.appendChild(carga);
     modalRecibo.hidden = false;
     document.body.classList.add("modal-open");
     modalRecibo.querySelector(".recibo-cerrar").focus();
+    await obtenerGarantiaPago(pago);
+    if (solicitud !== solicitudReciboActual || reciboActual !== pago) return;
+    contenido.innerHTML = contenidoRecibo(pago);
+    botonImprimir.disabled = false;
 }
 
 function cerrarRecibo() {
+    solicitudReciboActual += 1;
+    reciboActual = null;
+    document.getElementById("btnImprimirRecibo").disabled = false;
     modalRecibo.hidden = true;
     document.body.classList.remove("modal-open");
 }
@@ -278,7 +317,7 @@ async function iniciarRecibos() {
         pagosCliente = [];
     }
 
-    actualizarResumen();
+    await actualizarResumen();
     cargarPagoPendiente();
     renderizarHistorial(pagosCliente);
 }

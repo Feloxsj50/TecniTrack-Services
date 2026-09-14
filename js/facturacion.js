@@ -17,6 +17,8 @@ let servicioSeleccionado = null;
 let nombreTaller = "TecniTrack Services";
 let csrfToken = "";
 let paginaFacturas = 1;
+let garantiaEstructuradaActual = null;
+let solicitudGarantiaActual = 0;
 
 const tbodyDetalle = document.querySelector("#tablaDetalleFactura tbody");
 const tbodyFacturas = document.querySelector("#tablaFacturas tbody");
@@ -86,6 +88,44 @@ function esMontoValido(valor) {
 
 function esCantidadValida(valor) {
     return Number.isInteger(valor) && valor > 0;
+}
+
+function renderizarGarantiaFactura(garantia, respaldo = "Sin Garantía") {
+    window.OrderWarranty.renderCompact(
+        document.getElementById("garantiaFacturaResumen"),
+        garantia,
+        { legacy: respaldo }
+    );
+}
+
+async function cargarGarantiaFactura(solicitudId, respaldo = "Sin Garantía") {
+    const peticion = ++solicitudGarantiaActual;
+    garantiaEstructuradaActual = null;
+    document.getElementById("garantiaFactura").value = respaldo;
+    const resumen = document.getElementById("garantiaFacturaResumen");
+    resumen.textContent = "Cargando garantía...";
+    resumen.classList.add("invoice-warranty-loading");
+
+    try {
+        const garantia = await window.OrderWarranty.fetchByOrder(API_BASE, solicitudId);
+        if (peticion !== solicitudGarantiaActual) return;
+        garantiaEstructuradaActual = garantia;
+        document.getElementById("garantiaFactura").value =
+            window.OrderWarranty.legacySnapshot(garantia, respaldo);
+        renderizarGarantiaFactura(garantia, respaldo);
+    } catch (error) {
+        if (peticion !== solicitudGarantiaActual) return;
+        document.getElementById("garantiaFactura").value = respaldo;
+        renderizarGarantiaFactura(null, respaldo);
+        mostrarNotificacion(
+            error.message || "No se pudo consultar la garantía de la orden.",
+            "error"
+        );
+    } finally {
+        if (peticion === solicitudGarantiaActual) {
+            resumen.classList.remove("invoice-warranty-loading");
+        }
+    }
 }
 
 function limpiarValorCsv(valor) {
@@ -161,13 +201,17 @@ function pintarTecnico(nombre) {
     select.innerHTML = `<option value="${escaparHtml(nombre || "")}">${escaparHtml(nombre || "Técnico asignado")}</option>`;
 }
 
-function seleccionarServicio(id) {
+function seleccionarServicio(id, garantiaLegada = "Sin Garantía") {
     servicioSeleccionado = serviciosCompletados.find(servicio => String(servicio.id) === String(id)) || null;
 
     if (!servicioSeleccionado) {
+        solicitudGarantiaActual += 1;
+        garantiaEstructuradaActual = null;
         document.getElementById("clienteFactura").value = "";
         pintarTecnico("");
         document.getElementById("servicioFactura").value = "";
+        document.getElementById("garantiaFactura").value = "Sin Garantía";
+        renderizarGarantiaFactura(null, "Selecciona una orden");
         return;
     }
 
@@ -175,6 +219,7 @@ function seleccionarServicio(id) {
     pintarTecnico(servicioSeleccionado.tecnico);
     document.getElementById("servicioFactura").value = servicioSeleccionado.servicio || "Servicio";
     document.getElementById("fechaFactura").value = hoyIso();
+    cargarGarantiaFactura(servicioSeleccionado.id, garantiaLegada);
 }
 
 function renderDetalleFactura() {
@@ -323,14 +368,13 @@ function cargarFacturaEnFormulario(id) {
     }
 
     pintarServiciosCompletados();
-    seleccionarServicio(servicioSeleccionado.id);
+    seleccionarServicio(servicioSeleccionado.id, factura.garantia);
 
     document.getElementById("numeroFactura").value = factura.numero;
     document.getElementById("fechaFactura").value = factura.fecha;
     document.getElementById("precioServicio").value = factura.montoServicio;
     document.getElementById("metodoPagoFactura").value = factura.metodoPago;
     document.getElementById("estadoFactura").value = factura.estado;
-    document.getElementById("garantiaFactura").value = factura.garantia;
 
     detallesFactura.length = 0;
     factura.productos.forEach(item => {
@@ -365,7 +409,10 @@ function limpiarFactura() {
     document.getElementById("precioProducto").value = "";
     document.getElementById("metodoPagoFactura").value = "Efectivo";
     document.getElementById("estadoFactura").value = "Pagado";
-    document.getElementById("garantiaFactura").value = "30 Días";
+    document.getElementById("garantiaFactura").value = "Sin Garantía";
+    garantiaEstructuradaActual = null;
+    solicitudGarantiaActual += 1;
+    renderizarGarantiaFactura(null, "Selecciona una orden");
 
     detallesFactura.length = 0;
     renderDetalleFactura();
@@ -442,8 +489,30 @@ function facturaDesdeFormulario() {
     };
 }
 
-function imprimirFactura(factura = null) {
+async function imprimirFactura(factura = null) {
+    const ventana = window.open("", "_blank");
+    if (!ventana) {
+        mostrarNotificacion("El navegador bloqueó la ventana de impresión.");
+        return;
+    }
+    ventana.document.write("<p style='font-family:Arial;padding:32px'>Preparando factura...</p>");
+
     const data = factura || facturaDesdeFormulario();
+    let garantiaEstructurada = factura ? null : garantiaEstructuradaActual;
+    if (factura?.solicitudId) {
+        try {
+            garantiaEstructurada = await window.OrderWarranty.fetchByOrder(
+                API_BASE,
+                factura.solicitudId
+            );
+        } catch {
+            garantiaEstructurada = null;
+        }
+    }
+    const etiquetaGarantia = window.OrderWarranty.documentLabel(
+        garantiaEstructurada,
+        data.garantia
+    );
     const productos = data.productos || [];
     const servicioHtml = Number(data.montoServicio || 0) > 0
         ? `
@@ -469,12 +538,7 @@ function imprimirFactura(factura = null) {
         ? `${servicioHtml}${repuestosHtml}`
         : `<tr><td colspan="4">Sin conceptos agregados</td></tr>`;
 
-    const ventana = window.open("", "_blank");
-    if (!ventana) {
-        mostrarNotificacion("El navegador bloqueó la ventana de impresión.");
-        return;
-    }
-
+    ventana.document.open();
     ventana.document.write(`
         <!DOCTYPE html>
         <html lang="es">
@@ -503,7 +567,7 @@ function imprimirFactura(factura = null) {
                 <div><strong>Servicio:</strong> ${escaparHtml(data.servicio)}</div>
                 <div><strong>Método de pago:</strong> ${escaparHtml(data.metodoPago)}</div>
                 <div><strong>Estado:</strong> ${escaparHtml(data.estado)}</div>
-                <div><strong>Garantía:</strong> ${escaparHtml(data.garantia)}</div>
+                <div><strong>Garantía:</strong> ${escaparHtml(etiquetaGarantia)}</div>
             </div>
             <table>
                 <thead>
@@ -618,6 +682,7 @@ function conectarEventos() {
 async function iniciarFacturacion() {
     conectarEventos();
     document.getElementById("fechaFactura").value = hoyIso();
+    renderizarGarantiaFactura(null, "Selecciona una orden");
     renderDetalleFactura();
 
     try {

@@ -268,6 +268,13 @@
 
 .recibo-cabecera h2 { margin: 0 0 3px; font-size: 20px; }
 .recibo-cabecera p { color: var(--text-muted); }
+.recibo-cargando {
+    min-height: 180px;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    color: var(--text-secondary);
+}
 .recibo-meta {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

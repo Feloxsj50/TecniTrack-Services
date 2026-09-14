@@ -1,6 +1,12 @@
 from .models import Garantia, ReingresoGarantia
 
 
+class NivelDetalleGarantia:
+    ADMIN = "admin"
+    TECNICO = "tecnico"
+    CLIENTE = "cliente"
+
+
 def _actor(prefijo, objeto):
     return {
         "id": getattr(objeto, f"{prefijo}_id"),
@@ -14,7 +20,7 @@ def _codigo(solicitud):
     return f"SOL-{solicitud.id:03d}"
 
 
-def serializar_garantia(garantia, incluir_datos_internos=False):
+def serializar_garantia(garantia, nivel=NivelDetalleGarantia.CLIENTE):
     try:
         reingreso = garantia.reingreso
     except ReingresoGarantia.DoesNotExist:
@@ -52,7 +58,7 @@ def serializar_garantia(garantia, incluir_datos_internos=False):
             },
         }
 
-    if incluir_datos_internos:
+    if nivel == NivelDetalleGarantia.ADMIN:
         datos.update({
             "notasInternas": garantia.notas_internas,
             "creadaPor": _actor("creada_por", garantia),

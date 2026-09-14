@@ -90,11 +90,8 @@
                         <option value="Pendiente">Pendiente</option>
                     </select>
 
-                    <select id="garantiaFactura">
-                        <option value="30 Días">30 Días</option>
-                        <option value="15 Días">15 Días</option>
-                        <option value="Sin Garantía">Sin Garantía</option>
-                    </select>
+                    <input type="hidden" id="garantiaFactura" value="Sin Garantía">
+                    <div id="garantiaFacturaResumen" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -130,6 +127,7 @@
     <script src="../../js/confirm-dialog.js"></script>
     <script src="../../js/sidebar.js"></script>
     <script src="../../js/pagination.js"></script>
+    <script src="../../js/order-warranty.js"></script>
     <script src="../../js/facturacion.js?v=20260711"></script>
 </body>
 </html>

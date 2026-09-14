@@ -23,6 +23,21 @@ const historialOrdenAdmin = window.OrderTimeline.create({
     apiBase: API_BASE
 });
 let disparadorDetalleAdmin = null;
+const garantiaOrdenAdmin = window.OrderWarranty.create({
+    container: document.getElementById("garantiaOrdenAdmin"),
+    apiBase: API_BASE,
+    actions: {
+        getCsrfToken: obtenerCsrfToken,
+        confirm: opciones => confirmarAccion(opciones),
+        notify: (mensaje, tipo) => mostrarNotificacion(mensaje, tipo)
+    },
+    onChanged: async ({ orderId }) => {
+        await obtenerSolicitudes();
+        const solicitud = solicitudes.find(item => item.dbId === Number(orderId));
+        if (solicitud) renderizarDetalleOrdenAdmin(solicitud);
+        await historialOrdenAdmin.refresh(orderId);
+    }
+});
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -217,7 +232,9 @@ function actualizarCards() {
 }
 
 function ordenListaParaFacturar(solicitud) {
-    return estadoNormalizado(solicitud.estado) === "Completado" && !solicitud.facturada;
+    return estadoNormalizado(solicitud.estado) === "Completado"
+        && !solicitud.facturada
+        && !solicitud.esReingresoGarantia;
 }
 
 function ordenesFiltradas() {
@@ -256,6 +273,13 @@ function nombreTecnico(valor) {
     return tecnico ? tecnico.nombre : valor;
 }
 
+function contextoGarantia(solicitud) {
+    return {
+        estado: estadoNormalizado(solicitud?.estado),
+        esReingresoGarantia: Boolean(solicitud?.esReingresoGarantia)
+    };
+}
+
 function renderizarDetalleOrdenAdmin(solicitud) {
     const tecnico = solicitud.tecnicoNombre || (solicitud.tecnico ? nombreTecnico(solicitud.tecnico) : "Sin asignar");
     document.getElementById("panelOrdenAdminId").textContent = solicitud.id;
@@ -280,7 +304,10 @@ function abrirDetalleOrdenAdmin(dbId, disparador = null) {
     panelOrdenAdmin.hidden = false;
     panelOrdenAdminBackdrop.hidden = false;
     document.body.classList.add("modal-open");
-    historialOrdenAdmin.load(dbId);
+    Promise.all([
+        historialOrdenAdmin.load(dbId),
+        garantiaOrdenAdmin.load(dbId, contextoGarantia(solicitud))
+    ]);
     document.getElementById("cerrarPanelOrdenAdmin").focus();
 }
 
@@ -289,6 +316,7 @@ function cerrarDetalleOrdenAdmin() {
     panelOrdenAdminBackdrop.hidden = true;
     document.body.classList.remove("modal-open");
     historialOrdenAdmin.clear();
+    garantiaOrdenAdmin.clear();
     disparadorDetalleAdmin?.focus();
     disparadorDetalleAdmin = null;
 }
@@ -299,7 +327,10 @@ async function refrescarDetalleOrdenAdmin(dbId) {
     if (solicitud) {
         renderizarDetalleOrdenAdmin(solicitud);
     }
-    await historialOrdenAdmin.refresh(dbId);
+    await Promise.all([
+        historialOrdenAdmin.refresh(dbId),
+        garantiaOrdenAdmin.refresh(contextoGarantia(solicitud))
+    ]);
 }
 
 function cargarServicios() {
@@ -331,7 +362,7 @@ function cargarServicios() {
         const fila = document.createElement("tr");
         fila.innerHTML = `
             <td>${escaparHtml(solicitud.fecha)}</td>
-            <td>${escaparHtml(solicitud.id)}</td>
+            <td><div class="order-id-stack"><span>${escaparHtml(solicitud.id)}</span></div></td>
             <td>${escaparHtml(solicitud.cliente)}</td>
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
@@ -349,7 +380,7 @@ function cargarServicios() {
                     <button class="btn-eliminar-tabla action-icon" type="button" data-eliminar="${solicitud.dbId}" title="Eliminar orden" aria-label="Eliminar orden">
                         <i class="fa-solid fa-trash"></i>
                     </button>
-                    ${estadoNormalizado(solicitud.estado) === "Completado" ? `
+                    ${estadoNormalizado(solicitud.estado) === "Completado" && !solicitud.esReingresoGarantia ? `
                         <button class="btn-facturar-orden action-icon" type="button" data-facturar="${solicitud.dbId}" title="${textoFacturar}" aria-label="${textoFacturar}" ${puedeFacturar ? "" : "disabled"}>
                             <i class="fa-solid fa-file-invoice-dollar"></i>
                         </button>
@@ -357,6 +388,8 @@ function cargarServicios() {
                 </div>
             </td>
         `;
+        const badge = window.OrderWarranty.createReentryBadge(solicitud);
+        if (badge) fila.querySelector(".order-id-stack").appendChild(badge);
         tabla.appendChild(fila);
     });
 

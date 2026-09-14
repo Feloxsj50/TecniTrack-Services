@@ -4,10 +4,13 @@ from datetime import date
 from django.test import Client, TestCase
 
 from apps.clientes.models import Cliente
+from apps.facturacion.models import Factura
+from apps.garantias.services import crear_garantia, crear_reingreso
 from apps.tecnicos.models import Tecnico
 from apps.usuarios.models import Notificacion, Usuario
 from .history import registrar_asignacion, registrar_creacion, registrar_diagnostico
 from .models import HistorialSolicitud, SolicitudServicio
+from .views import queryset_por_rol, serializar_solicitud
 
 
 class FlujoOrdenesTests(TestCase):
@@ -446,4 +449,35 @@ class FlujoOrdenesTests(TestCase):
         self.assertEqual(
             {item["dbId"] for item in respuesta_admin.json()["solicitudes"]},
             {propia.id, ajena.id},
+        )
+
+    def test_listado_identifica_reingreso_sin_consultas_n_mas_uno(self):
+        original = self.crear_orden(
+            tecnico=self.tecnico,
+            estado=SolicitudServicio.Estado.COMPLETADO,
+        )
+        Factura.objects.create(solicitud=original, total="75.00")
+        garantia = crear_garantia(original.id, 30, self.admin)
+        reingreso = crear_reingreso(garantia.id, self.admin, "La falla se repitió")
+
+        with self.assertNumQueries(1):
+            datos = [
+                serializar_solicitud(solicitud)
+                for solicitud in queryset_por_rol(self.admin)
+            ]
+
+        original_json = next(item for item in datos if item["dbId"] == original.id)
+        reingreso_json = next(
+            item
+            for item in datos
+            if item["dbId"] == reingreso.solicitud_reingreso_id
+        )
+        self.assertTrue(original_json["facturada"])
+        self.assertFalse(original_json["esReingresoGarantia"])
+        self.assertIsNone(original_json["ordenOriginalGarantia"])
+        self.assertFalse(reingreso_json["facturada"])
+        self.assertTrue(reingreso_json["esReingresoGarantia"])
+        self.assertEqual(
+            reingreso_json["ordenOriginalGarantia"],
+            {"id": original.id, "codigo": f"SOL-{original.id:03d}"},
         )

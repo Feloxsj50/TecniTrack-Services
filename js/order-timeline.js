@@ -36,6 +36,21 @@
             titulo: "Orden cancelada",
             icono: "fa-ban",
             clase: "cancelacion"
+        },
+        garantia_activada: {
+            titulo: "Garantía activada",
+            icono: "fa-shield-halved",
+            clase: "garantia-activada"
+        },
+        garantia_utilizada: {
+            titulo: "Garantía utilizada",
+            icono: "fa-rotate-left",
+            clase: "garantia-utilizada"
+        },
+        garantia_anulada: {
+            titulo: "Garantía anulada",
+            icono: "fa-circle-xmark",
+            clase: "garantia-anulada"
         }
     });
 

@@ -19,6 +19,10 @@ const historialOrdenTecnico = window.OrderTimeline.create({
     container: document.getElementById("historialOrdenTecnico"),
     apiBase: API_BASE
 });
+const garantiaOrdenTecnico = window.OrderWarranty.create({
+    container: document.getElementById("garantiaOrdenTecnico"),
+    apiBase: API_BASE
+});
 let solicitudesAsignadasLista = [];
 let trabajoActivoPanel = null;
 let csrfToken = "";
@@ -202,6 +206,13 @@ function textoAccion(solicitud) {
     return "Actualizar";
 }
 
+function contextoGarantia(solicitud) {
+    return {
+        estado: estadoNormalizado(solicitud?.estado),
+        esReingresoGarantia: Boolean(solicitud?.esReingresoGarantia)
+    };
+}
+
 function renderizarAsignadas() {
     tablaTecnico.innerHTML = "";
     actualizarCards();
@@ -232,7 +243,7 @@ function renderizarAsignadas() {
         const fila = document.createElement("tr");
         fila.innerHTML = `
             <td>${escaparHtml(solicitud.fecha)}</td>
-            <td>${escaparHtml(solicitud.id)}</td>
+            <td><div class="order-id-stack"><span>${escaparHtml(solicitud.id)}</span></div></td>
             <td>${escaparHtml(solicitud.cliente)}</td>
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
@@ -252,6 +263,8 @@ function renderizarAsignadas() {
                 </div>
             </td>
         `;
+        const badge = window.OrderWarranty.createReentryBadge(solicitud, "Reingreso");
+        if (badge) fila.querySelector(".order-id-stack").appendChild(badge);
         tablaTecnico.appendChild(fila);
     });
 
@@ -318,7 +331,10 @@ function abrirPanelTrabajo(dbId) {
     panelTrabajo.hidden = false;
     panelBackdrop.hidden = false;
     document.body.classList.add("modal-open");
-    historialOrdenTecnico.load(dbId);
+    Promise.all([
+        historialOrdenTecnico.load(dbId),
+        garantiaOrdenTecnico.load(dbId, contextoGarantia(solicitud))
+    ]);
     if (estadoNormalizado(solicitud.estado) !== "Completado") {
         document.getElementById("diagnosticoTecnico").focus();
     }
@@ -330,6 +346,7 @@ function cerrarPanelTrabajo() {
     trabajoActivoPanel = null;
     document.body.classList.remove("modal-open");
     historialOrdenTecnico.clear();
+    garantiaOrdenTecnico.clear();
     formTecnico.classList.remove("is-readonly");
     document.getElementById("diagnosticoTecnico").readOnly = false;
     document.getElementById("repuestoTecnico").readOnly = false;
@@ -358,7 +375,10 @@ async function actualizarTrabajo(id, payload, mensajeExito) {
         const solicitudActualizada = solicitudesAsignadasLista.find(item => item.dbId === Number(id));
         if (solicitudActualizada) {
             renderizarContenidoPanelTrabajo(solicitudActualizada);
-            await historialOrdenTecnico.refresh(id);
+            await Promise.all([
+                historialOrdenTecnico.refresh(id),
+                garantiaOrdenTecnico.refresh(contextoGarantia(solicitudActualizada))
+            ]);
         }
     }
     mostrarNotificacion(mensajeExito, "success");

@@ -328,7 +328,7 @@ class GarantiasBackendTests(TestCase):
         self.assertIsNone(garantia.anulada_en)
         self.assertEqual(garantia.estado_actual, Garantia.Estado.UTILIZADA)
 
-    def test_consulta_respeta_roles_y_oculta_datos_internos_al_cliente(self):
+    def test_consulta_respeta_roles_y_oculta_datos_internos(self):
         garantia = self.garantia_vigente()
         reingreso = crear_reingreso(
             garantia.id,
@@ -346,8 +346,19 @@ class GarantiasBackendTests(TestCase):
         self.assertEqual(respuesta_admin.status_code, 200)
         self.assertEqual(respuesta_tecnico.status_code, 200)
         self.assertEqual(respuesta_cliente.status_code, 200)
-        self.assertIn("notasInternas", respuesta_admin.json()["garantia"])
-        self.assertIn("notasInternas", respuesta_tecnico.json()["garantia"])
+        garantia_admin = respuesta_admin.json()["garantia"]
+        garantia_tecnico = respuesta_tecnico.json()["garantia"]
+        self.assertIn("notasInternas", garantia_admin)
+        self.assertIn("creadaPor", garantia_admin)
+        self.assertIn("observacionesInternas", garantia_admin["reingreso"])
+        self.assertIn("registradoPor", garantia_admin["reingreso"])
+
+        for campo in ["notasInternas", "creadaPor", "motivoAnulacion", "anuladaPor"]:
+            self.assertNotIn(campo, garantia_tecnico)
+        self.assertNotIn("observacionesInternas", garantia_tecnico["reingreso"])
+        self.assertNotIn("registradoPor", garantia_tecnico["reingreso"])
+        self.assertEqual(garantia_tecnico["reingreso"]["motivo"], "Falla repetida")
+
         garantia_cliente = respuesta_cliente.json()["garantia"]
         self.assertNotIn("notasInternas", garantia_cliente)
         self.assertNotIn("creadaPor", garantia_cliente)
@@ -385,7 +396,11 @@ class GarantiasBackendTests(TestCase):
         respuesta = cliente.get(f"/garantias/solicitud/{nueva.id}/")
 
         self.assertEqual(respuesta.status_code, 200)
-        self.assertIn("notasInternas", respuesta.json()["garantia"])
+        datos = respuesta.json()["garantia"]
+        self.assertNotIn("notasInternas", datos)
+        self.assertNotIn("creadaPor", datos)
+        self.assertNotIn("observacionesInternas", datos["reingreso"])
+        self.assertEqual(datos["reingreso"]["motivo"], "Falla repetida")
 
     def test_cliente_recibe_null_si_su_orden_no_tiene_garantia(self):
         respuesta = self.cliente_client.get(f"/garantias/solicitud/{self.orden.id}/")

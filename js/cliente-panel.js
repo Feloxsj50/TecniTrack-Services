@@ -19,6 +19,10 @@ const historialOrdenCliente = window.OrderTimeline.create({
     container: document.getElementById("historialOrdenCliente"),
     apiBase: API_BASE
 });
+const garantiaOrdenCliente = window.OrderWarranty.create({
+    container: document.getElementById("garantiaOrdenCliente"),
+    apiBase: API_BASE
+});
 let solicitudesCliente = [];
 let csrfToken = "";
 let paginaServiciosCliente = 1;
@@ -61,6 +65,13 @@ function claseEstadoServicio(estado) {
     if (normalizado === "Completado") return "completado";
     if (normalizado === "En Proceso") return "en-proceso";
     return "pendiente";
+}
+
+function contextoGarantia(solicitud) {
+    return {
+        estado: estadoNormalizado(solicitud?.estado),
+        esReingresoGarantia: Boolean(solicitud?.esReingresoGarantia)
+    };
 }
 
 function pesoEstadoCliente(estado) {
@@ -169,7 +180,7 @@ function renderizarSolicitudesCliente() {
         const fila = document.createElement("tr");
         fila.innerHTML = `
             <td>${escaparHtml(solicitud.fecha || "-")}</td>
-            <td>${escaparHtml(solicitud.id)}</td>
+            <td><div class="order-id-stack"><span>${escaparHtml(solicitud.id)}</span></div></td>
             <td>${escaparHtml(solicitud.dispositivo)}</td>
             <td>${escaparHtml(solicitud.servicio)}</td>
             <td>${escaparHtml(solicitud.tecnicoNombre || "Por asignar")}</td>
@@ -187,6 +198,8 @@ function renderizarSolicitudesCliente() {
                 </div>
             </td>
         `;
+        const badge = window.OrderWarranty.createReentryBadge(solicitud, "Reingreso");
+        if (badge) fila.querySelector(".order-id-stack").appendChild(badge);
         tablaServiciosCliente.appendChild(fila);
     });
 
@@ -286,7 +299,10 @@ function abrirDetalleServicio(dbId) {
     panelServicio.hidden = false;
     panelBackdrop.hidden = false;
     document.body.classList.add("modal-open");
-    historialOrdenCliente.load(dbId);
+    Promise.all([
+        historialOrdenCliente.load(dbId),
+        garantiaOrdenCliente.load(dbId, contextoGarantia(solicitud))
+    ]);
 }
 
 function cerrarDetalleServicio() {
@@ -294,6 +310,7 @@ function cerrarDetalleServicio() {
     panelBackdrop.hidden = true;
     document.body.classList.remove("modal-open");
     historialOrdenCliente.clear();
+    garantiaOrdenCliente.clear();
 }
 
 function conectarFiltrosCliente() {

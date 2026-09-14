@@ -8,7 +8,7 @@ from apps.usuarios.auditoria import registrar_auditoria
 from apps.usuarios.models import Usuario
 
 from .models import Garantia, ReingresoGarantia
-from .serializers import serializar_garantia
+from .serializers import NivelDetalleGarantia, serializar_garantia
 from .services import ErrorGarantia, anular_garantia, crear_garantia, crear_reingreso
 
 
@@ -79,6 +79,14 @@ def _id_positivo(valor):
     return None
 
 
+def _nivel_detalle(usuario):
+    if usuario.rol == Usuario.Rol.ADMIN:
+        return NivelDetalleGarantia.ADMIN
+    if usuario.rol == Usuario.Rol.TECNICO:
+        return NivelDetalleGarantia.TECNICO
+    return NivelDetalleGarantia.CLIENTE
+
+
 @require_GET
 def detalle_garantia(request, solicitud_id):
     if not request.user.is_authenticated:
@@ -98,10 +106,9 @@ def detalle_garantia(request, solicitud_id):
             status=403,
         )
 
-    incluir_internos = request.user.rol in [Usuario.Rol.ADMIN, Usuario.Rol.TECNICO]
     return JsonResponse({
         "ok": True,
-        "garantia": serializar_garantia(garantia, incluir_internos) if garantia else None,
+        "garantia": serializar_garantia(garantia, _nivel_detalle(request.user)) if garantia else None,
     })
 
 
@@ -143,7 +150,10 @@ def crear(request):
         garantia.id,
     )
     return JsonResponse(
-        {"ok": True, "garantia": serializar_garantia(garantia, True)},
+        {
+            "ok": True,
+            "garantia": serializar_garantia(garantia, NivelDetalleGarantia.ADMIN),
+        },
         status=201,
     )
 
@@ -178,7 +188,13 @@ def registrar_reingreso(request, garantia_id):
         reingreso.id,
     )
     return JsonResponse(
-        {"ok": True, "garantia": serializar_garantia(reingreso.garantia, True)},
+        {
+            "ok": True,
+            "garantia": serializar_garantia(
+                reingreso.garantia,
+                NivelDetalleGarantia.ADMIN,
+            ),
+        },
         status=201,
     )
 
@@ -207,4 +223,7 @@ def anular(request, garantia_id):
         f"Garantía {garantia.id} anulada.",
         garantia.id,
     )
-    return JsonResponse({"ok": True, "garantia": serializar_garantia(garantia, True)})
+    return JsonResponse({
+        "ok": True,
+        "garantia": serializar_garantia(garantia, NivelDetalleGarantia.ADMIN),
+    })
