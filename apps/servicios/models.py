@@ -59,6 +59,9 @@ class HistorialSolicitud(models.Model):
         DIAGNOSTICO = "diagnostico", "Diagnóstico"
         FINALIZACION = "finalizacion", "Finalización"
         CANCELACION = "cancelacion", "Cancelación"
+        GARANTIA_ACTIVADA = "garantia_activada", "Garantía activada"
+        GARANTIA_UTILIZADA = "garantia_utilizada", "Garantía utilizada"
+        GARANTIA_ANULADA = "garantia_anulada", "Garantía anulada"
 
     class Visibilidad(models.TextChoices):
         PUBLICO = "publico", "Público"

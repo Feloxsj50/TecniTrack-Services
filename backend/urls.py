@@ -29,6 +29,7 @@ urlpatterns = [
     path('servicios/', include('apps.servicios.urls')),
     path('inventario/', include('apps.inventario.urls')),
     path('facturacion/', include('apps.facturacion.urls')),
+    path('garantias/', include('apps.garantias.urls')),
     path('soporte/', include('apps.soporte.urls')),
     path('dashboard/', include('apps.dashboard.urls')),
     re_path(

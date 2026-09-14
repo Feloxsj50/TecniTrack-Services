@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'apps.servicios',
     'apps.inventario',
     'apps.facturacion',
+    'apps.garantias',
     'apps.soporte',
     'apps.dashboard',
 ]

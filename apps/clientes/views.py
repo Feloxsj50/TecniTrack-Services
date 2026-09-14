@@ -215,7 +215,12 @@ def eliminar_cliente(request, cliente_id):
     nombre_cliente = cliente.usuario.get_full_name() or cliente.usuario.username
     registrar_auditoria(request, "eliminar", "clientes", f"Cliente eliminado: {nombre_cliente}.", cliente.id)
     if eliminar_solicitudes:
-        SolicitudServicio.objects.filter(cliente=cliente, factura__isnull=True).delete()
+        SolicitudServicio.objects.filter(
+            cliente=cliente,
+            factura__isnull=True,
+            garantia__isnull=True,
+            reingreso_garantia__isnull=True,
+        ).delete()
 
     SolicitudServicio.objects.filter(cliente=cliente).update(
         cliente_nombre=nombre_cliente,

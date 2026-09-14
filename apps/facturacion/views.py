@@ -145,7 +145,10 @@ def listar_servicios_completados(request):
     solicitudes = SolicitudServicio.objects.select_related(
         "cliente__usuario",
         "tecnico__usuario",
-    ).filter(estado=SolicitudServicio.Estado.COMPLETADO)
+    ).filter(
+        estado=SolicitudServicio.Estado.COMPLETADO,
+        reingreso_garantia__isnull=True,
+    )
 
     data = [serializar_solicitud_facturable(solicitud) for solicitud in solicitudes]
     return JsonResponse({"ok": True, "servicios": data, "total": len(data)})
@@ -166,12 +169,25 @@ def crear_factura(request):
         return JsonResponse({"ok": False, "error": "Selecciona una orden completada."}, status=400)
 
     try:
-        solicitud = SolicitudServicio.objects.select_related("cliente__usuario", "tecnico__usuario").get(id=solicitud_id)
+        solicitud = SolicitudServicio.objects.select_related(
+            "cliente__usuario",
+            "tecnico__usuario",
+            "reingreso_garantia",
+        ).get(id=solicitud_id)
     except SolicitudServicio.DoesNotExist:
         return JsonResponse({"ok": False, "error": "La orden seleccionada no existe."}, status=404)
 
     if solicitud.estado != SolicitudServicio.Estado.COMPLETADO:
         return JsonResponse({"ok": False, "error": "Solo se pueden facturar servicios completados."}, status=400)
+
+    if hasattr(solicitud, "reingreso_garantia"):
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "Esta orden está cubierta por garantía y no puede facturarse.",
+            },
+            status=400,
+        )
 
     productos = datos.get("productos", [])
     if not isinstance(productos, list):

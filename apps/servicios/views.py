@@ -435,6 +435,15 @@ def eliminar_solicitud(request, solicitud_id):
             status=400,
         )
 
+    if hasattr(solicitud, "garantia") or hasattr(solicitud, "reingreso_garantia"):
+        return JsonResponse(
+            {
+                "ok": False,
+                "error": "No se puede eliminar una orden relacionada con una garantía.",
+            },
+            status=400,
+        )
+
     registrar_auditoria(request, "eliminar", "servicios", f"Orden SOL-{solicitud.id:03d} eliminada.", solicitud.id)
     solicitud.delete()
     return JsonResponse({"ok": True})

@@ -140,3 +140,37 @@ def registrar_cancelacion(solicitud, usuario, estado_anterior):
         estado_anterior=estado_anterior,
         estado_nuevo=solicitud.estado,
     )
+
+
+def registrar_garantia_activada(solicitud, usuario, garantia):
+    return registrar_evento(
+        solicitud,
+        usuario,
+        HistorialSolicitud.TipoEvento.GARANTIA_ACTIVADA,
+        (
+            "La garantía fue activada desde el "
+            f"{garantia.fecha_inicio:%d/%m/%Y} hasta el "
+            f"{garantia.fecha_vencimiento:%d/%m/%Y}."
+        ),
+    )
+
+
+def registrar_garantia_utilizada(solicitud, solicitud_relacionada, usuario, motivo):
+    return registrar_evento(
+        solicitud,
+        usuario,
+        HistorialSolicitud.TipoEvento.GARANTIA_UTILIZADA,
+        (
+            "Se registró un reingreso por garantía relacionado con "
+            f"SOL-{solicitud_relacionada.id:03d}. Motivo: {motivo}"
+        ),
+    )
+
+
+def registrar_garantia_anulada(solicitud, usuario):
+    return registrar_evento(
+        solicitud,
+        usuario,
+        HistorialSolicitud.TipoEvento.GARANTIA_ANULADA,
+        "La garantía de la orden fue anulada.",
+    )

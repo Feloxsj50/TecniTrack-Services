@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.test import Client, TestCase
 
 from apps.clientes.models import Cliente
+from apps.garantias.services import crear_garantia, crear_reingreso
 from apps.inventario.models import MovimientoInventario, ProductoInventario
 from apps.servicios.models import SolicitudServicio
 from apps.tecnicos.models import Tecnico
@@ -105,3 +106,53 @@ class FacturacionInventarioTests(TestCase):
         self.assertEqual(admin_client.post("/facturacion/crear/", data=datos, content_type="application/json").status_code, 201)
         self.assertEqual(admin_client.post("/facturacion/crear/", data=datos, content_type="application/json").status_code, 201)
         self.assertEqual(Factura.objects.filter(solicitud=self.orden).count(), 1)
+
+    def test_reingreso_no_aparece_entre_servicios_facturables(self):
+        garantia = crear_garantia(self.orden.id, 30, self.admin)
+        reingreso = crear_reingreso(garantia.id, self.admin, "La falla se repitió")
+        SolicitudServicio.objects.filter(pk=reingreso.solicitud_reingreso_id).update(
+            estado=SolicitudServicio.Estado.COMPLETADO
+        )
+        admin_client = Client()
+        admin_client.force_login(self.admin)
+
+        respuesta = admin_client.get("/facturacion/servicios-completados/")
+
+        self.assertEqual(respuesta.status_code, 200)
+        ids = [item["id"] for item in respuesta.json()["servicios"]]
+        self.assertIn(self.orden.id, ids)
+        self.assertNotIn(reingreso.solicitud_reingreso_id, ids)
+
+    def test_reingreso_no_puede_facturarse_ni_descontar_inventario(self):
+        garantia = crear_garantia(self.orden.id, 30, self.admin)
+        reingreso = crear_reingreso(garantia.id, self.admin, "La falla se repitió")
+        SolicitudServicio.objects.filter(pk=reingreso.solicitud_reingreso_id).update(
+            estado=SolicitudServicio.Estado.COMPLETADO
+        )
+        admin_client = Client()
+        admin_client.force_login(self.admin)
+        stock_inicial = self.producto.stock
+        movimientos_iniciales = MovimientoInventario.objects.count()
+
+        respuesta = admin_client.post(
+            "/facturacion/crear/",
+            data=json.dumps({
+                "solicitudId": reingreso.solicitud_reingreso_id,
+                "montoServicio": "45.00",
+                "productos": [{
+                    "producto": self.producto.nombre,
+                    "cantidad": 1,
+                    "precio": "35.00",
+                }],
+            }),
+            content_type="application/json",
+        )
+
+        self.assertEqual(respuesta.status_code, 400)
+        self.assertIn("cubierta por garantía", respuesta.json()["error"])
+        self.assertFalse(Factura.objects.filter(
+            solicitud_id=reingreso.solicitud_reingreso_id
+        ).exists())
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, stock_inicial)
+        self.assertEqual(MovimientoInventario.objects.count(), movimientos_iniciales)
