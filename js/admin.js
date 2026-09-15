@@ -18,6 +18,12 @@ let paginaOrdenes = 1;
 const filtrosOrdenes = { estado: "Todos", prioridad: "Todas", busqueda: "" };
 const panelOrdenAdmin = document.getElementById("panelOrdenAdmin");
 const panelOrdenAdminBackdrop = document.getElementById("panelOrdenAdminBackdrop");
+const actividadRecienteAdmin = window.RecentActivity.create({
+    container: document.getElementById("actividadRecienteAdmin"),
+    apiBase: API_BASE,
+    limite: 10,
+    onActivate: abrirActividadRecienteAdmin
+});
 const historialOrdenAdmin = window.OrderTimeline.create({
     container: document.getElementById("historialOrdenAdmin"),
     apiBase: API_BASE
@@ -36,6 +42,7 @@ const garantiaOrdenAdmin = window.OrderWarranty.create({
         const solicitud = solicitudes.find(item => item.dbId === Number(orderId));
         if (solicitud) renderizarDetalleOrdenAdmin(solicitud);
         await historialOrdenAdmin.refresh(orderId);
+        void actividadRecienteAdmin.refresh();
     }
 });
 
@@ -311,6 +318,28 @@ function abrirDetalleOrdenAdmin(dbId, disparador = null) {
     document.getElementById("cerrarPanelOrdenAdmin").focus();
 }
 
+function abrirActividadRecienteAdmin(actividad, disparador = null) {
+    const referencia = actividad?.referencia;
+    if (!referencia) return;
+
+    if (referencia.tipo === "orden") {
+        const dbId = Number(referencia.id);
+        if (!Number.isInteger(dbId) || !solicitudes.some(item => item.dbId === dbId)) {
+            mostrarNotificacion("La orden relacionada ya no está disponible.", "error");
+            return;
+        }
+        abrirDetalleOrdenAdmin(dbId, disparador);
+        return;
+    }
+
+    const destinos = {
+        factura: "facturacion.html",
+        inventario: "inventario.html",
+        soporte: "../shared/ayuda.html"
+    };
+    if (destinos[referencia.tipo]) window.location.href = destinos[referencia.tipo];
+}
+
 function cerrarDetalleOrdenAdmin() {
     panelOrdenAdmin.hidden = true;
     panelOrdenAdminBackdrop.hidden = true;
@@ -501,6 +530,7 @@ document.getElementById("btnGuardar")?.addEventListener("click", async () => {
         limpiarFormulario();
         await obtenerSolicitudes();
         if (idEditar) await refrescarDetalleOrdenAdmin(Number(idEditar));
+        void actividadRecienteAdmin.refresh();
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo guardar la orden.", "error");
     }
@@ -529,6 +559,7 @@ async function eliminarServicio(dbId) {
         mostrarNotificacion("Orden eliminada correctamente.", "success");
         if (Number(document.getElementById("idEditar").value) === dbId) limpiarFormulario();
         await obtenerSolicitudes();
+        void actividadRecienteAdmin.refresh();
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo eliminar la orden.", "error");
     }
@@ -572,6 +603,7 @@ function conectarFiltrosOrdenes() {
 }
 async function iniciarDashboardAdmin() {
     conectarFiltrosOrdenes();
+    void actividadRecienteAdmin.load();
     document.getElementById("cerrarPanelOrdenAdmin").addEventListener("click", cerrarDetalleOrdenAdmin);
     panelOrdenAdminBackdrop.addEventListener("click", cerrarDetalleOrdenAdmin);
     document.addEventListener("keydown", event => {

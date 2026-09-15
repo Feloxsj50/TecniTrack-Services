@@ -40,7 +40,8 @@
                 </div>
             </div>
 
-            <div class="form-container">
+            <div class="dashboard-workspace">
+                <div class="form-container">
                 <h2 id="tituloFormulario">Registrar Servicio Presencial</h2>
                 <p class="form-helper">Crea una orden cuando el cliente llega al taller. La factura se genera después, cuando el servicio esté completado.</p>
 
@@ -70,7 +71,10 @@
                     <option value="Completado">Completado</option>
                 </select>
 
-                <button id="btnGuardar">Guardar Orden</button>
+                    <button id="btnGuardar">Guardar Orden</button>
+                </div>
+
+                <section id="actividadRecienteAdmin" data-testid="actividad-reciente-admin"></section>
             </div>
 
             <div class="historial">
@@ -177,6 +181,7 @@
     <script src="../../js/pagination.js"></script>
     <script src="../../js/order-timeline.js"></script>
     <script src="../../js/order-warranty.js"></script>
+    <script src="../../js/recent-activity.js"></script>
     <script src="../../js/admin.js"></script>
 </body>
 

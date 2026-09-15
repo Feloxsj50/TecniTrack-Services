@@ -2,12 +2,15 @@ from collections import Counter, defaultdict
 from decimal import Decimal
 
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from apps.clientes.models import Cliente
 from apps.facturacion.models import Factura
 from apps.servicios.models import SolicitudServicio
 from apps.usuarios.models import Usuario
+
+from .activity import obtener_actividad_reciente
 
 
 def moneda_decimal(valor):
@@ -137,3 +140,28 @@ def reportes(request):
     }
 
     return JsonResponse({"ok": True, "reporte": data})
+
+
+@require_GET
+def actividad_reciente(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
+
+    if request.user.rol != Usuario.Rol.ADMIN:
+        return JsonResponse(
+            {"ok": False, "error": "Solo el administrador puede consultar la actividad reciente."},
+            status=403,
+        )
+
+    valor_limite = request.GET.get("limite", "10")
+    try:
+        limite = int(valor_limite)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "El límite no es válido."}, status=400)
+    limite = max(1, min(limite, 20))
+
+    return JsonResponse({
+        "ok": True,
+        "actividades": obtener_actividad_reciente(limite),
+        "generadoEn": timezone.localtime(timezone.now()).isoformat(),
+    })
