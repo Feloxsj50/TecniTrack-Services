@@ -1,7 +1,7 @@
 import json
 from decimal import Decimal, InvalidOperation
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
@@ -10,7 +10,7 @@ from apps.servicios.models import SolicitudServicio
 from apps.usuarios.models import Usuario
 from apps.usuarios.auditoria import registrar_auditoria
 from apps.usuarios.api import obtener_datos_request as obtener_datos_request_comun, validar_admin as validar_admin_comun
-from .services import descontar_stock, resolver_productos_inventario, restaurar_stock_factura
+from .services import ajustar_stock_factura, restaurar_stock_factura
 from .models import Factura
 
 
@@ -168,27 +168,6 @@ def crear_factura(request):
     if not solicitud_id:
         return JsonResponse({"ok": False, "error": "Selecciona una orden completada."}, status=400)
 
-    try:
-        solicitud = SolicitudServicio.objects.select_related(
-            "cliente__usuario",
-            "tecnico__usuario",
-            "reingreso_garantia",
-        ).get(id=solicitud_id)
-    except SolicitudServicio.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "La orden seleccionada no existe."}, status=404)
-
-    if solicitud.estado != SolicitudServicio.Estado.COMPLETADO:
-        return JsonResponse({"ok": False, "error": "Solo se pueden facturar servicios completados."}, status=400)
-
-    if hasattr(solicitud, "reingreso_garantia"):
-        return JsonResponse(
-            {
-                "ok": False,
-                "error": "Esta orden está cubierta por garantía y no puede facturarse.",
-            },
-            status=400,
-        )
-
     productos = datos.get("productos", [])
     if not isinstance(productos, list):
         return JsonResponse({"ok": False, "error": "Los repuestos deben enviarse como una lista."}, status=400)
@@ -223,33 +202,120 @@ def crear_factura(request):
     metodo = METODOS_FRONT.get(datos.get("metodoPago", "Efectivo"), Factura.MetodoPago.EFECTIVO)
     estado = ESTADOS_FRONT.get(datos.get("estado", "Pagado"), Factura.Estado.PAGADO)
     garantia = str(datos.get("garantia", "30 Días")).strip() or "30 Días"
+    factura_id = None
+    factura_id_recibido = datos.get("facturaId")
+    if factura_id_recibido not in (None, ""):
+        try:
+            factura_id = int(factura_id_recibido)
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "error": "La factura indicada no es válida."}, status=400)
+        if factura_id <= 0:
+            return JsonResponse({"ok": False, "error": "La factura indicada no es válida."}, status=400)
 
     try:
         with transaction.atomic():
-            factura = Factura.objects.select_for_update().filter(solicitud=solicitud).first()
-            if factura and factura.inventario_descontado:
-                restaurar_stock_factura(factura)
+            if request.user.rol != Usuario.Rol.ADMIN:
+                return JsonResponse(
+                    {"ok": False, "error": "Solo el administrador puede generar facturas."},
+                    status=403,
+                )
 
-            productos_inventario = resolver_productos_inventario(productos_limpios)
-            descontar_stock(productos_inventario, solicitud, request.user)
-            factura, _ = Factura.objects.update_or_create(
-                solicitud=solicitud,
-                defaults={
-                    "servicio_monto": servicio_monto,
-                    "repuestos_monto": repuestos_monto,
-                    "total": total,
-                    "metodo_pago": metodo,
-                    "estado": estado,
-                    "garantia": garantia,
-                    "productos": productos_limpios,
-                    "inventario_descontado": bool(productos_inventario),
-                },
+            try:
+                solicitud = (
+                    SolicitudServicio.objects.select_for_update(of=("self",))
+                    .get(id=solicitud_id)
+                )
+            except (SolicitudServicio.DoesNotExist, TypeError, ValueError):
+                return JsonResponse(
+                    {"ok": False, "error": "La orden seleccionada no existe."},
+                    status=404,
+                )
+
+            if solicitud.estado != SolicitudServicio.Estado.COMPLETADO:
+                return JsonResponse(
+                    {"ok": False, "error": "Solo se pueden facturar servicios completados."},
+                    status=400,
+                )
+
+            if hasattr(solicitud, "reingreso_garantia"):
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "error": "Esta orden está cubierta por garantía y no puede facturarse.",
+                    },
+                    status=400,
+                )
+
+            factura_existente = (
+                Factura.objects.select_for_update()
+                .filter(solicitud_id=solicitud.id)
+                .first()
             )
+
+            if factura_id is None:
+                if factura_existente:
+                    return JsonResponse(
+                        {"ok": False, "error": "La orden ya tiene una factura registrada."},
+                        status=409,
+                    )
+                factura = None
+                creada = True
+            else:
+                if not factura_existente:
+                    if Factura.objects.filter(id=factura_id).exists():
+                        return JsonResponse(
+                            {"ok": False, "error": "La factura no pertenece a la orden indicada."},
+                            status=409,
+                        )
+                    return JsonResponse(
+                        {"ok": False, "error": "La factura que intentas editar no existe."},
+                        status=404,
+                    )
+                if factura_existente.id != factura_id:
+                    return JsonResponse(
+                        {"ok": False, "error": "La factura no pertenece a la orden indicada."},
+                        status=409,
+                    )
+                factura = factura_existente
+                factura.solicitud = solicitud
+                creada = False
+
+            productos_guardados, inventario_descontado = ajustar_stock_factura(
+                productos_limpios,
+                solicitud,
+                request.user,
+                factura=factura,
+            )
+
+            valores = {
+                "servicio_monto": servicio_monto,
+                "repuestos_monto": repuestos_monto,
+                "total": total,
+                "metodo_pago": metodo,
+                "estado": estado,
+                "garantia": garantia,
+                "productos": productos_guardados,
+                "inventario_descontado": inventario_descontado,
+            }
+            if creada:
+                factura = Factura.objects.create(solicitud=solicitud, **valores)
+            else:
+                for campo, valor in valores.items():
+                    setattr(factura, campo, valor)
+                factura.save(update_fields=[*valores, "actualizado_en"])
     except ValueError as exc:
         return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+    except IntegrityError:
+        return JsonResponse(
+            {"ok": False, "error": "La orden ya fue facturada por otra operación."},
+            status=409,
+        )
 
     registrar_auditoria(request, "crear_o_actualizar", "facturacion", f"Factura {factura.numero} guardada.", factura.id)
-    return JsonResponse({"ok": True, "factura": serializar_factura(factura)}, status=201)
+    return JsonResponse(
+        {"ok": True, "factura": serializar_factura(factura)},
+        status=201 if creada else 200,
+    )
 
 
 @require_POST
@@ -258,16 +324,37 @@ def eliminar_factura(request, factura_id):
     if permiso:
         return permiso
 
-    try:
-        factura = Factura.objects.get(id=factura_id)
-    except Factura.DoesNotExist:
+    referencia = Factura.objects.filter(id=factura_id).values("solicitud_id").first()
+    if not referencia:
         return JsonResponse({"ok": False, "error": "Factura no encontrada."}, status=404)
 
-    with transaction.atomic():
-        factura = Factura.objects.select_for_update().get(id=factura_id)
-        numero = factura.numero
-        if factura.inventario_descontado:
-            restaurar_stock_factura(factura)
-        factura.delete()
+    try:
+        with transaction.atomic():
+            if request.user.rol != Usuario.Rol.ADMIN:
+                return JsonResponse(
+                    {"ok": False, "error": "Solo el administrador puede eliminar facturas."},
+                    status=403,
+                )
+
+            solicitud = (
+                SolicitudServicio.objects.select_for_update(of=("self",))
+                .get(id=referencia["solicitud_id"])
+            )
+            factura = (
+                Factura.objects.select_for_update()
+                .filter(id=factura_id, solicitud_id=solicitud.id)
+                .first()
+            )
+            if not factura:
+                return JsonResponse({"ok": False, "error": "Factura no encontrada."}, status=404)
+
+            factura.solicitud = solicitud
+            numero = factura.numero
+            if factura.inventario_descontado:
+                restaurar_stock_factura(factura)
+            factura.delete()
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+
     registrar_auditoria(request, "eliminar", "facturacion", f"Factura {numero} eliminada.", factura_id)
     return JsonResponse({"ok": True, "mensaje": "Factura eliminada correctamente."})

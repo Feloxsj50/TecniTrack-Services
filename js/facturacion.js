@@ -19,6 +19,7 @@ let csrfToken = "";
 let paginaFacturas = 1;
 let garantiaEstructuradaActual = null;
 let solicitudGarantiaActual = 0;
+let guardandoFactura = false;
 
 const tbodyDetalle = document.querySelector("#tablaDetalleFactura tbody");
 const tbodyFacturas = document.querySelector("#tablaFacturas tbody");
@@ -60,7 +61,9 @@ async function apiJson(url, opciones = {}) {
     });
     const datos = await leerRespuestaJson(respuesta);
     if (!respuesta.ok || !datos.ok) {
-        throw new Error(datos.error || "No se pudo completar la acción.");
+        const error = new Error(datos.error || "No se pudo completar la acción.");
+        error.status = respuesta.status;
+        throw error;
     }
     return datos;
 }
@@ -428,7 +431,7 @@ function limpiarFactura() {
 
 function datosFacturaActual() {
     const precioServicio = parseFloat(document.getElementById("precioServicio").value) || 0;
-    return {
+    const datos = {
         solicitudId: servicioSeleccionado?.id,
         montoServicio: precioServicio,
         productos: detallesFactura,
@@ -436,9 +439,13 @@ function datosFacturaActual() {
         estado: document.getElementById("estadoFactura").value,
         garantia: document.getElementById("garantiaFactura").value
     };
+    if (facturaEditando) datos.facturaId = facturaEditando.id;
+    return datos;
 }
 
 async function guardarFactura() {
+    if (guardandoFactura) return;
+
     if (!servicioSeleccionado) {
         mostrarNotificacion("Selecciona una orden completada.");
         return;
@@ -457,6 +464,12 @@ async function guardarFactura() {
         return;
     }
 
+    const btnGuardar = document.getElementById("btnGuardarFactura");
+    guardandoFactura = true;
+    btnGuardar.disabled = true;
+    btnGuardar.setAttribute("aria-busy", "true");
+    btnGuardar.textContent = facturaEditando ? "Guardando cambios..." : "Guardando factura...";
+
     try {
         await apiJson("/facturacion/crear/", {
             method: "POST",
@@ -466,7 +479,20 @@ async function guardarFactura() {
         limpiarFactura();
         mostrarNotificacion("Factura guardada correctamente.", "success");
     } catch (error) {
+        if (error.status === 409) {
+            try {
+                await cargarDatosFacturacion();
+                limpiarFactura();
+            } catch {
+                // El mensaje original de conflicto sigue siendo el más útil.
+            }
+        }
         mostrarNotificacion(error.message || "No se pudo guardar la factura.", "error");
+    } finally {
+        guardandoFactura = false;
+        btnGuardar.disabled = false;
+        btnGuardar.removeAttribute("aria-busy");
+        btnGuardar.textContent = facturaEditando ? "Guardar cambios" : "Guardar Factura";
     }
 }
 
