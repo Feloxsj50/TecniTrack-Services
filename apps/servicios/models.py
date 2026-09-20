@@ -44,6 +44,19 @@ class SolicitudServicio(models.Model):
 
     class Meta:
         ordering = ["-creado_en"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(
+                    estado__in=[
+                        "pendiente",
+                        "en_proceso",
+                        "completado",
+                        "cancelado",
+                    ]
+                ),
+                name="servicio_estado_valido",
+            ),
+        ]
 
     def __str__(self):
         cliente = self.cliente_nombre or self.cliente or "Cliente sin cuenta"

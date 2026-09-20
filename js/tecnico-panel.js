@@ -26,6 +26,7 @@ const garantiaOrdenTecnico = window.OrderWarranty.create({
 let solicitudesAsignadasLista = [];
 let trabajoActivoPanel = null;
 let csrfToken = "";
+const actualizacionesEnCurso = new Set();
 
 function escaparHtml(valor) {
     return String(valor ?? "")
@@ -61,8 +62,14 @@ function estadoNormalizado(estado) {
 function claseEstado(estado) {
     const normalizado = estadoNormalizado(estado);
     if (normalizado === "Completado") return "completado";
+    if (normalizado === "Cancelado") return "cancelado";
     if (normalizado === "En Proceso") return "en-proceso";
     return "pendiente";
+}
+
+function esEstadoTerminal(estado) {
+    const normalizado = estadoNormalizado(estado);
+    return normalizado === "Completado" || normalizado === "Cancelado";
 }
 
 function clasePrioridad(prioridad) {
@@ -104,7 +111,7 @@ function ordenarTrabajos(lista) {
 }
 
 function trabajosActivos() {
-    return solicitudesAsignadasLista.filter(solicitud => estadoNormalizado(solicitud.estado) !== "Completado");
+    return solicitudesAsignadasLista.filter(solicitud => !esEstadoTerminal(solicitud.estado));
 }
 
 function trabajosFiltrados() {
@@ -202,7 +209,7 @@ function renderizarNotificaciones() {
 function textoAccion(solicitud) {
     const estado = estadoNormalizado(solicitud.estado);
     if (estado === "Pendiente") return "Iniciar";
-    if (estado === "Completado") return "Ver";
+    if (esEstadoTerminal(estado)) return "Ver";
     return "Actualizar";
 }
 
@@ -305,21 +312,29 @@ function renderizarMetaPanel(solicitud) {
 
 function renderizarContenidoPanelTrabajo(solicitud) {
     trabajoActivoPanel = solicitud;
-    const completado = estadoNormalizado(solicitud.estado) === "Completado";
+    const estado = estadoNormalizado(solicitud.estado);
+    const terminal = esEstadoTerminal(estado);
+    const selectEstado = document.getElementById("estadoTecnico");
 
     document.getElementById("idServicioTecnico").value = solicitud.dbId;
     document.getElementById("diagnosticoTecnico").value = solicitud.diagnostico || "";
     document.getElementById("repuestoTecnico").value = solicitud.repuesto || "";
-    document.getElementById("estadoTecnico").value = completado ? "Completado" : "En Proceso";
+    selectEstado.innerHTML = terminal
+        ? `<option value="${escaparHtml(estado)}">${escaparHtml(estado)}</option>`
+        : `
+            <option value="En Proceso">En Proceso</option>
+            <option value="Completado">Completado</option>
+        `;
+    selectEstado.value = terminal ? estado : "En Proceso";
     document.getElementById("panelTrabajoId").textContent = solicitud.id;
     document.getElementById("panelTrabajoTitulo").textContent = `${solicitud.cliente} - ${solicitud.dispositivo}`;
     renderizarMetaPanel(solicitud);
 
-    formTecnico.classList.toggle("is-readonly", completado);
-    document.getElementById("diagnosticoTecnico").readOnly = completado;
-    document.getElementById("repuestoTecnico").readOnly = completado;
-    document.getElementById("estadoTecnico").disabled = completado;
-    document.getElementById("btnGuardarTrabajo").hidden = completado;
+    formTecnico.classList.toggle("is-readonly", terminal);
+    document.getElementById("diagnosticoTecnico").readOnly = terminal;
+    document.getElementById("repuestoTecnico").readOnly = terminal;
+    selectEstado.disabled = terminal;
+    document.getElementById("btnGuardarTrabajo").hidden = terminal;
 }
 
 function abrirPanelTrabajo(dbId) {
@@ -335,7 +350,7 @@ function abrirPanelTrabajo(dbId) {
         historialOrdenTecnico.load(dbId),
         garantiaOrdenTecnico.load(dbId, contextoGarantia(solicitud))
     ]);
-    if (estadoNormalizado(solicitud.estado) !== "Completado") {
+    if (!esEstadoTerminal(solicitud.estado)) {
         document.getElementById("diagnosticoTecnico").focus();
     }
 }
@@ -356,32 +371,69 @@ function cerrarPanelTrabajo() {
 }
 
 async function actualizarTrabajo(id, payload, mensajeExito) {
-    const actualizarPanelAbierto = !panelTrabajo.hidden && trabajoActivoPanel?.dbId === Number(id);
-    const token = await obtenerCsrfToken();
-    const respuesta = await fetch(`${API_BASE}/servicios/${id}/actualizar/`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": token
-        },
-        body: JSON.stringify(payload)
-    });
-    const datos = await leerRespuestaJson(respuesta);
-    if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo actualizar el trabajo.");
+    const ordenId = Number(id);
+    if (actualizacionesEnCurso.has(ordenId)) return false;
 
-    await cargarSolicitudesAsignadas();
-    if (actualizarPanelAbierto) {
-        const solicitudActualizada = solicitudesAsignadasLista.find(item => item.dbId === Number(id));
-        if (solicitudActualizada) {
-            renderizarContenidoPanelTrabajo(solicitudActualizada);
-            await Promise.all([
-                historialOrdenTecnico.refresh(id),
-                garantiaOrdenTecnico.refresh(contextoGarantia(solicitudActualizada))
-            ]);
+    const actualizarPanelAbierto = !panelTrabajo.hidden && trabajoActivoPanel?.dbId === Number(id);
+    const botonPanel = document.getElementById("btnGuardarTrabajo");
+    const botonRapido = document.querySelector(`[data-iniciar="${ordenId}"]`);
+    actualizacionesEnCurso.add(ordenId);
+    botonPanel.disabled = actualizarPanelAbierto;
+    if (botonRapido) botonRapido.disabled = true;
+
+    try {
+        const token = await obtenerCsrfToken();
+        const respuesta = await fetch(`${API_BASE}/servicios/${id}/actualizar/`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": token
+            },
+            body: JSON.stringify(payload)
+        });
+        const datos = await leerRespuestaJson(respuesta);
+
+        if ([403, 409].includes(respuesta.status)) {
+            await cargarSolicitudesAsignadas();
+            if (actualizarPanelAbierto) {
+                const solicitudActual = solicitudesAsignadasLista.find(item => item.dbId === ordenId);
+                if (solicitudActual) {
+                    renderizarContenidoPanelTrabajo(solicitudActual);
+                    await Promise.all([
+                        historialOrdenTecnico.refresh(ordenId),
+                        garantiaOrdenTecnico.refresh(contextoGarantia(solicitudActual))
+                    ]);
+                } else {
+                    cerrarPanelTrabajo();
+                }
+            }
+            throw new Error(datos.error || "La orden cambió. Se cargó su información más reciente.");
         }
+        if (!respuesta.ok || !datos.ok) {
+            throw new Error(datos.error || "No se pudo actualizar el trabajo.");
+        }
+
+        await cargarSolicitudesAsignadas();
+        if (actualizarPanelAbierto) {
+            const solicitudActualizada = solicitudesAsignadasLista.find(item => item.dbId === ordenId);
+            if (solicitudActualizada) {
+                renderizarContenidoPanelTrabajo(solicitudActualizada);
+                await Promise.all([
+                    historialOrdenTecnico.refresh(id),
+                    garantiaOrdenTecnico.refresh(contextoGarantia(solicitudActualizada))
+                ]);
+            } else {
+                cerrarPanelTrabajo();
+            }
+        }
+        mostrarNotificacion(mensajeExito, "success");
+        return true;
+    } finally {
+        actualizacionesEnCurso.delete(ordenId);
+        botonPanel.disabled = false;
+        if (botonRapido) botonRapido.disabled = false;
     }
-    mostrarNotificacion(mensajeExito, "success");
 }
 
 async function iniciarTrabajoRapido(dbId) {
@@ -392,7 +444,8 @@ async function iniciarTrabajoRapido(dbId) {
         await actualizarTrabajo(dbId, {
             diagnostico: solicitud.diagnostico || "",
             repuesto: solicitud.repuesto || "",
-            estado: "En Proceso"
+            estado: "En Proceso",
+            actualizadoEn: solicitud.actualizadoEn
         }, "Trabajo iniciado correctamente.");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo iniciar el trabajo.", "error");
@@ -413,7 +466,12 @@ formTecnico.addEventListener("submit", async event => {
     }
 
     try {
-        await actualizarTrabajo(id, { diagnostico, repuesto, estado }, "Trabajo actualizado correctamente.");
+        await actualizarTrabajo(id, {
+            diagnostico,
+            repuesto,
+            estado,
+            actualizadoEn: trabajoActivoPanel?.actualizadoEn
+        }, "Trabajo actualizado correctamente.");
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo actualizar el trabajo.", "error");
     }

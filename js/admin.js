@@ -15,6 +15,8 @@ let solicitudes = [];
 let csrfToken = "";
 let clienteSeleccionado = null;
 let paginaOrdenes = 1;
+let versionOrdenEditada = "";
+let guardandoOrden = false;
 const filtrosOrdenes = { estado: "Todos", prioridad: "Todas", busqueda: "" };
 const panelOrdenAdmin = document.getElementById("panelOrdenAdmin");
 const panelOrdenAdminBackdrop = document.getElementById("panelOrdenAdminBackdrop");
@@ -80,8 +82,37 @@ function estadoNormalizado(estado) {
 function claseEstado(estado) {
     const normalizado = estadoNormalizado(estado);
     if (normalizado === "Completado") return "completado";
+    if (normalizado === "Cancelado") return "cancelado";
     if (normalizado === "En Proceso") return "en-proceso";
     return "pendiente";
+}
+
+function esEstadoTerminal(estado) {
+    const normalizado = estadoNormalizado(estado);
+    return normalizado === "Completado" || normalizado === "Cancelado";
+}
+
+function configurarFormularioPorEstado(estado = "Pendiente") {
+    const normalizado = estadoNormalizado(estado);
+    const selectEstado = document.getElementById("estadoServicio");
+    const editando = Boolean(document.getElementById("idEditar").value);
+    const opciones = editando && normalizado === "En Proceso"
+        ? ["En Proceso", "Completado", "Cancelado"]
+        : editando
+            ? ["Pendiente", "En Proceso", "Cancelado"]
+            : ["Pendiente"];
+
+    selectEstado.innerHTML = opciones
+        .map(opcion => `<option value="${opcion}">${opcion}</option>`)
+        .join("");
+    selectEstado.value = normalizado;
+    selectEstado.disabled = !editando;
+
+    const identidadBloqueada = editando && normalizado === "En Proceso";
+    document.getElementById("cliente").readOnly = identidadBloqueada;
+    document.getElementById("dispositivo").readOnly = identidadBloqueada;
+    document.getElementById("servicio").readOnly = identidadBloqueada;
+    document.getElementById("fecha").disabled = identidadBloqueada;
 }
 
 function clasePrioridad(prioridad) {
@@ -403,9 +434,11 @@ function cargarServicios() {
                     <button class="btn-ver-historial action-icon" type="button" data-historial="${solicitud.dbId}" title="Ver detalle e historial" aria-label="Ver detalle e historial de ${escaparHtml(solicitud.id)}">
                         <i class="fa-solid fa-eye"></i>
                     </button>
-                    <button class="btn-editar-historial action-icon" type="button" data-editar="${solicitud.dbId}" title="Editar orden" aria-label="Editar orden">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
+                    ${!esEstadoTerminal(solicitud.estado) ? `
+                        <button class="btn-editar-historial action-icon" type="button" data-editar="${solicitud.dbId}" title="Editar orden" aria-label="Editar orden">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    ` : ""}
                     <button class="btn-eliminar-tabla action-icon" type="button" data-eliminar="${solicitud.dbId}" title="Eliminar orden" aria-label="Eliminar orden">
                         <i class="fa-solid fa-trash"></i>
                     </button>
@@ -456,6 +489,7 @@ async function obtenerSolicitudes() {
 
 function limpiarFormulario() {
     document.getElementById("idEditar").value = "";
+    versionOrdenEditada = "";
     document.getElementById("cliente").value = "";
     clienteSeleccionado = null;
     document.getElementById("dispositivo").value = "";
@@ -463,7 +497,7 @@ function limpiarFormulario() {
     document.getElementById("fecha").value = "";
     pintarSelectTecnicos();
     document.getElementById("prioridadServicio").value = "Media";
-    document.getElementById("estadoServicio").value = "Pendiente";
+    configurarFormularioPorEstado("Pendiente");
     document.getElementById("tituloFormulario").textContent = "Registrar Servicio Presencial";
     document.getElementById("btnGuardar").textContent = "Guardar Orden";
 }
@@ -471,8 +505,13 @@ function limpiarFormulario() {
 function editarServicio(dbId) {
     const solicitud = solicitudes.find(item => item.dbId === dbId);
     if (!solicitud) return;
+    if (esEstadoTerminal(solicitud.estado)) {
+        mostrarNotificacion("Las órdenes completadas o canceladas son de solo lectura.", "error");
+        return;
+    }
 
     document.getElementById("idEditar").value = solicitud.dbId;
+    versionOrdenEditada = solicitud.actualizadoEn;
     document.getElementById("cliente").value = solicitud.usuarioCliente || solicitud.cliente;
     clienteSeleccionado = clientesDisponibles.find(cliente => cliente.usuario === solicitud.usuarioCliente) || null;
     document.getElementById("dispositivo").value = solicitud.dispositivo;
@@ -480,7 +519,7 @@ function editarServicio(dbId) {
     document.getElementById("fecha").value = solicitud.fecha;
     pintarSelectTecnicos(solicitud.tecnico || "");
     document.getElementById("prioridadServicio").value = solicitud.prioridad || "Media";
-    document.getElementById("estadoServicio").value = estadoNormalizado(solicitud.estado);
+    configurarFormularioPorEstado(solicitud.estado);
     document.getElementById("tituloFormulario").textContent = "Asignar o Actualizar Orden";
     document.getElementById("btnGuardar").textContent = "Actualizar Orden";
 
@@ -488,6 +527,8 @@ function editarServicio(dbId) {
 }
 
 document.getElementById("btnGuardar")?.addEventListener("click", async () => {
+    if (guardandoOrden) return;
+
     const idEditar = document.getElementById("idEditar").value;
     const clienteResuelto = resolverClienteFormulario(document.getElementById("cliente").value);
     if (clienteResuelto.error) {
@@ -505,11 +546,17 @@ document.getElementById("btnGuardar")?.addEventListener("click", async () => {
         prioridad: document.getElementById("prioridadServicio").value,
         estado: document.getElementById("estadoServicio").value,
     };
+    if (idEditar) payload.actualizadoEn = versionOrdenEditada;
 
     if (!payload.cliente || !payload.dispositivo || !payload.servicio || !payload.fecha) {
         mostrarNotificacion("Completa cliente, dispositivo, servicio y fecha.", "error");
         return;
     }
+
+    const botonGuardar = document.getElementById("btnGuardar");
+    guardandoOrden = true;
+    botonGuardar.disabled = true;
+    botonGuardar.textContent = idEditar ? "Actualizando..." : "Guardando...";
 
     try {
         const token = await obtenerCsrfToken();
@@ -524,6 +571,21 @@ document.getElementById("btnGuardar")?.addEventListener("click", async () => {
             body: JSON.stringify(payload)
         });
         const datos = await leerRespuestaJson(respuesta);
+        if (respuesta.status === 409) {
+            await obtenerSolicitudes();
+            const solicitudActual = solicitudes.find(item => item.dbId === Number(idEditar));
+            if (solicitudActual && !esEstadoTerminal(solicitudActual.estado)) {
+                editarServicio(solicitudActual.dbId);
+            } else {
+                limpiarFormulario();
+            }
+            await refrescarDetalleOrdenAdmin(Number(idEditar));
+            mostrarNotificacion(
+                datos.error || "La orden cambió. Se cargó su información más reciente.",
+                "error"
+            );
+            return;
+        }
         if (!respuesta.ok || !datos.ok) throw new Error(datos.error || "No se pudo guardar la orden.");
 
         mostrarNotificacion(idEditar ? "Orden actualizada correctamente." : "Orden creada correctamente.", "success");
@@ -533,6 +595,12 @@ document.getElementById("btnGuardar")?.addEventListener("click", async () => {
         void actividadRecienteAdmin.refresh();
     } catch (error) {
         mostrarNotificacion(error.message || "No se pudo guardar la orden.", "error");
+    } finally {
+        guardandoOrden = false;
+        botonGuardar.disabled = false;
+        botonGuardar.textContent = document.getElementById("idEditar").value
+            ? "Actualizar Orden"
+            : "Guardar Orden";
     }
 });
 
@@ -603,6 +671,7 @@ function conectarFiltrosOrdenes() {
 }
 async function iniciarDashboardAdmin() {
     conectarFiltrosOrdenes();
+    limpiarFormulario();
     void actividadRecienteAdmin.load();
     document.getElementById("cerrarPanelOrdenAdmin").addEventListener("click", cerrarDetalleOrdenAdmin);
     panelOrdenAdminBackdrop.addEventListener("click", cerrarDetalleOrdenAdmin);

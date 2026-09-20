@@ -935,6 +935,16 @@ body {
     animation: pulse 1.8s ease-in-out infinite;
 }
 
+.cancelado {
+    background: rgba(148, 163, 184, 0.12) !important;
+    color: #cbd5e1 !important;
+    border: 0.5px solid rgba(148, 163, 184, 0.24);
+}
+
+.cancelado::before {
+    background: #94a3b8;
+}
+
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.3; }

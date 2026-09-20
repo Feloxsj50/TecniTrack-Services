@@ -1,7 +1,9 @@
 import json
 
+from django.db import transaction
 from django.http import JsonResponse
-from django.utils.dateparse import parse_date
+from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.clientes.models import Cliente
@@ -27,6 +29,24 @@ ESTADOS_FRONT = {
     "En proceso": SolicitudServicio.Estado.EN_PROCESO,
     "Completado": SolicitudServicio.Estado.COMPLETADO,
     "Cancelado": SolicitudServicio.Estado.CANCELADO,
+}
+
+TRANSICIONES_ESTADO = {
+    SolicitudServicio.Estado.PENDIENTE: {
+        SolicitudServicio.Estado.EN_PROCESO,
+        SolicitudServicio.Estado.CANCELADO,
+    },
+    SolicitudServicio.Estado.EN_PROCESO: {
+        SolicitudServicio.Estado.COMPLETADO,
+        SolicitudServicio.Estado.CANCELADO,
+    },
+    SolicitudServicio.Estado.COMPLETADO: set(),
+    SolicitudServicio.Estado.CANCELADO: set(),
+}
+
+ESTADOS_TERMINALES = {
+    SolicitudServicio.Estado.COMPLETADO,
+    SolicitudServicio.Estado.CANCELADO,
 }
 
 PRIORIDADES_FRONT = {
@@ -63,7 +83,32 @@ def fecha_iso(valor):
 
 
 def estado_db(valor):
-    return ESTADOS_FRONT.get(valor, SolicitudServicio.Estado.PENDIENTE)
+    if not isinstance(valor, str):
+        raise ValueError("El estado indicado no es válido.")
+
+    estado = valor.strip()
+    if estado in ESTADOS_FRONT:
+        return ESTADOS_FRONT[estado]
+    if estado in SolicitudServicio.Estado.values:
+        return estado
+    raise ValueError("El estado indicado no es válido.")
+
+
+def version_db(valor):
+    if not isinstance(valor, str) or not valor.strip():
+        raise ValueError("Falta la versión actual de la orden.")
+
+    version = parse_datetime(valor.strip())
+    if version is None or timezone.is_naive(version):
+        raise ValueError("La versión de la orden no es válida.")
+    return version
+
+
+def transicion_permitida(estado_anterior, estado_nuevo):
+    return (
+        estado_anterior == estado_nuevo
+        or estado_nuevo in TRANSICIONES_ESTADO.get(estado_anterior, set())
+    )
 
 
 def prioridad_db(valor):
@@ -252,14 +297,28 @@ def crear_solicitud(request):
     problema = datos.get("servicio", datos.get("problema", "")).strip()
     fecha = fecha_db(datos.get("fecha", datos.get("fecha_preferida", "")))
     prioridad = prioridad_db(datos.get("prioridad", "Media"))
-    estado = estado_db(datos.get("estado", "Pendiente"))
-    tecnico = buscar_tecnico(datos.get("tecnico", ""))
+    try:
+        estado = estado_db(datos.get("estado", "Pendiente"))
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+    if estado != SolicitudServicio.Estado.PENDIENTE:
+        return JsonResponse(
+            {"ok": False, "error": "Toda orden nueva debe iniciar en estado Pendiente."},
+            status=400,
+        )
+
+    tecnico_recibido = datos.get("tecnico", "").strip()
+    tecnico = buscar_tecnico(tecnico_recibido)
+    if tecnico_recibido and not tecnico:
+        return JsonResponse(
+            {"ok": False, "error": "El técnico indicado no está disponible."},
+            status=400,
+        )
     cliente_nombre = ""
 
     if request.user.rol == Usuario.Rol.CLIENTE and hasattr(request.user, "perfil_cliente"):
         cliente = request.user.perfil_cliente
         cliente_nombre = request.user.get_full_name() or request.user.username
-        estado = SolicitudServicio.Estado.PENDIENTE
         tecnico = None
     elif request.user.rol == Usuario.Rol.ADMIN:
         cliente_nombre = datos.get("cliente", "").strip()
@@ -270,48 +329,42 @@ def crear_solicitud(request):
     if not all([cliente_nombre, dispositivo, problema, fecha]):
         return JsonResponse({"ok": False, "error": "Completa cliente, dispositivo, servicio y fecha."}, status=400)
 
-    solicitud = SolicitudServicio.objects.create(
-        cliente=cliente,
-        cliente_nombre="" if cliente else cliente_nombre,
-        tecnico=tecnico,
-        dispositivo=dispositivo,
-        problema=problema,
-        fecha_preferida=fecha,
-        prioridad=prioridad,
-        estado=estado,
-    )
-    solicitud.refresh_from_db()
-    registrar_creacion(solicitud, request.user)
-    if solicitud.tecnico:
-        registrar_asignacion(solicitud, request.user, None, solicitud.tecnico)
-    if solicitud.estado == SolicitudServicio.Estado.EN_PROCESO:
-        registrar_inicio(solicitud, request.user, SolicitudServicio.Estado.PENDIENTE)
-    elif solicitud.estado == SolicitudServicio.Estado.COMPLETADO:
-        registrar_finalizacion(solicitud, request.user, SolicitudServicio.Estado.PENDIENTE)
-    elif solicitud.estado == SolicitudServicio.Estado.CANCELADO:
-        registrar_cancelacion(solicitud, request.user, SolicitudServicio.Estado.PENDIENTE)
-    registrar_auditoria(
-        request,
-        "crear",
-        "servicios",
-        f"Orden SOL-{solicitud.id:03d} creada.",
-        solicitud.id,
-    )
+    with transaction.atomic():
+        solicitud = SolicitudServicio.objects.create(
+            cliente=cliente,
+            cliente_nombre="" if cliente else cliente_nombre,
+            tecnico=tecnico,
+            dispositivo=dispositivo,
+            problema=problema,
+            fecha_preferida=fecha,
+            prioridad=prioridad,
+            estado=SolicitudServicio.Estado.PENDIENTE,
+        )
+        registrar_creacion(solicitud, request.user)
+        if solicitud.tecnico:
+            registrar_asignacion(solicitud, request.user, None, solicitud.tecnico)
+        registrar_auditoria(
+            request,
+            "crear",
+            "servicios",
+            f"Orden SOL-{solicitud.id:03d} creada.",
+            solicitud.id,
+        )
 
-    if solicitud.tecnico:
-        notificar_usuarios(
-            [solicitud.tecnico.usuario],
-            "Nuevo trabajo asignado",
-            f"La orden SOL-{solicitud.id:03d} fue asignada a tu panel.",
-            "tecnico/panel_tecnico.html",
-        )
-    else:
-        notificar_usuarios(
-            Usuario.objects.filter(rol=Usuario.Rol.ADMIN, activo=True),
-            "Nueva solicitud de servicio",
-            f"Se recibió la orden SOL-{solicitud.id:03d}.",
-            "admin/panel_admin.html",
-        )
+        if solicitud.tecnico:
+            notificar_usuarios(
+                [solicitud.tecnico.usuario],
+                "Nuevo trabajo asignado",
+                f"La orden SOL-{solicitud.id:03d} fue asignada a tu panel.",
+                "tecnico/panel_tecnico.html",
+            )
+        else:
+            notificar_usuarios(
+                Usuario.objects.filter(rol=Usuario.Rol.ADMIN, activo=True),
+                "Nueva solicitud de servicio",
+                f"Se recibió la orden SOL-{solicitud.id:03d}.",
+                "admin/panel_admin.html",
+            )
 
     return JsonResponse({"ok": True, "solicitud": serializar_solicitud(solicitud)}, status=201)
 
@@ -321,110 +374,258 @@ def actualizar_solicitud(request, solicitud_id):
     if not request.user.is_authenticated:
         return JsonResponse({"ok": False, "error": "Sin sesión activa."}, status=401)
 
-    try:
-        solicitud = SolicitudServicio.objects.select_related("cliente__usuario", "tecnico__usuario").get(id=solicitud_id)
-    except SolicitudServicio.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Solicitud no encontrada."}, status=404)
-
     datos, error = obtener_datos_request_comun(request)
     if error:
         return error
 
-    estado_anterior = solicitud.estado
-    tecnico_anterior = solicitud.tecnico
-    tecnico_anterior_id = solicitud.tecnico_id
-    diagnostico_anterior = solicitud.diagnostico
-    repuesto_anterior = solicitud.repuesto_usado
+    try:
+        version_recibida = version_db(datos.get("actualizadoEn"))
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "error": str(exc)}, status=400)
 
-    if request.user.rol == Usuario.Rol.ADMIN:
-        cliente_nombre = datos.get("cliente", "").strip()
-        cliente = buscar_cliente_por_id(datos.get("clienteId")) or buscar_cliente(cliente_nombre)
+    with transaction.atomic():
+        try:
+            solicitud = (
+                SolicitudServicio.objects.select_for_update(of=("self",))
+                .select_related(
+                    "cliente__usuario",
+                    "tecnico__usuario",
+                    "factura",
+                    "garantia",
+                    "reingreso_garantia__garantia__solicitud_original",
+                )
+                .get(id=solicitud_id)
+            )
+        except SolicitudServicio.DoesNotExist:
+            return JsonResponse(
+                {"ok": False, "error": "Solicitud no encontrada."},
+                status=404,
+            )
 
-        solicitud.cliente = cliente
-        solicitud.cliente_nombre = "" if cliente else cliente_nombre
-        solicitud.dispositivo = datos.get("dispositivo", solicitud.dispositivo).strip()
-        solicitud.problema = datos.get("servicio", solicitud.problema).strip()
-        solicitud.fecha_preferida = fecha_db(datos.get("fecha", solicitud.fecha_preferida))
-        solicitud.tecnico = buscar_tecnico(datos.get("tecnico", ""))
-        solicitud.prioridad = prioridad_db(datos.get("prioridad", solicitud.get_prioridad_display()))
-        solicitud.estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
-        if solicitud.estado in [SolicitudServicio.Estado.EN_PROCESO, SolicitudServicio.Estado.COMPLETADO] and not solicitud.tecnico:
-            return JsonResponse({"ok": False, "error": "Asigna un técnico antes de iniciar o completar la orden."}, status=400)
-    elif request.user.rol == Usuario.Rol.TECNICO and hasattr(request.user, "perfil_tecnico") and solicitud.tecnico_id == request.user.perfil_tecnico.id:
-        if solicitud.estado in [SolicitudServicio.Estado.COMPLETADO, SolicitudServicio.Estado.CANCELADO]:
-            return JsonResponse({"ok": False, "error": "Esta orden ya no puede ser modificada."}, status=400)
-        diagnostico = datos.get("diagnostico", "").strip()
-        estado = estado_db(datos.get("estado", solicitud.get_estado_display()))
-        if estado == SolicitudServicio.Estado.PENDIENTE:
-            return JsonResponse({"ok": False, "error": "Un trabajo asignado debe estar en proceso o completado."}, status=400)
+        es_admin = request.user.rol == Usuario.Rol.ADMIN
+        perfil_tecnico = getattr(request.user, "perfil_tecnico", None)
+        es_tecnico_asignado = (
+            request.user.rol == Usuario.Rol.TECNICO
+            and perfil_tecnico is not None
+            and solicitud.tecnico_id == perfil_tecnico.id
+        )
+        if not es_admin and not es_tecnico_asignado:
+            return JsonResponse(
+                {"ok": False, "error": "No tienes permiso para actualizar esta solicitud."},
+                status=403,
+            )
 
-        if estado == SolicitudServicio.Estado.COMPLETADO and len(diagnostico) < 10:
-            return JsonResponse({"ok": False, "error": "Para completar el trabajo, agrega un diagnostico claro."}, status=400)
+        if version_recibida != solicitud.actualizado_en:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": "La orden cambió mientras la editabas. Recarga los datos e intenta nuevamente.",
+                    "solicitud": serializar_solicitud(solicitud),
+                },
+                status=409,
+            )
+
+        if hasattr(solicitud, "factura"):
+            return JsonResponse(
+                {"ok": False, "error": "Una orden facturada no puede modificarse."},
+                status=409,
+            )
+        if hasattr(solicitud, "garantia"):
+            return JsonResponse(
+                {"ok": False, "error": "La orden original de una garantía no puede modificarse."},
+                status=409,
+            )
+        if solicitud.estado in ESTADOS_TERMINALES:
+            return JsonResponse(
+                {"ok": False, "error": "Una orden completada o cancelada ya no puede modificarse."},
+                status=409,
+            )
+
+        estado_anterior = solicitud.estado
+        tecnico_anterior = solicitud.tecnico
+        tecnico_anterior_id = solicitud.tecnico_id
+        diagnostico_anterior = solicitud.diagnostico
+        repuesto_anterior = solicitud.repuesto_usado
+
+        try:
+            estado_nuevo = estado_db(datos.get("estado", solicitud.estado))
+        except ValueError as exc:
+            return JsonResponse({"ok": False, "error": str(exc)}, status=400)
+
+        if es_admin:
+            cliente_nombre = datos.get(
+                "cliente",
+                nombre_cliente_visible(solicitud),
+            )
+            dispositivo = datos.get("dispositivo", solicitud.dispositivo)
+            problema = datos.get("servicio", solicitud.problema)
+            tecnico_recibido = datos.get(
+                "tecnico",
+                solicitud.tecnico.usuario.username if solicitud.tecnico else "",
+            )
+            if not all(
+                isinstance(valor, str)
+                for valor in [cliente_nombre, dispositivo, problema, tecnico_recibido]
+            ):
+                return JsonResponse(
+                    {"ok": False, "error": "Los datos principales de la orden no son válidos."},
+                    status=400,
+                )
+
+            cliente_nombre = cliente_nombre.strip()
+            dispositivo = dispositivo.strip()
+            problema = problema.strip()
+            tecnico_recibido = tecnico_recibido.strip()
+            fecha = fecha_db(datos.get("fecha", solicitud.fecha_preferida))
+            cliente = buscar_cliente_por_id(datos.get("clienteId")) or buscar_cliente(cliente_nombre)
+            tecnico = buscar_tecnico(tecnico_recibido)
+            if tecnico_recibido and not tecnico:
+                return JsonResponse(
+                    {"ok": False, "error": "El técnico indicado no está disponible."},
+                    status=400,
+                )
+            if not all([cliente_nombre, dispositivo, problema, fecha]):
+                return JsonResponse(
+                    {"ok": False, "error": "Completa cliente, dispositivo, servicio y fecha."},
+                    status=400,
+                )
+
+            cliente_nombre_bd = "" if cliente else cliente_nombre
+            if estado_anterior == SolicitudServicio.Estado.EN_PROCESO:
+                identidad_modificada = any([
+                    solicitud.cliente_id != (cliente.id if cliente else None),
+                    solicitud.cliente_nombre != cliente_nombre_bd,
+                    solicitud.dispositivo != dispositivo,
+                    solicitud.problema != problema,
+                    solicitud.fecha_preferida != fecha,
+                ])
+                if identidad_modificada:
+                    return JsonResponse(
+                        {
+                            "ok": False,
+                            "error": "Cliente, dispositivo, servicio y fecha no pueden cambiar mientras el trabajo está en proceso.",
+                        },
+                        status=409,
+                    )
+                if not tecnico:
+                    return JsonResponse(
+                        {"ok": False, "error": "Un trabajo en proceso debe conservar un técnico asignado."},
+                        status=400,
+                    )
+            else:
+                solicitud.cliente = cliente
+                solicitud.cliente_nombre = cliente_nombre_bd
+                solicitud.dispositivo = dispositivo
+                solicitud.problema = problema
+                solicitud.fecha_preferida = fecha
+
+            solicitud.tecnico = tecnico
+            solicitud.prioridad = prioridad_db(
+                datos.get("prioridad", solicitud.get_prioridad_display())
+            )
+        else:
+            if estado_nuevo == SolicitudServicio.Estado.CANCELADO:
+                return JsonResponse(
+                    {"ok": False, "error": "Solo el administrador puede cancelar una orden."},
+                    status=403,
+                )
+            if estado_anterior == SolicitudServicio.Estado.PENDIENTE and estado_nuevo == estado_anterior:
+                return JsonResponse(
+                    {"ok": False, "error": "Inicia el trabajo antes de registrar cambios."},
+                    status=400,
+                )
+
+            diagnostico = datos.get("diagnostico", "")
+            repuesto = datos.get("repuesto", "")
+            if not isinstance(diagnostico, str) or not isinstance(repuesto, str):
+                return JsonResponse(
+                    {"ok": False, "error": "El diagnóstico y el repuesto deben enviarse como texto."},
+                    status=400,
+                )
+            solicitud.diagnostico = diagnostico.strip()
+            solicitud.repuesto_usado = repuesto.strip()
+
+        if not transicion_permitida(estado_anterior, estado_nuevo):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": (
+                        f"No se permite cambiar una orden de "
+                        f"{solicitud.get_estado_display()} a "
+                        f"{dict(SolicitudServicio.Estado.choices).get(estado_nuevo, estado_nuevo)}."
+                    ),
+                },
+                status=409,
+            )
+        if estado_nuevo == SolicitudServicio.Estado.CANCELADO and not es_admin:
+            return JsonResponse(
+                {"ok": False, "error": "Solo el administrador puede cancelar una orden."},
+                status=403,
+            )
+        if estado_nuevo in {
+            SolicitudServicio.Estado.EN_PROCESO,
+            SolicitudServicio.Estado.COMPLETADO,
+        } and not solicitud.tecnico:
+            return JsonResponse(
+                {"ok": False, "error": "Asigna un técnico antes de iniciar o completar la orden."},
+                status=400,
+            )
         if (
-            estado == SolicitudServicio.Estado.COMPLETADO
-            and estado_anterior != SolicitudServicio.Estado.EN_PROCESO
+            estado_nuevo == SolicitudServicio.Estado.COMPLETADO
+            and len(solicitud.diagnostico.strip()) < 10
         ):
             return JsonResponse(
-                {"ok": False, "error": "Inicia el trabajo antes de marcarlo como completado."},
+                {"ok": False, "error": "Para completar el trabajo, agrega un diagnóstico claro."},
                 status=400,
             )
 
-        solicitud.diagnostico = diagnostico
-        solicitud.repuesto_usado = datos.get("repuesto", "").strip()
-        solicitud.estado = estado
-    else:
-        return JsonResponse({"ok": False, "error": "No tienes permiso para actualizar esta solicitud."}, status=403)
+        solicitud.estado = estado_nuevo
+        solicitud.save()
 
-    solicitud.save()
-    solicitud.refresh_from_db()
-    if tecnico_anterior_id != solicitud.tecnico_id:
-        registrar_asignacion(
-            solicitud,
-            request.user,
-            tecnico_anterior,
-            solicitud.tecnico,
+        if tecnico_anterior_id != solicitud.tecnico_id:
+            registrar_asignacion(
+                solicitud,
+                request.user,
+                tecnico_anterior,
+                solicitud.tecnico,
+            )
+        if estado_anterior != solicitud.estado and solicitud.estado == SolicitudServicio.Estado.EN_PROCESO:
+            registrar_inicio(solicitud, request.user, estado_anterior)
+        if (
+            diagnostico_anterior != solicitud.diagnostico
+            or repuesto_anterior != solicitud.repuesto_usado
+        ):
+            registrar_diagnostico(solicitud, request.user)
+        if estado_anterior != solicitud.estado and solicitud.estado != SolicitudServicio.Estado.EN_PROCESO:
+            if solicitud.estado == SolicitudServicio.Estado.COMPLETADO:
+                registrar_finalizacion(solicitud, request.user, estado_anterior)
+            elif solicitud.estado == SolicitudServicio.Estado.CANCELADO:
+                registrar_cancelacion(solicitud, request.user, estado_anterior)
+            else:
+                registrar_cambio_estado(solicitud, request.user, estado_anterior)
+
+        registrar_auditoria(
+            request,
+            "actualizar",
+            "servicios",
+            f"Orden SOL-{solicitud.id:03d} actualizada a {solicitud.get_estado_display()}.",
+            solicitud.id,
         )
-    if (
-        estado_anterior != solicitud.estado
-        and solicitud.estado == SolicitudServicio.Estado.EN_PROCESO
-    ):
-        registrar_inicio(solicitud, request.user, estado_anterior)
-    if (
-        diagnostico_anterior != solicitud.diagnostico
-        or repuesto_anterior != solicitud.repuesto_usado
-    ):
-        registrar_diagnostico(solicitud, request.user)
-    if (
-        estado_anterior != solicitud.estado
-        and solicitud.estado != SolicitudServicio.Estado.EN_PROCESO
-    ):
-        if solicitud.estado == SolicitudServicio.Estado.COMPLETADO:
-            registrar_finalizacion(solicitud, request.user, estado_anterior)
-        elif solicitud.estado == SolicitudServicio.Estado.CANCELADO:
-            registrar_cancelacion(solicitud, request.user, estado_anterior)
-        else:
-            registrar_cambio_estado(solicitud, request.user, estado_anterior)
-    registrar_auditoria(
-        request,
-        "actualizar",
-        "servicios",
-        f"Orden SOL-{solicitud.id:03d} actualizada a {solicitud.get_estado_display()}.",
-        solicitud.id,
-    )
-    if request.user.rol == Usuario.Rol.ADMIN and solicitud.tecnico_id and solicitud.tecnico_id != tecnico_anterior_id:
-        notificar_usuarios(
-            [solicitud.tecnico.usuario],
-            "Trabajo actualizado",
-            f"La orden SOL-{solicitud.id:03d} está asignada a tu panel.",
-            "tecnico/panel_tecnico.html",
-        )
-    if solicitud.cliente and solicitud.estado != estado_anterior:
-        notificar_usuarios(
-            [solicitud.cliente.usuario],
-            "Estado de servicio actualizado",
-            f"La orden SOL-{solicitud.id:03d} ahora está en {solicitud.get_estado_display()}.",
-            "cliente/panel_cliente.html",
-        )
+        if es_admin and solicitud.tecnico_id and solicitud.tecnico_id != tecnico_anterior_id:
+            notificar_usuarios(
+                [solicitud.tecnico.usuario],
+                "Trabajo actualizado",
+                f"La orden SOL-{solicitud.id:03d} está asignada a tu panel.",
+                "tecnico/panel_tecnico.html",
+            )
+        if solicitud.cliente and solicitud.estado != estado_anterior:
+            notificar_usuarios(
+                [solicitud.cliente.usuario],
+                "Estado de servicio actualizado",
+                f"La orden SOL-{solicitud.id:03d} ahora está en {solicitud.get_estado_display()}.",
+                "cliente/panel_cliente.html",
+            )
+
     return JsonResponse({"ok": True, "solicitud": serializar_solicitud(solicitud)})
 
 
@@ -436,28 +637,45 @@ def eliminar_solicitud(request, solicitud_id):
     if request.user.rol != Usuario.Rol.ADMIN:
         return JsonResponse({"ok": False, "error": "Solo admin puede eliminar órdenes."}, status=403)
 
-    try:
-        solicitud = SolicitudServicio.objects.get(id=solicitud_id)
-    except SolicitudServicio.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Solicitud no encontrada."}, status=404)
+    with transaction.atomic():
+        try:
+            solicitud = (
+                SolicitudServicio.objects.select_for_update(of=("self",))
+                .select_related("factura", "garantia", "reingreso_garantia")
+                .get(id=solicitud_id)
+            )
+        except SolicitudServicio.DoesNotExist:
+            return JsonResponse(
+                {"ok": False, "error": "Solicitud no encontrada."},
+                status=404,
+            )
 
-    if hasattr(solicitud, "factura"):
-        return JsonResponse(
-            {"ok": False, "error": "No se puede eliminar una orden facturada. Conserva ese registro para el historial."},
-            status=400,
+        if hasattr(solicitud, "factura"):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": "No se puede eliminar una orden facturada. Conserva ese registro para el historial.",
+                },
+                status=400,
+            )
+
+        if hasattr(solicitud, "garantia") or hasattr(solicitud, "reingreso_garantia"):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": "No se puede eliminar una orden relacionada con una garantía.",
+                },
+                status=400,
+            )
+
+        registrar_auditoria(
+            request,
+            "eliminar",
+            "servicios",
+            f"Orden SOL-{solicitud.id:03d} eliminada.",
+            solicitud.id,
         )
-
-    if hasattr(solicitud, "garantia") or hasattr(solicitud, "reingreso_garantia"):
-        return JsonResponse(
-            {
-                "ok": False,
-                "error": "No se puede eliminar una orden relacionada con una garantía.",
-            },
-            status=400,
-        )
-
-    registrar_auditoria(request, "eliminar", "servicios", f"Orden SOL-{solicitud.id:03d} eliminada.", solicitud.id)
-    solicitud.delete()
+        solicitud.delete()
     return JsonResponse({"ok": True})
 
 
