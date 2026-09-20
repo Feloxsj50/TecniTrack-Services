@@ -1,7 +1,10 @@
 import json
 from decimal import Decimal, InvalidOperation
 
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.usuarios.models import Usuario
@@ -11,6 +14,7 @@ from .models import MovimientoInventario, ProductoInventario
 
 
 CATEGORIAS_VALIDAS = {valor for valor, _ in ProductoInventario.Categoria.choices}
+MAXIMO_ENTERO_POSITIVO = 2_147_483_647
 
 
 def obtener_datos_request(request):
@@ -34,13 +38,33 @@ def validar_admin(request):
 
 
 def entero_no_negativo(valor, campo):
-    try:
-        numero = int(valor)
-    except (TypeError, ValueError):
+    if isinstance(valor, bool) or not isinstance(valor, int):
         raise ValueError(f"{campo} debe ser un número entero.")
+
+    numero = valor
     if numero < 0:
         raise ValueError(f"{campo} no puede ser negativo.")
+    if numero > MAXIMO_ENTERO_POSITIVO:
+        raise ValueError(f"{campo} excede el valor máximo permitido.")
     return numero
+
+
+def obtener_version_producto(datos):
+    valor = datos.get("actualizadoEn")
+    if not isinstance(valor, str) or not valor.strip():
+        return None, JsonResponse(
+            {"ok": False, "error": "Falta la versión actual del producto."},
+            status=400,
+        )
+
+    version = parse_datetime(valor.strip())
+    if version is None or timezone.is_naive(version):
+        return None, JsonResponse(
+            {"ok": False, "error": "La versión del producto no es válida."},
+            status=400,
+        )
+
+    return version, None
 
 
 def decimal_no_negativo(valor, campo):
@@ -169,16 +193,30 @@ def crear_producto(request):
     if error:
         return error
 
-    producto = ProductoInventario.objects.create(**limpio)
-    MovimientoInventario.objects.create(
-        producto=producto,
-        usuario=request.user,
-        tipo=MovimientoInventario.Tipo.REGISTRO,
-        cantidad=producto.stock,
-        stock_anterior=0,
-        stock_nuevo=producto.stock,
-    )
-    registrar_auditoria(request, "crear", "inventario", f"Producto {producto.codigo} creado.", producto.id)
+    try:
+        with transaction.atomic():
+            producto = ProductoInventario.objects.create(**limpio)
+            MovimientoInventario.objects.create(
+                producto=producto,
+                usuario=request.user,
+                tipo=MovimientoInventario.Tipo.REGISTRO,
+                cantidad=producto.stock,
+                stock_anterior=0,
+                stock_nuevo=producto.stock,
+            )
+            registrar_auditoria(
+                request,
+                "crear",
+                "inventario",
+                f"Producto {producto.codigo} creado.",
+                producto.id,
+            )
+    except IntegrityError:
+        return JsonResponse(
+            {"ok": False, "error": "No se pudo registrar el producto de forma íntegra."},
+            status=409,
+        )
+
     return JsonResponse({"ok": True, "producto": serializar_producto(producto)}, status=201)
 
 
@@ -188,11 +226,6 @@ def actualizar_producto(request, producto_id):
     if permiso:
         return permiso
 
-    try:
-        producto = ProductoInventario.objects.get(id=producto_id, activo=True)
-    except ProductoInventario.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Producto no encontrado."}, status=404)
-
     datos, error = obtener_datos_request(request)
     if error:
         return error
@@ -201,20 +234,62 @@ def actualizar_producto(request, producto_id):
     if error:
         return error
 
-    stock_anterior = producto.stock
-    for campo, valor in limpio.items():
-        setattr(producto, campo, valor)
-    producto.save()
-    if stock_anterior != producto.stock:
-        MovimientoInventario.objects.create(
-            producto=producto,
-            usuario=request.user,
-            tipo=MovimientoInventario.Tipo.AJUSTE,
-            cantidad=producto.stock - stock_anterior,
-            stock_anterior=stock_anterior,
-            stock_nuevo=producto.stock,
+    version_recibida, error = obtener_version_producto(datos)
+    if error:
+        return error
+
+    try:
+        with transaction.atomic():
+            producto = (
+                ProductoInventario.objects.select_for_update(of=("self",))
+                .filter(id=producto_id, activo=True)
+                .order_by("id")
+                .first()
+            )
+            if not producto:
+                return JsonResponse(
+                    {"ok": False, "error": "Producto no encontrado."},
+                    status=404,
+                )
+
+            if version_recibida != producto.actualizado_en:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "error": "El producto cambió mientras lo editabas. Recarga los datos e intenta nuevamente.",
+                        "producto": serializar_producto(producto),
+                    },
+                    status=409,
+                )
+
+            stock_anterior = producto.stock
+            for campo, valor in limpio.items():
+                setattr(producto, campo, valor)
+            producto.save()
+
+            if stock_anterior != producto.stock:
+                MovimientoInventario.objects.create(
+                    producto=producto,
+                    usuario=request.user,
+                    tipo=MovimientoInventario.Tipo.AJUSTE,
+                    cantidad=producto.stock - stock_anterior,
+                    stock_anterior=stock_anterior,
+                    stock_nuevo=producto.stock,
+                )
+
+            registrar_auditoria(
+                request,
+                "actualizar",
+                "inventario",
+                f"Producto {producto.codigo} actualizado.",
+                producto.id,
+            )
+    except IntegrityError:
+        return JsonResponse(
+            {"ok": False, "error": "No se pudo actualizar el producto de forma íntegra."},
+            status=409,
         )
-    registrar_auditoria(request, "actualizar", "inventario", f"Producto {producto.codigo} actualizado.", producto.id)
+
     return JsonResponse({"ok": True, "producto": serializar_producto(producto)})
 
 
@@ -224,12 +299,27 @@ def eliminar_producto(request, producto_id):
     if permiso:
         return permiso
 
-    try:
-        producto = ProductoInventario.objects.get(id=producto_id, activo=True)
-    except ProductoInventario.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "Producto no encontrado."}, status=404)
+    with transaction.atomic():
+        producto = (
+            ProductoInventario.objects.select_for_update(of=("self",))
+            .filter(id=producto_id, activo=True)
+            .order_by("id")
+            .first()
+        )
+        if not producto:
+            return JsonResponse(
+                {"ok": False, "error": "Producto no encontrado."},
+                status=404,
+            )
 
-    producto.activo = False
-    producto.save(update_fields=["activo", "actualizado_en"])
-    registrar_auditoria(request, "eliminar", "inventario", f"Producto {producto.codigo} desactivado.", producto.id)
+        producto.activo = False
+        producto.save(update_fields=["activo", "actualizado_en"])
+        registrar_auditoria(
+            request,
+            "eliminar",
+            "inventario",
+            f"Producto {producto.codigo} desactivado.",
+            producto.id,
+        )
+
     return JsonResponse({"ok": True})

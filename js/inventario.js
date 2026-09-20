@@ -9,9 +9,12 @@ const API_BASE = (() => {
 
     return origin;
 })();
+const MAXIMO_STOCK = 2147483647;
 let productos = [];
 let movimientos = [];
 let productoEditandoId = null;
+let productoEditandoActualizadoEn = null;
+let guardandoProducto = false;
 let csrfToken = "";
 let paginaInventario = 1;
 const sesionInventario = TecniAuth.obtenerSesion();
@@ -59,13 +62,24 @@ async function apiJson(url, opciones = {}) {
     });
     const datos = await leerRespuestaJson(respuesta);
     if (!respuesta.ok || !datos.ok) {
-        throw new Error(datos.error || "No se pudo completar la acción.");
+        const error = new Error(datos.error || "No se pudo completar la acción.");
+        error.status = respuesta.status;
+        error.datos = datos;
+        throw error;
     }
     return datos;
 }
 
 function esEnteroNoNegativo(valor) {
-    return Number.isInteger(valor) && valor >= 0;
+    return Number.isInteger(valor) && valor >= 0 && valor <= MAXIMO_STOCK;
+}
+
+function leerEnteroNoNegativo(campoId) {
+    const valor = document.getElementById(campoId).value.trim();
+    if (!/^\d+$/.test(valor)) return Number.NaN;
+
+    const numero = Number(valor);
+    return Number.isSafeInteger(numero) ? numero : Number.NaN;
 }
 
 function esPrecioValido(valor) {
@@ -165,6 +179,7 @@ function cargarProductoEnFormulario(productoId) {
     if (!p) return;
 
     productoEditandoId = p.dbId;
+    productoEditandoActualizadoEn = p.actualizadoEn;
     document.getElementById("nombreProducto").value = p.nombre;
     document.getElementById("categoriaProducto").value = p.categoria;
     document.getElementById("proveedorProducto").value = p.proveedor || "";
@@ -215,6 +230,7 @@ function limpiarFormulario() {
     document.getElementById("notaProducto").value = "";
 
     productoEditandoId = null;
+    productoEditandoActualizadoEn = null;
     const btnGuardar = document.getElementById("btnAgregarProducto");
     btnGuardar.textContent = "Añadir";
     btnGuardar.style.background = "";
@@ -223,18 +239,24 @@ function limpiarFormulario() {
 }
 
 function datosFormulario() {
-    return {
+    const datos = {
         nombre: document.getElementById("nombreProducto").value.trim(),
         categoria: document.getElementById("categoriaProducto").value,
         proveedor: document.getElementById("proveedorProducto").value.trim(),
         serie: document.getElementById("serieProducto").value.trim(),
-        stock: parseInt(document.getElementById("stockProducto").value, 10),
-        stockMinimo: parseInt(document.getElementById("stockMinimoProducto").value, 10),
+        stock: leerEnteroNoNegativo("stockProducto"),
+        stockMinimo: leerEnteroNoNegativo("stockMinimoProducto"),
         compra: parseFloat(document.getElementById("precioCompraProducto").value),
         venta: parseFloat(document.getElementById("precioVentaProducto").value),
         ubicacion: document.getElementById("ubicacionProducto").value.trim(),
         nota: document.getElementById("notaProducto").value.trim(),
     };
+
+    if (productoEditandoId) {
+        datos.actualizadoEn = productoEditandoActualizadoEn;
+    }
+
+    return datos;
 }
 
 function validarProducto(producto) {
@@ -249,7 +271,7 @@ function validarProducto(producto) {
     }
 
     if (!esEnteroNoNegativo(producto.stock) || !esEnteroNoNegativo(producto.stockMinimo)) {
-        mostrarNotificacion("El stock y el stock mínimo deben ser números enteros de 0 en adelante.", "error");
+        mostrarNotificacion(`El stock y el stock mínimo deben ser enteros entre 0 y ${MAXIMO_STOCK}.`, "error");
         return false;
     }
 
@@ -267,8 +289,15 @@ function validarProducto(producto) {
 }
 
 async function guardarProducto() {
+    if (guardandoProducto) return;
+
     const payload = datosFormulario();
     if (!validarProducto(payload)) return;
+
+    const btnGuardar = document.getElementById("btnAgregarProducto");
+    guardandoProducto = true;
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = "Guardando...";
 
     try {
         const url = productoEditandoId
@@ -283,7 +312,20 @@ async function guardarProducto() {
         limpiarFormulario();
         mostrarNotificacion("Producto guardado correctamente.", "success");
     } catch (error) {
+        if (error.status === 409) {
+            await cargarInventario();
+            limpiarFormulario();
+            mostrarNotificacion(
+                error.message || "El producto cambió mientras lo editabas. Revisa los datos actuales.",
+                "error"
+            );
+            return;
+        }
         mostrarNotificacion(error.message || "No se pudo guardar el producto.", "error");
+    } finally {
+        guardandoProducto = false;
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = productoEditandoId ? "Guardar cambios" : "Añadir";
     }
 }
 
